@@ -36,10 +36,12 @@ Re-skin de 30 décors (PACK inchangé). Mapping FAIT :
 
 ## ⏳ À faire (lots suivants)
 
-### Lot 2 — Sols (`sq_*`) — mapping PROPOSÉ (script `inject_terrain_sols.py` prêt, NON lancé)
-Clés moteur (10) : `sq_grass, sq_moss, sq_dirt, sq_gravel, sq_mud, sq_path, sq_sand, sq_soil, sq_stone, sq_pond`.
-Proposé : `sq_grass←R5C7, sq_moss←R7C6, sq_dirt←R7C1, sq_gravel←R7C4, sq_mud←R6C3, sq_path←R7C3, sq_sand←R7C2, sq_soil←R7C5, sq_stone←R5C5` (sq_pond → lot eau).
-⚠️ Les cellules sol sont des **tuiles iso** (≈70% transparent) → extraire en détourant le diamant. `tile()` les clippe au losange (ow=w*1.12). Sols = TOUTE la carte → **valider visuellement avant push**.
+### Lot 2 — Sols (`sq_*`) — ✅ FAIT (live sur branche `claude/terrain-lot2-atlas-mnt14y`)
+Script `inject_terrain_lot2_sols.py` lancé. 9 clés re-skinnées (PACK inchangé, 170 data-uris conservés) :
+`sq_grass←R5C7, sq_moss←R7C6, sq_dirt←R7C1, sq_gravel←R7C4, sq_mud←R6C3, sq_path←R7C3, sq_sand←R7C2, sq_soil←R7C5, sq_stone←R5C5` (sq_pond → lot eau).
+- Sols réellement présents dans `W.ground` du monde : **grass, moss, dirt, sand, pavel(→sq_stone), water(→sq_grass)**. Les autres (soil/mud/gravel/path) re-skinnés pour le futur.
+- Mesure : cellules sol = diamants 2:1 pleins, pleine largeur (x 0-511), centrés vertical (~115-395) → extraction simple (alpha-trim) suffit, pas de tufts protubérants. `tile()` clippe au losange (ow=w*1.12), léger sur-scale → remplit les coins.
+- **Validé visuellement** (Playwright 393×844 DPR2, hook qui peint un bloc 8×8 cyclant tous les types) : tuilage iso propre, zéro trou/chevauchement, clip losange préservé.
 
 ### Lot 3 — Eau & clôtures
 - `pond_big`/`pond_mare` ← R3C4, R3C6 (étangs nénuphars), R3C1 (mare) · `cascade` ← R3C2, R3C5
