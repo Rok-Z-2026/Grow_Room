@@ -38,12 +38,12 @@ CW, CH = 512, 600
 # keep_leaf  : sous y_top, en plus du tronc, garder les pixels NON-verts (feuillage
 #              pendant brun/clair) -> evite de rogner les branches du saule.
 JOBS = [
-    ("tree4",  (0, 2), dict(trunk_half=46)),                              # bouleau tronc epais
-    ("treeC1", (1, 3), dict(trunk_half=64)),                              # bouleau elance 2 troncs
-    ("treeC2", (1, 2), dict(trunk_half=58)),                              # chene noueux
-    ("treeC3", (1, 1), dict(trunk_half=58)),                              # gros pommier
+    ("tree4",  (0, 2), dict(trunk_half=40, motte_half=40, motte_depth=18)),  # bouleau tronc epais
+    ("treeC1", (1, 3), dict(trunk_half=58, motte_half=52, motte_depth=18)),  # bouleau elance 2 troncs
+    ("treeC2", (1, 2), dict(trunk_half=58, motte_depth=22)),              # chene noueux
+    ("treeC3", (1, 1), dict(trunk_half=58, motte_depth=22)),              # gros pommier
     ("treeC4", (2, 0), dict(trunk_half=70, foliage_half=150, motte_half=58, motte_depth=24)),  # saule pendant
-    ("treeC5", (2, 3), dict(trunk_half=50)),                              # sapin elance
+    ("treeC5", (2, 3), dict(trunk_half=50, motte_depth=18)),              # sapin elance
 ]
 
 
@@ -96,6 +96,10 @@ def detour_cell(atlas, row, col, trunk_half=50, extra_lift=0,
     water = (B > R + 10) & (G > R) & (B > 70)
     soil = grass | water
 
+    # halos noirs / speckles d'anti-aliasing de l'atlas (bords sombres semi-opaques)
+    dark = (R < 28) & (G < 28) & (B < 28)
+    blackhalo = dark & (alpha > 16) & (alpha < 230)
+
     y_cut = y_ground + motte_depth  # au-dela: plus rien (la motte est courte)
     new_m = m.copy()
     for y in range(y_top, CH):
@@ -107,6 +111,9 @@ def detour_cell(atlas, row, col, trunk_half=50, extra_lift=0,
         else:
             band = np.abs(xx - cx) < motte_half
         new_m[y] = m[y] & band & (~soil[y])
+
+    # supprimer les halos noirs partout (foliage compris)
+    new_m = new_m & (~blackhalo)
 
     out = arr.copy()
     out[:, :, 3] = np.where(new_m, alpha, 0).astype(np.uint8)
