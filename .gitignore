@@ -1,0 +1,73 @@
+# ─────────────────────────────────────────────
+#  TINY GROW — .gitignore
+# ─────────────────────────────────────────────
+
+# === Systèmes d'exploitation ===
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+desktop.ini
+$RECYCLE.BIN/
+
+# === Éditeurs / IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.history/
+
+# === Node / outils JS ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.cache/
+.parcel-cache/
+
+# === Fichiers temporaires ===
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.log
+tmp/
+temp/
+~$*
+
+# === Tests / captures d'écran ===
+test-results/
+playwright-report/
+playwright/.cache/
+/screenshots/
+*-screenshot.png
+screenshot-*.png
+test-*.png
+*.spec.png
+
+# === Sorties de build ===
+dist/
+build/
+out/
+
+# === Secrets / environnement ===
+.env
+.env.local
+.env.*.local
+
+# === Archives temporaires ===
+*.zip.tmp
+*.tar.tmp

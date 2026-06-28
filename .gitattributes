@@ -1,0 +1,30 @@
+# ──────────────────────────────────────────────
+#  TINY GROW — attributs git
+#  Rappel : en gitattributes, la DERNIÈRE règle qui
+#  matche un fichier gagne. Le bloc LFS est donc placé
+#  en dernier pour que `-text` (binaire) l'emporte.
+# ──────────────────────────────────────────────
+
+# --- Normalisation des fins de ligne (sources texte) ---
+*.js     text eol=lf
+*.css    text eol=lf
+*.md     text eol=lf
+*.json   text eol=lf
+*.html   text eol=lf
+
+# ──────────────────────────────────────────────
+#  Git LFS — gros binaires
+#  (le tracking LFS doit exister AVANT de committer
+#   les fichiers concernés)
+# ──────────────────────────────────────────────
+
+# Le jeu single-file (~17,7 Mo, assets embarqués) — binaire, hors normalisation
+grow_world.html filter=lfs diff=lfs merge=lfs -text
+
+# Sources d'assets lourdes (atlas, sprites, tilesets) dans 02_Asset/
+02_Asset/**/*.png      filter=lfs diff=lfs merge=lfs -text
+02_Asset/**/*.psd      filter=lfs diff=lfs merge=lfs -text
+02_Asset/**/*.aseprite filter=lfs diff=lfs merge=lfs -text
+02_Asset/**/*.ase      filter=lfs diff=lfs merge=lfs -text
+02_Asset/**/*.tga      filter=lfs diff=lfs merge=lfs -text
+02_Asset/**/*.webp     filter=lfs diff=lfs merge=lfs -text
