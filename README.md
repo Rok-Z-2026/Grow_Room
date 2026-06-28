@@ -9,8 +9,9 @@ aucun serveur : on double-clique, ça tourne dans le navigateur.
 ## 🎮 Le jeu
 
 - **Genre** : idle / gestion, progression passive
-- **Univers** : monde isométrique, ambiance contemplative (« Les Graines de l'Oubli »)
-- **Thème** : culture de cannabis, montée en puissance d'une grow room
+- **Univers** : monde isométrique 3/4 (style *Hay Day* / *Township*), esthétique « Mystic Nature »
+- **Thème** : culture de cannabis stylisée, montée en puissance d'une grow room
+- **Cible** : mobile portrait 9:16
 - **Format** : 100 % client, un seul fichier `grow_world.html` (moteur + assets embarqués)
 
 ---
@@ -19,11 +20,12 @@ aucun serveur : on double-clique, ça tourne dans le navigateur.
 
 ```
 Grow_Room/
-├── grow_world.html      # Le jeu complet (moteur iso + assets embarqués) — ~17,7 Mo
-├── 01_Code/             # Sources du moteur, scripts, outils de build
-├── 02_Asset/            # Sources des assets : atlas, sprites, tilesets isométriques
+├── 01_Code/
+│   └── grow_world.html  # Le jeu complet (moteur iso + PACK base64 embarqué) — ~17,7 Mo
+├── 02_Asset/            # Sources des assets : atlas Glow_*, spritesheets
 ├── README.md            # Ce fichier
 ├── CLAUDE.md            # Contexte technique du moteur (pour Claude Code / contributeurs)
+├── .gitattributes       # Tracking Git LFS
 └── .gitignore
 ```
 
@@ -37,7 +39,7 @@ Grow_Room/
 Aucune dépendance, aucun build nécessaire pour jouer :
 
 1. Récupérer le dépôt (clone ou téléchargement ZIP).
-2. Ouvrir **`grow_world.html`** dans un navigateur récent (Chrome / Firefox / Edge).
+2. Ouvrir **`01_Code/grow_world.html`** dans un navigateur récent (Chrome / Firefox / Edge).
 3. C'est tout — le jeu démarre.
 
 > 💡 Si une fonctionnalité nécessite un contexte sécurisé (stockage, workers…),
@@ -45,7 +47,7 @@ Aucune dépendance, aucun build nécessaire pour jouer :
 > ```bash
 > # depuis la racine du dépôt
 > python3 -m http.server 8080
-> # puis ouvrir http://localhost:8080/grow_world.html
+> # puis ouvrir http://localhost:8080/01_Code/grow_world.html
 > ```
 
 ---
