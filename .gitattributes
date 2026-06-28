@@ -1,27 +1,27 @@
 # ──────────────────────────────────────────────
 #  TINY GROW — attributs git
 #  Rappel : en gitattributes, la DERNIÈRE règle qui
-#  matche un fichier gagne. Le bloc LFS est donc placé
-#  en dernier pour que `-text` (binaire) l'emporte.
+#  matche un fichier gagne.
 # ──────────────────────────────────────────────
 
 # --- Normalisation des fins de ligne (sources texte) ---
+# (pas de règle *.html générique : grow_world.html est le seul HTML et est
+#  traité spécifiquement ci-dessous comme binaire normal)
 *.js     text eol=lf
 *.css    text eol=lf
 *.md     text eol=lf
 *.json   text eol=lf
-*.html   text eol=lf
+
+# --- grow_world.html : fichier NORMAL servi par GitHub Pages (PAS en LFS) ---
+# GitHub Pages ne sert pas correctement les fichiers Git LFS : le jeu reste donc
+# un blob git classique. Marqué binaire (-text -diff) pour éviter la normalisation
+# des fins de ligne et les diffs git inutiles sur ~17 Mo.
+grow_world.html -text -diff
 
 # ──────────────────────────────────────────────
-#  Git LFS — gros binaires
-#  (le tracking LFS doit exister AVANT de committer
-#   les fichiers concernés)
+#  Git LFS — atlas sources lourds (DEV ONLY, non servis par Pages)
+#  (le tracking LFS doit exister AVANT de committer les fichiers concernés)
 # ──────────────────────────────────────────────
-
-# Le jeu single-file (~17,7 Mo, assets embarqués) — binaire, hors normalisation
-grow_world.html filter=lfs diff=lfs merge=lfs -text
-
-# Sources d'assets lourdes (atlas, sprites, tilesets) dans 02_Asset/
 02_Asset/**/*.png      filter=lfs diff=lfs merge=lfs -text
 02_Asset/**/*.psd      filter=lfs diff=lfs merge=lfs -text
 02_Asset/**/*.aseprite filter=lfs diff=lfs merge=lfs -text

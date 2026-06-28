@@ -22,15 +22,16 @@ aucun serveur : on double-clique, ça tourne dans le navigateur.
 Grow_Room/
 ├── 01_Code/
 │   └── grow_world.html  # Le jeu complet (moteur iso + PACK base64 embarqué) — ~17,7 Mo
-├── 02_Asset/            # Sources des assets : atlas Glow_*, spritesheets
+├── 02_Asset/            # Sources des assets : atlas Glow_* (Git LFS), spritesheets
 ├── README.md            # Ce fichier
 ├── CLAUDE.md            # Contexte technique du moteur (pour Claude Code / contributeurs)
-├── .gitattributes       # Tracking Git LFS
+├── .nojekyll            # Désactive Jekyll → GitHub Pages sert les fichiers bruts
+├── .gitattributes       # grow_world.html = git normal (Pages) / atlas Glow_* = Git LFS
 └── .gitignore
 ```
 
 > ℹ️ `grow_world.html` est volumineux car les assets (atlas/sprites) y sont
-> embarqués pour rester en single-file portable. Voir la note Git LFS plus bas.
+> embarqués pour rester en single-file portable. Voir la note versioning plus bas.
 
 ---
 
@@ -52,6 +53,20 @@ Aucune dépendance, aucun build nécessaire pour jouer :
 
 ---
 
+## 🌐 Jouer en ligne (GitHub Pages)
+
+Le jeu est déployé via **GitHub Pages** (branche `main`, dossier racine) :
+
+**▶️ https://rok-z-2026.github.io/Grow_Room/01_Code/grow_world.html**
+
+- `grow_world.html` est volontairement **hors Git LFS** : GitHub Pages ne sert pas
+  correctement les fichiers LFS.
+- Le fichier `.nojekyll` à la racine garantit que Pages sert les fichiers bruts
+  (sans traitement Jekyll).
+- Les atlas sources `Glow_*` restent en LFS (stockage dev), **non** servis par Pages.
+
+---
+
 ## 🛠️ Développement
 
 - Le moteur isométrique et la logique de jeu sont décrits dans **`CLAUDE.md`**.
@@ -62,7 +77,11 @@ Aucune dépendance, aucun build nécessaire pour jouer :
 
 ## 📦 Note versioning (gros fichiers)
 
-`grow_world.html` pèse ~17,7 Mo. C'est sous la limite GitHub (blocage à 100 Mo,
-avertissement à 50 Mo), donc il passe — mais c'est lourd à versionner si le fichier
-change souvent. Selon le choix retenu, le dépôt peut utiliser **Git LFS** pour les
-gros binaires (voir `CLAUDE.md` / l'historique de mise en place).
+- **`grow_world.html` (~17,7 Mo)** : versionné en **git normal** (pas en LFS) pour
+  être servi tel quel par GitHub Pages. Sous la limite GitHub (avertissement à 50 Mo,
+  blocage à 100 Mo), donc il passe.
+- **Atlas sources `Glow_*` / spritesheets** (dans `02_Asset/`) : suivis via **Git LFS**
+  (stockage dev, non servis par Pages). Voir `.gitattributes`.
+
+> ⚠️ L'upload via l'interface web de GitHub **n'applique pas** le filtre LFS : pour
+> ajouter les atlas en LFS, passer par `git` en ligne de commande (PC), pas par le web.
