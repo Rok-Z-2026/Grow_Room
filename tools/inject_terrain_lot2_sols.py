@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage
 
-S="/tmp/claude-0/-home-user-Grow-Room/6ca61300-ab28-5caa-8eb4-f03709beac01/scratchpad"
+S="/tmp/claude-0/-home-user-Grow-Room/6a94929b-4c52-52be-9494-012322a2a21e/scratchpad"
 HTML="/home/user/Grow_Room/01_Code/grow_world.html"
 atlas=Image.open(S+"/Glow_Terrain.png").convert("RGBA"); G=512
 
