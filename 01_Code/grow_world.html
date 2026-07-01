@@ -278,11 +278,17 @@ function draw(){
       ctx.globalAlpha=1;
       ctx.restore();}
     }
-    // 3) decor (les mares/cascades sont dessinees en passe prealable plus bas, on les saute ici)
+    }
+  // PASSE OMBRES : APRES tout le sol, AVANT les objets -> l'ombre se pose sur le terrain
+  for(const {x,y} of cells){
+    const dec=W.decor[y][x];
+    if(dec && !['flower','stump','pond_big','pond_mare','cascade'].includes(dec[0])){const t=dec[0],sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);shadow(ix,iy+TH()*(['tree','treeC','bush','bushF','flower'].includes(t)?0.58:0.5),TW()*sc*0.85);}
+  }
+  // PASSE OBJETS
+  for(const {x,y} of cells){
     const dec=W.decor[y][x];
     if(dec && !['pond_big','pond_mare','cascade'].includes(dec[0])){const t=dec[0],img=decImg(dec),sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
       let a=null;if(isBig(t)&&zoom>0.95){for(const kk in cropCells){const c=cropCells[kk];if(c.state==='ready'&&(c.x+c.y)>(x+y)&&Math.abs(isoX(c.x+.5,c.y+.5)-ix)<TW()&&isoY(c.x+.5,c.y+.5)>iy-TH()*3&&isoY(c.x+.5,c.y+.5)<iy+TH()){a=0.45;break;}}}
-      if(!['flower','stump'].includes(t)){var _so=['tree','treeC','bush','bushF','flower'].includes(t)?0.58:0.5;shadow(ix,iy+TH()*_so,TW()*sc*0.85);}
       // effet vent : seuls les vegetaux se balancent (arbres/buissons/fleurs), pas les structures
       const wind=['tree','treeC','bush','bushF','flower'].includes(t);
       if(wind && a==null){
