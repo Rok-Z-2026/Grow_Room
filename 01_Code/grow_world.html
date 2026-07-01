@@ -282,7 +282,7 @@ function draw(){
   // PASSE OMBRES : APRES tout le sol, AVANT les objets -> l'ombre se pose sur le terrain
   for(const {x,y} of cells){
     const dec=W.decor[y][x];
-    if(dec && !['flower','stump','pond_big','pond_mare','cascade'].includes(dec[0])){const t=dec[0],sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);shadow(ix,iy+TH()*(['tree','treeC','bush','bushF','flower'].includes(t)?0.58:0.5),TW()*sc*0.85);}
+    if(dec && ['tree','treeC','bush','bushF'].includes(dec[0])){const t=dec[0],sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);shadow(ix,iy+TH()*0.58,TW()*sc*0.85);}
   }
   // PASSE OBJETS
   for(const {x,y} of cells){
