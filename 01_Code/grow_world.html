@@ -201,8 +201,8 @@ function drawSpWind(img,cx,cyB,tw,amp,phase){
 function shadow(cx,cyB,w){
   // ombre douce et compacte : sous le pied, pas trop grande -> du relief sans grosse tache
   ctx.save();
-  ctx.globalAlpha=0.32;ctx.fillStyle='#16210d';
-  ctx.beginPath();ctx.ellipse(cx,cyB,w*0.42,w*0.17,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=0.30;ctx.fillStyle='#16210d';
+  ctx.beginPath();ctx.ellipse(cx,cyB,w*0.38,w*0.15,0,0,Math.PI*2);ctx.fill();
   ctx.restore();
 }
 function decImg(d){const[t,v]=d;if(['tree','treeC','bush','bushF','flower','rock','stump'].includes(t))return t+v;return t;}
@@ -238,15 +238,7 @@ function draw(){
       const t=dec[0],img=decImg(dec),sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
       drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc);}
   }
-  // PASSE OMBRES : toutes les ombres au sol AVANT les objets -> elles ne sont plus
-  // recouvertes par l'arbre lui-meme, elles debordent proprement sur l'herbe a cote.
-  for(const {x,y} of cells){
-    const dec=W.decor[y][x];
-    if(dec && !['flower','stump','pond_big','pond_mare','cascade'].includes(dec[0])){
-      const t=dec[0],sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
-      shadow(ix,iy+TH()*(['tree','treeC','bush','bushF','flower'].includes(t)?0.70:0.55),TW()*sc*0.85);}
-  }
-  for(const {x,y} of cells){
+    for(const {x,y} of cells){
     // 1) parois sous la case
     walls(x,y);
     // 2) sol (ou rampe)
@@ -290,6 +282,7 @@ function draw(){
     const dec=W.decor[y][x];
     if(dec && !['pond_big','pond_mare','cascade'].includes(dec[0])){const t=dec[0],img=decImg(dec),sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
       let a=null;if(isBig(t)&&zoom>0.95){for(const kk in cropCells){const c=cropCells[kk];if(c.state==='ready'&&(c.x+c.y)>(x+y)&&Math.abs(isoX(c.x+.5,c.y+.5)-ix)<TW()&&isoY(c.x+.5,c.y+.5)>iy-TH()*3&&isoY(c.x+.5,c.y+.5)<iy+TH()){a=0.45;break;}}}
+      if(!['flower','stump'].includes(t)){var _so=['tree','treeC','bush','bushF','flower'].includes(t)?0.58:0.5;shadow(ix,iy+TH()*_so,TW()*sc*0.85);}
       // effet vent : seuls les vegetaux se balancent (arbres/buissons/fleurs), pas les structures
       const wind=['tree','treeC','bush','bushF','flower'].includes(t);
       if(wind && a==null){
