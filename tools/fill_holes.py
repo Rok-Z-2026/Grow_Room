@@ -14,6 +14,7 @@ Usage :
   python3 tools/fill_holes.py                 # dry-run : rapport des trous par clé
   python3 tools/fill_holes.py --write          # applique aux clés STRUCTURES
   python3 tools/fill_holes.py --write k1 k2     # applique à des clés précises
+  python3 tools/fill_holes.py --write --all      # applique à TOUT le manifest (no-op si propre)
   python3 tools/fill_holes.py --max-hole 120    # ajuste le seuil de taille
 """
 import sys
@@ -61,12 +62,21 @@ def fill_small_holes(im, max_hole=80):
     return Image.fromarray(arr), nfill
 
 
+def _manifest_keys():
+    import json
+    return json.loads((RUNTIME / "manifest.json").read_text(encoding="utf-8"))
+
+
 def main(argv):
     write = "--write" in argv
     max_hole = 80
     if "--max-hole" in argv:
         max_hole = int(argv[argv.index("--max-hole") + 1])
-    keys = [a for a in argv[1:] if not a.startswith("--") and a != str(max_hole)] or STRUCTURES
+    explicit = [a for a in argv[1:] if not a.startswith("--") and a != str(max_hole)]
+    if "--all" in argv:
+        keys = _manifest_keys()   # scanne tout le manifest (no-op sur les assets propres)
+    else:
+        keys = explicit or STRUCTURES
 
     total = 0
     for k in keys:
