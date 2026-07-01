@@ -19,17 +19,25 @@
 - Esthétique **« Mystic Nature » / digital-painting**.
 - Monde **isométrique 3/4** (style *Hay Day* / *Township*).
 - Cible : **mobile portrait 9:16**.
-- Fichier de travail : **`01_Code/grow_world.html`** (~17,7 Mo, single-file HTML).
+- Fichier de travail : **`01_Code/grow_world.html`** (~88 Ko — moteur seul, **assets externalisés**
+  dans `02_Asset/runtime/`).
 
 ---
 
 ## 🏗️ Architecture du fichier
 
-- **Tout** est dans un seul HTML. Le **dernier `<script>`** contient tout le moteur.
-- **PACK base64** : ligne ~96, objet `const PACK = {"clé":"data:image..."}` — **154 assets**.
-- `IMG{}` est rempli en bouclant sur `PACK`. Clés des sols via `groundKey()`.
+- Le **moteur** est dans le HTML (le **dernier `<script>`**). Les **assets sont externes**.
+- **PACK** = **tableau de clés** (`const PACK = ["plant_v_8", ...]`) + `const ASSET_BASE =
+  "../02_Asset/runtime/"`. **170 assets**, chacun un PNG dans `02_Asset/runtime/<clé>.png`.
+- `IMG{}` est rempli en bouclant sur `PACK` : `im.src = ASSET_BASE + k + ".png"`.
+  Clés des sols via `groundKey()`.
+- **Manifest** : `02_Asset/runtime/manifest.json` liste les 170 clés (source de vérité).
 - **Boucle de rendu** : `function draw()` en `requestAnimationFrame`, **tri de profondeur
   isométrique** par `d = x + y`.
+
+> 💡 **Externalisation (perf remote + Pages)** : le PACK base64 (~30 Mo) a été sorti du HTML
+> en 170 PNG raw. Le HTML est passé de ~30 Mo à ~88 Ko → pull/push remote quasi instantanés.
+> Les PNG runtime sont des **blobs git normaux** (pas LFS : Pages ne sert pas le LFS).
 
 ---
 
@@ -39,9 +47,11 @@
    `ctx.save()` → path diamant `moveTo`/`lineTo` → `ctx.clip()` →
    `drawImage` avec `ow = w * 1.12` → `ctx.restore()`.
    **NE JAMAIS le perdre.**
-2. Quand on modifie le **PACK base64**, **réinjecter SANS effacer les autres clés**
-   (injection après `"const PACK={"`).
-   ⚠️ Effacer silencieusement les autres packs = **bug récurrent**.
+2. **Assets externalisés** : pour ajouter/modifier un asset →
+   (a) déposer le PNG dans `02_Asset/runtime/<clé>.png` (blob normal, **pas LFS**),
+   (b) ajouter la clé au tableau `const PACK = [...]` du HTML **ET** à `manifest.json`.
+   ⚠️ Ne **jamais** ré-embarquer de base64 dans le HTML (on casserait tout le gain de poids).
+   ⚠️ La clé du tableau doit matcher **exactement** le nom de fichier (casse sensible sous Pages).
 3. Ne **JAMAIS hardcoder** couleurs/gradients à la place des vrais atlas — **Nano déteste ça**.
 4. **UN changement à la fois**, **validation visuelle** avant de continuer.
 5. `particles` doit être un **`var` global**, **pas scoped** dans une fonction.
@@ -87,10 +97,12 @@
 ```
 Grow_Room/
 ├── 01_Code/
-│   └── grow_world.html   # Le jeu complet (moteur iso + PACK base64 embarqué)
-├── 02_Asset/             # Sources des assets (atlas Glow_*, spritesheets)
+│   └── grow_world.html       # Le moteur iso (~88 Ko) — charge les assets externes
+├── 02_Asset/                 # Atlas sources Glow_* (LFS, dev only)
+│   └── runtime/              # 170 PNG servis au jeu (blobs normaux, PAS LFS) + manifest.json
 ├── README.md
-├── CLAUDE.md             # Ce fichier
-├── .gitattributes        # Tracking Git LFS
+├── CLAUDE.md                 # Ce fichier
+├── .nojekyll                 # Pages sert les fichiers bruts
+├── .gitattributes            # LFS pour atlas Glow_* / runtime/ forcé hors-LFS
 └── .gitignore
 ```
