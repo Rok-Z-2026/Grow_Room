@@ -201,8 +201,8 @@ function drawSpWind(img,cx,cyB,tw,amp,phase){
 function shadow(cx,cyB,w){
   // ombre douce et compacte : sous le pied, pas trop grande -> du relief sans grosse tache
   ctx.save();
-  ctx.globalAlpha=0.28;ctx.fillStyle='#16210d';
-  ctx.beginPath();ctx.ellipse(cx+w*0.06,cyB,w*0.34,w*0.13,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=0.32;ctx.fillStyle='#16210d';
+  ctx.beginPath();ctx.ellipse(cx,cyB,w*0.42,w*0.17,0,0,Math.PI*2);ctx.fill();
   ctx.restore();
 }
 function decImg(d){const[t,v]=d;if(['tree','treeC','bush','bushF','flower','rock','stump'].includes(t))return t+v;return t;}
@@ -244,7 +244,7 @@ function draw(){
     const dec=W.decor[y][x];
     if(dec && !['flower','stump','pond_big','pond_mare','cascade'].includes(dec[0])){
       const t=dec[0],sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
-      shadow(ix,iy+TH()*(['tree','treeC','bush','bushF','flower'].includes(t)?0.62:0.5),TW()*sc*0.85);}
+      shadow(ix,iy+TH()*(['tree','treeC','bush','bushF','flower'].includes(t)?0.70:0.55),TW()*sc*0.85);}
   }
   for(const {x,y} of cells){
     // 1) parois sous la case
