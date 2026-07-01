@@ -1,9 +1,9 @@
 # TINY GROW — Progression intégration atlas (handoff)
 
-> Note pour reprendre le travail dans une nouvelle session. Tout le code livré est
-> commité/poussé sur `main`. Le site live :
+> Note pour reprendre le travail dans une nouvelle session. Le site live :
 > `https://rok-z-2026.github.io/Grow_Room/01_Code/grow_world.html`
-> ⚠️ Tester avec `?v=N` (numéro frais) — le navigateur cache le HTML de ~25 Mo.
+> ⚠️ **Archi externalisée** : le PACK base64 (~30 Mo) est sorti du HTML en 170 PNG dans
+> `02_Asset/runtime/`. Le HTML fait ~88 Ko. Voir `tools/README.md` pour le pipeline à jour.
 
 ## ✅ Déjà fait (live sur main)
 
@@ -54,14 +54,16 @@ Proposé : `sq_grass←R5C7, sq_moss←R7C6, sq_dirt←R7C1, sq_gravel←R7C4, s
 - `Glow_Maison.png` : 20 bâtiments → `house*`, `serre*`, `cabin`, `atelier1`…
 - `Grow_Water_1.png` : spritesheet eau 2×2 → `water_f0-3` (eau animée)
 
-## 🔧 Pipeline technique (voir scripts tools/)
-1. **Extraction** : crop cellule, nettoyage par composantes connexes 2D (`scipy.ndimage.label`, garder blobs ≥5-8% du plus gros → vire fragments voisins), puis trim alpha.
-2. **Injection PACK** : remplacement chirurgical par clé (regex), **vérifier que le nombre de `data:image` ne change pas** (règle d'or #2 du CLAUDE.md — ne jamais effacer d'autres clés). Le PACK est du JSON-like `"clé":"data:..."`.
-3. **Test Playwright** : viewport 393×844, DPR2, is_mobile+has_touch. Le lancement par défaut cherche un Chromium 1223 absent → utiliser
+## 🔧 Pipeline technique (voir scripts tools/) — ARCHI EXTERNALISÉE
+1. **Extraction** : crop cellule, nettoyage par composantes connexes 2D (`scipy.ndimage.label`, garder blobs ≥5-8% du plus gros → vire fragments voisins), puis trim alpha. → `asset_lib.extract_sprite`.
+2. **Écriture PNG + enregistrement clé** : `asset_lib.register_key` écrit `02_Asset/runtime/<clé>.png` (blob normal, PAS LFS) et ajoute la clé au tableau `const PACK=[...]` du HTML ; puis `rebuild_manifest()` régénère `manifest.json`. **Plus jamais de base64 dans le HTML.** Vérifier avec `asset_lib.audit()` (PACK ⇄ manifest ⇄ fichiers).
+3. **Test Playwright** : viewport 393×844, DPR2, is_mobile+has_touch. Le lancement par défaut cherche un Chromium récent absent → utiliser
    `executable_path="/opt/pw-browsers/chromium-1194/chrome-linux/chrome"`.
    Pour forcer des plants/sols à l'écran : hook JS qui set `cropCells`/`W.ground` puis recadre la caméra.
-4. **Limite contexte images** : si la session sature (erreur « Request too large 32MB »), analyser les images via un **subagent** (contexte vierge) ou repartir sur une session fraîche.
+   Servir en HTTP (`python3 -m http.server` racine) pour reproduire Pages (casse sensible, chemins relatifs).
+4. **Limite contexte images** : si la session sature, analyser les images via un **subagent** (contexte vierge) ou repartir sur une session fraîche.
 
 ## 📦 Notes
-- `grow_world.html` ≈ 25 Mo (sprites premium). Optimisation possible : downscaler les sprites (~×0.4) → ~18 Mo, chargement mobile plus rapide.
+- `grow_world.html` ≈ **88 Ko** (moteur seul). Les 170 sprites (~22 Mo) sont dans `02_Asset/runtime/`.
+- Optim mobile future possible : downscaler les PNG runtime (~×0.4) ou re-packer en 3-4 atlas + coords JSON (réduit le nombre de requêtes ; refacto rendu → valider séparément).
 - Moteur : `decImg` → clé décor = `type+v` (ex `bush1`). `groundKey(g)` → clé `sq_*`.

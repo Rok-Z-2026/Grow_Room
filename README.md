@@ -12,7 +12,7 @@ aucun serveur : on double-clique, ça tourne dans le navigateur.
 - **Univers** : monde isométrique 3/4 (style *Hay Day* / *Township*), esthétique « Mystic Nature »
 - **Thème** : culture de cannabis stylisée, montée en puissance d'une grow room
 - **Cible** : mobile portrait 9:16
-- **Format** : 100 % client, un seul fichier `grow_world.html` (moteur + assets embarqués)
+- **Format** : 100 % client — moteur dans `grow_world.html` (~88 Ko), assets servis depuis `02_Asset/runtime/`
 
 ---
 
@@ -21,17 +21,20 @@ aucun serveur : on double-clique, ça tourne dans le navigateur.
 ```
 Grow_Room/
 ├── 01_Code/
-│   └── grow_world.html  # Le jeu complet (moteur iso + PACK base64 embarqué) — ~17,7 Mo
-├── 02_Asset/            # Sources des assets : atlas Glow_* (Git LFS), spritesheets
+│   └── grow_world.html  # Le moteur iso (~88 Ko) — charge les assets externes
+├── 02_Asset/            # Atlas sources Glow_* (Git LFS, dev), spritesheets
+│   └── runtime/         # 170 PNG servis au jeu (blobs normaux, PAS LFS) + manifest.json
 ├── README.md            # Ce fichier
 ├── CLAUDE.md            # Contexte technique du moteur (pour Claude Code / contributeurs)
 ├── .nojekyll            # Désactive Jekyll → GitHub Pages sert les fichiers bruts
-├── .gitattributes       # grow_world.html = git normal (Pages) / atlas Glow_* = Git LFS
+├── .gitattributes       # grow_world.html + runtime/ = git normal (Pages) / atlas Glow_* = Git LFS
 └── .gitignore
 ```
 
-> ℹ️ `grow_world.html` est volumineux car les assets (atlas/sprites) y sont
-> embarqués pour rester en single-file portable. Voir la note versioning plus bas.
+> ℹ️ Le moteur `grow_world.html` est léger (~88 Ko) : les 170 assets ont été
+> **externalisés** dans `02_Asset/runtime/` (PNG raw, chargés par chemin relatif).
+> Objectif : workflow git/remote rapide + chargement Pages optimisé. Voir la note
+> versioning plus bas.
 
 ---
 
@@ -59,11 +62,14 @@ Le jeu est déployé via **GitHub Pages** (branche `main`, dossier racine) :
 
 **▶️ https://rok-z-2026.github.io/Grow_Room/01_Code/grow_world.html**
 
-- `grow_world.html` est volontairement **hors Git LFS** : GitHub Pages ne sert pas
-  correctement les fichiers LFS.
+- `grow_world.html` **et** les PNG de `02_Asset/runtime/` sont volontairement **hors Git LFS** :
+  GitHub Pages ne sert pas correctement les fichiers LFS. Ce sont des blobs git normaux.
 - Le fichier `.nojekyll` à la racine garantit que Pages sert les fichiers bruts
   (sans traitement Jekyll).
 - Les atlas sources `Glow_*` restent en LFS (stockage dev), **non** servis par Pages.
+
+> ⚠️ **Déploiement** : Pages sert la branche **`main`**. Les changements sur une branche
+> de feature ne sont visibles en ligne **qu'après merge sur `main`**.
 
 ---
 
@@ -77,9 +83,11 @@ Le jeu est déployé via **GitHub Pages** (branche `main`, dossier racine) :
 
 ## 📦 Note versioning (gros fichiers)
 
-- **`grow_world.html` (~17,7 Mo)** : versionné en **git normal** (pas en LFS) pour
-  être servi tel quel par GitHub Pages. Sous la limite GitHub (avertissement à 50 Mo,
-  blocage à 100 Mo), donc il passe.
+- **`grow_world.html` (~88 Ko)** : moteur seul, versionné en **git normal** (pas en LFS),
+  servi tel quel par GitHub Pages. Léger → chaque commit de code est minuscule.
+- **`02_Asset/runtime/` (170 PNG, ~22 Mo au total)** : assets du jeu, versionnés en
+  **git normal** (pas en LFS, pour Pages). Ne changent que si un asset change → pas de
+  churn sur le workflow de code.
 - **Atlas sources `Glow_*` / spritesheets** (dans `02_Asset/`) : suivis via **Git LFS**
   (stockage dev, non servis par Pages). Voir `.gitattributes`.
 

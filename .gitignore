@@ -17,6 +17,11 @@ Desktop.ini
 desktop.ini
 $RECYCLE.BIN/
 
+# === Python / outils tools/ ===
+__pycache__/
+*.pyc
+.venv/
+
 # === Éditeurs / IDE ===
 .vscode/
 .idea/

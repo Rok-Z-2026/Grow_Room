@@ -28,3 +28,12 @@ grow_world.html -text -diff
 02_Asset/**/*.ase      filter=lfs diff=lfs merge=lfs -text
 02_Asset/**/*.tga      filter=lfs diff=lfs merge=lfs -text
 02_Asset/**/*.webp     filter=lfs diff=lfs merge=lfs -text
+
+# ──────────────────────────────────────────────
+#  Assets RUNTIME servis par GitHub Pages — PNG normaux (SURTOUT PAS LFS)
+#  Ces PNG sont les assets externalisés du PACK (chargés par grow_world.html
+#  via ../02_Asset/runtime/<clé>.png). Pages ne sert PAS le LFS, donc ils
+#  doivent rester des blobs git classiques.
+#  Règle placée APRÈS le bloc LFS : la dernière règle qui matche gagne.
+# ──────────────────────────────────────────────
+02_Asset/runtime/*.png !filter !diff !merge -text
