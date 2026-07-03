@@ -73,7 +73,7 @@
 <div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag">🌍 Mon Monde</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
-<div class="hint">Glisse · pince pour zoomer · touche une zone 🔒 · 🏮 v2 champ décoré</div>
+<div class="hint">Glisse · pince pour zoomer · touche une zone 🔒 · 🏮 v3</div>
 <div id="seedbar" class="seedbar">
   <div class="seedtitle">Choisis une graine 🌱</div>
   <div class="seeds">
@@ -216,12 +216,20 @@ function drawSpWind(img,cx,cyB,tw,amp,phase){
 
 
 // ombre portee elliptique au sol sous un element
-function shadow(cx,cyB,w){
+function shadow(cx,cyB,w,a){
   // ombre douce et compacte : sous le pied, pas trop grande -> du relief sans grosse tache
+  // a (optionnel) = multiplicateur d'opacite 0..1 -> l'ombre fond avec l'objet qui s'estompe
   ctx.save();
-  ctx.globalAlpha=0.30;ctx.fillStyle='#16210d';
+  ctx.globalAlpha=0.30*(a==null?1:a);ctx.fillStyle='#16210d';
   ctx.beginPath();ctx.ellipse(cx,cyB,w*0.38,w*0.15,0,0,Math.PI*2);ctx.fill();
   ctx.restore();
+}
+// alpha de FONDU d'un gros objet (arbre/batiment) qui masque un champ en zoom : null = pas de fondu, sinon 0..0.4
+function fadeA(x,y,t,ix,iy){
+  if(!(isBig(t)&&zoom>0.9))return null;
+  for(const kk in cropCells){const c=cropCells[kk];
+    if((x+y)>(c.x+c.y)&&Math.abs(isoX(c.x+.5,c.y+.5)-ix)<TW()*1.1&&isoY(c.x+.5,c.y+.5)>iy-TH()*4&&isoY(c.x+.5,c.y+.5)<iy+TH()*1.2)return Math.max(0,Math.min(0.4,(1.42-zoom)));}
+  return null;
 }
 function decImg(d){const[t,v]=d;if(['tree','treeC','bush','bushF','flower','rock','stump'].includes(t))return t+v;return t;}
 function decScale(t){if(t.startsWith('rocriv'))return 6.0;if(t.startsWith('pont'))return 3.2;if(t==='pond_big'||t==='pond_mare'||t==='cascade')return 2.6;if(t==='house5')return 1.35;if(['house1','house2','house3','house4','cabin','atelier1'].includes(t))return 2.2;if(t.startsWith('serre'))return 2.0;if(t==='watertower')return 1.6;if(t==='forge')return 1.5;if(t==='well')return 1.0;if(t==='fountain')return 1.1;if(t==='tree'||t==='treeC')return 1.5;if(t==='rock')return 1.1;return 0.95;}
@@ -301,7 +309,10 @@ function draw(){
   // PASSE OMBRES : APRES tout le sol, AVANT les objets -> l'ombre se pose sur le terrain
   for(const {x,y} of cells){
     const dec=W.decor[y][x];
-    if(dec && ['tree','treeC'].includes(dec[0])){const t=dec[0],sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);shadow(ix,iy+TH()*0.58,TW()*sc*0.85);}
+    if(dec && ['tree','treeC'].includes(dec[0])){const t=dec[0],sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
+      const a=fadeA(x,y,t,ix,iy);   // l'ombre fond avec l'arbre estompe (a=0.4 -> pleine, a=0 -> invisible)
+      if(a===null)shadow(ix,iy+TH()*0.58,TW()*sc*0.85);
+      else if(a>0.01)shadow(ix,iy+TH()*0.58,TW()*sc*0.85,a/0.4);}
   }
   // DECO CHAMP : une lanterne aux 4 coins de chaque parcelle owned -> encadre joliment (PAS de cadre pierre).
   // Dessinees dans la passe crop a la profondeur de leur case-coin (coin Nord derriere les plants, Sud devant).
@@ -309,19 +320,14 @@ function draw(){
   for(const z of W.cropzones){if(!z.owned)continue;const x0=z.zx,y0=z.zy,x1=z.zx+z.n-1,y1=z.zy+z.n-1;
     fieldDeco[x0+','+y0]={sp:'lamp',ux:0,uy:-1,front:false,sc:0.6};    // coin Nord (arriere) : lanterne
     fieldDeco[x1+','+y0]={sp:'lamp',ux:1,uy:0,front:false,sc:0.6};     // coin Est : lanterne
-    fieldDeco[x0+','+y1]={sp:'lamp',ux:-1,uy:0,front:false,sc:0.6};    // coin Ouest : lanterne
-    fieldDeco[x1+','+y1]={sp:'planter',ux:0,uy:1,front:true,sc:0.62};} // coin Sud (avant) : jardiniere basse (ne monte pas dans le champ)
+    fieldDeco[x0+','+y1]={sp:'lamp',ux:-1,uy:0,front:false,sc:0.6};}   // coin Ouest : lanterne (coin Sud laisse ouvert)
   // PASSE OBJETS
   for(const {x,y} of cells){
     const dec=W.decor[y][x];
     if(dec && !['pond_big','pond_mare','cascade'].includes(dec[0])){const t=dec[0],img=decImg(dec),sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
       // FONDU : un gros objet (arbre/bâtiment) qui MASQUE un champ cultivable en zoom
       // -> on l'estompe (faible opacité) + on le floute, pour voir les parcelles derrière.
-      let a=null;
-      if(isBig(t)&&zoom>0.9){for(const kk in cropCells){const c=cropCells[kk];
-        if((x+y)>(c.x+c.y)                                        // objet DEVANT le champ (le recouvre)
-          &&Math.abs(isoX(c.x+.5,c.y+.5)-ix)<TW()*1.1
-          &&isoY(c.x+.5,c.y+.5)>iy-TH()*4 && isoY(c.x+.5,c.y+.5)<iy+TH()*1.2){a=Math.max(0,Math.min(0.4,(1.42-zoom)));break;}}}
+      let a=fadeA(x,y,t,ix,iy);   // fondu partage avec la passe ombres
       const wind=['tree','treeC','bush','bushF','flower'].includes(t);
       if(a!=null){                                               // masque un champ -> estompé+flou, ou INVISIBLE si trop proche (a~0)
         if(a>0.03){ctx.save();ctx.filter='blur(3px)';drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc,a);ctx.restore();}
