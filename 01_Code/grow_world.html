@@ -326,7 +326,10 @@ function draw(){
     // 4) crop
     const ck=x+','+y;if(cropCells[ck]){const c=cropCells[ck];const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
       let pk=c.state==='growing'?(c.grow<0.15?'parc3':'parc2'):c.state==='ready'?'parc4':'parc1';
-      tile(pk,x,y);   // BAC = 1 tuile exacte (clip losange) -> les 9 cases s'emboîtent SANS se chevaucher
+      // Le sprite 'parc' EST un losange-parcelle complet (bordure en rondins incluse, ratio 0.605).
+      // On le mappe EXACTEMENT sur le losange de la tuile (échelle non-uniforme) -> chaque parcelle
+      // garde son cadre ET pave parfaitement, zéro chevauchement. (NE PAS clipper : ça mangeait la bordure.)
+      {const pimg=IMG[pk];if(pimg&&pimg.complete&&pimg.naturalWidth){const dw=TW()*1.04,dh=TH()*1.04;ctx.drawImage(pimg,ix-dw/2,iy-dh/2,dw,dh);}}
       // surbrillance de la case selectionnee (cadre lumineux pulse + animation)
       if(selCell===c){const w=TW(),hh=TH(),cyS=iy;const pulse=0.5+0.5*Math.sin(performance.now()/300);
         ctx.save();ctx.beginPath();ctx.moveTo(ix,cyS-hh/2);ctx.lineTo(ix+w/2,cyS);ctx.lineTo(ix,cyS+hh/2);ctx.lineTo(ix-w/2,cyS);ctx.closePath();
