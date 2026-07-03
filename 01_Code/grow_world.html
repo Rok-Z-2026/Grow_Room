@@ -351,17 +351,17 @@ function draw(){
         if(c.state==='ready'){const pl=0.55+0.45*Math.sin(now/500),R=TW()*0.55,cyG=iy;ctx.save();const gg=ctx.createRadialGradient(ix,cyG,R*0.12,ix,cyG,R);gg.addColorStop(0,'rgba(255,226,130,'+(0.34*pl)+')');gg.addColorStop(0.6,'rgba(255,210,90,'+(0.12*pl)+')');gg.addColorStop(1,'rgba(255,210,90,0)');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(ix,cyG,R,0,7);ctx.fill();ctx.restore();}
         // (c) TOUFFE dense et variée (rangées décalées, jitter/flip/échelle par hash, tri arrière->avant, vent)
         const img=IMG['plant_'+v+'_'+st], bob=c.state==='ready'?Math.sin(now/450)*TH()*0.04:0;
-        const amp=st<3?0.02:st<6?0.04:0.06, frost=(c.quality||1)>=1.8&&st>=6;
+        const amp=st<3?0.008:st<6?0.016:0.024, frost=(c.quality||1)>=1.8&&st>=6;   // vent DOUX (calme, plus de tremblotte)
         const bedCX=ix, bedCY=iy;   // centre de la tuile (le BAC = 1 tuile exacte maintenant)
         const r=(img&&img.naturalWidth)?img.naturalHeight/img.naturalWidth:1.25;
         // 5 plants en petit monticule CONTENU dans la tuile (empreinte < demi-tuile -> pas de fusion avec les voisines).
         // [u, v, taille] : 2 à l'arrière (petites), 2 milieu, 1 héros devant (plus grande). base ANCRÉE sur la terre.
-        const POS=[[-0.30,-0.26,0.80],[0.30,-0.26,0.80],[-0.42,0.02,0.90],[0.42,0.02,0.90],[0.0,0.26,1.10]], inst=[];
+        const POS=[[-0.26,-0.20,0.80],[0.26,-0.20,0.80],[-0.34,0.06,0.90],[0.34,0.06,0.90],[0.0,0.24,1.15]], inst=[];
         for(let i=0;i<POS.length;i++){const h=(((x*73856093)^(y*19349663)^(i*83492791))>>>0);
-          inst.push({u:POS[i][0]+(((h&255)/255)-0.5)*0.06, v:POS[i][1]+((((h>>8)&255)/255)-0.5)*0.05, s:POS[i][2], scl:0.90+((h>>16)&255)/255*0.16, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
+          inst.push({u:POS[i][0]+(((h&255)/255)-0.5)*0.06, v:POS[i][1]+((((h>>8)&255)/255)-0.5)*0.05, s:POS[i][2], scl:0.92+((h>>16)&255)/255*0.14, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
         inst.sort((a,b)=>a.v-b.v);   // arrière (v bas, dessiné d'abord) -> avant (héros au-dessus)
-        for(const p of inst){const tw=TW()*(0.14+0.10*(st/8))*p.scl*p.s, th=tw*r;   // compact : héros ~0.27·TW, empreinte < demi-tuile
-          const cxp=bedCX+p.u*TW()*0.26, cyp=bedCY+p.v*TH()*0.30+bob, sy=cyp;   // base POSÉE sur le sol (pousse vers le haut), pas centrée
+        for(const p of inst){const tw=TW()*(0.20+0.14*(st/8))*p.scl*p.s, th=tw*r;   // plants PLUS GROS : héros ~0.38·TW, remplissent la case
+          const cxp=bedCX+p.u*TW()*0.30, cyp=bedCY+TH()*0.24+p.v*TH()*0.42+bob, sy=cyp;   // base dans le BAS de la case -> plante ASSISE dans la case, pousse vers le haut
           if(st>=3)shadow(cxp,sy,tw*0.42);
           if(img&&img.complete&&img.naturalWidth){
             const sway=Math.sin(Ts*0.9+p.ph)*amp+Math.sin(Ts*2.7+p.ph*1.7)*amp*0.25;
