@@ -360,20 +360,22 @@ function draw(){
         if(wet>0.05){const w=TW(),hh=TH(),cyW=iy;ctx.save();ctx.beginPath();ctx.moveTo(ix,cyW-hh/2);ctx.lineTo(ix+w/2,cyW);ctx.lineTo(ix,cyW+hh/2);ctx.lineTo(ix-w/2,cyW);ctx.closePath();ctx.clip();ctx.fillStyle='rgba(22,14,6,'+(0.32*wet)+')';ctx.fillRect(ix-w/2,cyW-hh/2,w,hh);ctx.restore();}
         // (b) HALO DORÉ sous les plants si PRÊTE
         if(c.state==='ready'){const pl=0.55+0.45*Math.sin(now/500),R=TW()*0.55,cyG=iy;ctx.save();const gg=ctx.createRadialGradient(ix,cyG,R*0.12,ix,cyG,R);gg.addColorStop(0,'rgba(255,226,130,'+(0.34*pl)+')');gg.addColorStop(0.6,'rgba(255,210,90,'+(0.12*pl)+')');gg.addColorStop(1,'rgba(255,210,90,0)');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(ix,cyG,R,0,7);ctx.fill();ctx.restore();}
-        // (c) UN plant par case (rangées alignées), grossit avec le stade, vent doux + flip déterministe
+        // (c) 4 plants/case en grille iso alignée -> champ DENSE et luxuriant, rangées régulières
         const img=IMG['plant_'+v+'_'+st], bob=c.state==='ready'?Math.sin(now/450)*TH()*0.05:0;
         const amp=st<3?0.008:st<6?0.016:0.024, frost=(c.quality||1)>=1.8&&st>=6;   // vent DOUX (calme)
         const r=(img&&img.naturalWidth)?img.naturalHeight/img.naturalWidth:1.25;
-        // UN plant par case, centre, ancre au pied. Variation deterministe = FLIP seul (jamais la position)
-        // -> la grille de cases donne des RANGEES parfaitement alignees, chaque plant mis en valeur.
-        const h=(((x*73856093)^(y*19349663))>>>0), flip=(h&1)===1, ph=(h&255)/255*6.283;
-        const tw=TW()*(0.62+0.5*(st/8)), th=tw*r;   // grossit du stade 1 (~0.68·TW) au stade 8 (~1.12·TW)
-        const cxp=ix, cyp=iy+TH()*0.30+bob, sy=cyp;  // pied assis dans le bas de la case
-        if(st>=3)shadow(cxp,sy,tw*0.40);
-        if(img&&img.complete&&img.naturalWidth){
-          const sway=Math.sin(Ts*0.9+ph)*amp+Math.sin(Ts*2.7+ph*1.7)*amp*0.25;
-          ctx.save();ctx.translate(cxp,sy);if(flip)ctx.scale(-1,1);ctx.transform(1,0,sway,1,0,0);ctx.drawImage(img,-tw/2,-th,tw,th);ctx.restore();
-          if(frost){ctx.save();for(let k=0;k<4;k++){const a=ph*2.3+k*1.7;ctx.globalAlpha=0.3+0.35*Math.sin(now/500+ph+k*2);ctx.fillStyle='#eafff2';ctx.beginPath();ctx.arc(cxp+Math.cos(a)*tw*0.22,sy-th*0.55+Math.sin(a)*tw*0.18,Math.max(0.8,tw*0.02),0,7);ctx.fill();}ctx.restore();}}
+        // 4 plants par case en GRILLE ISO FIXE (rangées alignées, AUCUN jitter) -> champ dense et
+        // régulier ; les rangées se prolongent d'une case à l'autre (espacement constant 0.5 case).
+        const S=0.24, SUB=[[-S,-S],[S,-S],[-S,S],[S,S]];   // ordre = arrière -> avant (du+dv croissant)
+        const tw=TW()*(0.34+0.22*(st/8)), th=tw*r;         // 4 plants plus petits -> canopée dense mais lisible
+        for(let gi=0;gi<SUB.length;gi++){const du=SUB[gi][0],dv=SUB[gi][1];
+          const h=(((x*73856093)^(y*19349663)^(gi*83492791))>>>0), flip=(h&1)===1, ph=(h&255)/255*6.283;
+          const cxp=isoX(x+0.5+du,y+0.5+dv), cyp=isoY(x+0.5+du,y+0.5+dv)+TH()*0.12+bob, sy=cyp;
+          if(st>=3)shadow(cxp,sy,tw*0.36);
+          if(img&&img.complete&&img.naturalWidth){
+            const sway=Math.sin(Ts*0.9+ph)*amp+Math.sin(Ts*2.7+ph*1.7)*amp*0.25;
+            ctx.save();ctx.translate(cxp,sy);if(flip)ctx.scale(-1,1);ctx.transform(1,0,sway,1,0,0);ctx.drawImage(img,-tw/2,-th,tw,th);ctx.restore();
+            if(frost){ctx.save();for(let k=0;k<3;k++){const a=ph*2.3+k*2.1;ctx.globalAlpha=0.3+0.3*Math.sin(now/500+ph+k*2);ctx.fillStyle='#eafff2';ctx.beginPath();ctx.arc(cxp+Math.cos(a)*tw*0.2,sy-th*0.55+Math.sin(a)*tw*0.16,Math.max(0.7,tw*0.02),0,7);ctx.fill();}ctx.restore();}}}
         // (d) barre de progression : FINE, étroite et discrète, juste au-dessus des plants
         if(c.state==='growing'&&zoom>0.6){
           const g=Math.max(0.02,Math.min(1,c.grow));
