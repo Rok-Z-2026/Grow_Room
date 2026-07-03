@@ -330,15 +330,15 @@ function draw(){
       let pk=c.state==='growing'?(c.grow<0.15?'parc3':'parc2'):c.state==='ready'?'parc4':'parc1';
       drawSp(IMG[pk],ix,iy+TH(),TW()*1.3);
       // surbrillance de la case selectionnee (cadre lumineux pulse)
-      if(selCell===c){const w=TW(),hh=TH();const pulse=0.5+0.5*Math.sin(performance.now()/300);
-        ctx.save();ctx.beginPath();ctx.moveTo(ix,iy-hh/2);ctx.lineTo(ix+w/2,iy);ctx.lineTo(ix,iy+hh/2);ctx.lineTo(ix-w/2,iy);ctx.closePath();
+      if(selCell===c){const w=TW()*1.3,hh=TH()*1.3,cyS=iy+TH()*0.2;const pulse=0.5+0.5*Math.sin(performance.now()/300);
+        ctx.save();ctx.beginPath();ctx.moveTo(ix,cyS-hh/2);ctx.lineTo(ix+w/2,cyS);ctx.lineTo(ix,cyS+hh/2);ctx.lineTo(ix-w/2,cyS);ctx.closePath();
         ctx.fillStyle='rgba(157,255,184,'+(0.12+0.12*pulse)+')';ctx.fill();
         ctx.lineWidth=2.5;ctx.strokeStyle='rgba(157,255,184,'+(0.6+0.4*pulse)+')';ctx.stroke();ctx.restore();}
       if(c.state!=='empty'){const v=['v','p','b','o','n','a'][c.variety];const st=c.state==='ready'?8:Math.max(1,Math.min(8,Math.ceil(c.grow*8)));
         const now=performance.now(), Ts=now/1000;
         // (a) TERRE HUMIDE si arrosé -> overlay losange sombre translucide (clip diamant)
         const wet=Math.min(1,(c.water||0)/200);
-        if(wet>0.05){const w=TW(),hh=TH();ctx.save();ctx.beginPath();ctx.moveTo(ix,iy-hh/2);ctx.lineTo(ix+w/2,iy);ctx.lineTo(ix,iy+hh/2);ctx.lineTo(ix-w/2,iy);ctx.closePath();ctx.clip();ctx.fillStyle='rgba(22,14,6,'+(0.32*wet)+')';ctx.fillRect(ix-w/2,iy-hh/2,w,hh);ctx.restore();}
+        if(wet>0.05){const w=TW()*1.3,hh=TH()*1.3,cyW=iy+TH()*0.2;ctx.save();ctx.beginPath();ctx.moveTo(ix,cyW-hh/2);ctx.lineTo(ix+w/2,cyW);ctx.lineTo(ix,cyW+hh/2);ctx.lineTo(ix-w/2,cyW);ctx.closePath();ctx.clip();ctx.fillStyle='rgba(22,14,6,'+(0.32*wet)+')';ctx.fillRect(ix-w/2,cyW-hh/2,w,hh);ctx.restore();}
         // (b) HALO DORÉ sous les plants si PRÊTE
         if(c.state==='ready'){const pl=0.55+0.45*Math.sin(now/500),R=TW()*0.72,cyG=iy+TH()*0.18;ctx.save();const gg=ctx.createRadialGradient(ix,cyG,R*0.12,ix,cyG,R);gg.addColorStop(0,'rgba(255,226,130,'+(0.34*pl)+')');gg.addColorStop(0.6,'rgba(255,210,90,'+(0.12*pl)+')');gg.addColorStop(1,'rgba(255,210,90,0)');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(ix,cyG,R,0,7);ctx.fill();ctx.restore();}
         // (c) TOUFFE dense et variée (rangées décalées, jitter/flip/échelle par hash, tri arrière->avant, vent)
@@ -348,7 +348,7 @@ function draw(){
         for(let i=0;i<BASE.length;i++){const h=(((x*73856093)^(y*19349663)^(i*83492791))>>>0);
           inst.push({fc:BASE[i][0]+(((h&255)/255)-0.5)*0.06, fr:BASE[i][1]+((((h>>8)&255)/255)-0.5)*0.06, scl:0.80+((h>>16)&255)/255*0.24, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
         inst.sort((a,b)=>(a.fc+a.fr)-(b.fc+b.fr));
-        for(const p of inst){const sx=isoX(x+p.fc,y+p.fr),sy=isoY(x+p.fc,y+p.fr)+TH()*0.55+bob, tw=TW()*(0.22+0.18*(st/8))*p.scl;
+        for(const p of inst){const sx=isoX(x+p.fc,y+p.fr),sy=isoY(x+p.fc,y+p.fr)+TH()*0.62+bob, tw=TW()*(0.22+0.18*(st/8))*p.scl;
           if(st>=3)shadow(sx,sy+tw*0.03,tw*0.44);
           if(img&&img.complete&&img.naturalWidth){const r=img.naturalHeight/img.naturalWidth,th=tw*r;
             const sway=Math.sin(Ts*0.9+p.ph)*amp+Math.sin(Ts*2.7+p.ph*1.7)*amp*0.25;
@@ -357,7 +357,7 @@ function draw(){
         // (d) barre de progression : FINE, étroite et discrète, juste au-dessus des plants
         if(c.state==='growing'&&zoom>0.6){
           const g=Math.max(0.02,Math.min(1,c.grow));
-          const bw=TW()*0.46, bh=Math.max(3,3.2*zoom), bx=ix-bw/2, by=iy-TH()*0.72, rr=bh/2;
+          const bw=TW()*0.46, bh=Math.max(3,3.2*zoom), bx=ix-bw/2, by=iy-TH()*0.42, rr=bh/2;
           const rrect=(X,Y,W,Hh,R)=>{ctx.beginPath();ctx.moveTo(X+R,Y);ctx.arcTo(X+W,Y,X+W,Y+Hh,R);ctx.arcTo(X+W,Y+Hh,X,Y+Hh,R);ctx.arcTo(X,Y+Hh,X,Y,R);ctx.arcTo(X,Y,X+W,Y,R);ctx.closePath();};
           ctx.save();
           rrect(bx,by,bw,bh,rr);ctx.fillStyle='rgba(16,22,14,0.5)';ctx.fill();     // fond translucide léger
