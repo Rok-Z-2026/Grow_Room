@@ -523,9 +523,28 @@ document.querySelectorAll('.seed').forEach(btn=>{
     selCell=null;showSeedbar(false);save();
   });
 });
-cv.addEventListener('touchstart',e=>{e.preventDefault();if(e.touches.length===2)pinch={d:dist(e.touches),z:zoom};else{ds=xy(e);cs={...cam};dm=false;}},{passive:false});
-cv.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===2&&pinch){const m=midXY(e);zoomAt(pinch.z*dist(e.touches)/pinch.d,m[0],m[1]);return;}if(!ds)return;const[x,y]=xy(e);if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;cam.x=cs.x+x-ds[0];cam.y=cs.y+y-ds[1];clampCam();},{passive:false});
-cv.addEventListener('touchend',e=>{e.preventDefault();if(pinch){pinch=null;return;}if(!dm&&ds)onTap(ds[0],ds[1]);ds=null;},{passive:false});
+// TACTILE robuste : re-cale le glissement à CHAQUE changement de nb de doigts (fini le saut)
+cv.addEventListener('touchstart',e=>{e.preventDefault();
+  if(e.touches.length>=2){pinch={d:dist(e.touches),z:zoom};ds=null;}            // pinch -> pas de pan périmé
+  else{ds=xy(e);cs={...cam};dm=false;pinch=null;}
+},{passive:false});
+cv.addEventListener('touchmove',e=>{e.preventDefault();
+  if(e.touches.length>=2){                                                      // ZOOM 2 doigts (ancré au milieu)
+    if(!pinch)pinch={d:dist(e.touches),z:zoom};
+    const m=midXY(e);zoomAt(pinch.z*dist(e.touches)/pinch.d,m[0],m[1]);return;
+  }
+  const[x,y]=xy(e);
+  if(!ds){ds=[x,y];cs={...cam};dm=true;return;}                                 // sortie de pinch : recale, aucun saut
+  if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;
+  cam.x=cs.x+x-ds[0];cam.y=cs.y+y-ds[1];clampCam();
+},{passive:false});
+cv.addEventListener('touchend',e=>{e.preventDefault();
+  if(e.touches.length>=2){pinch={d:dist(e.touches),z:zoom};ds=null;return;}     // encore un pinch -> re-baseline
+  if(e.touches.length===1){pinch=null;ds=xy(e);cs={...cam};dm=true;return;}     // 1 doigt restant -> recale le pan (pas de tap)
+  if(pinch){pinch=null;ds=null;return;}                                         // 0 doigt, sortie de pinch
+  if(!dm&&ds)onTap(ds[0],ds[1]);                                                // 0 doigt -> tap si pas de glissement
+  ds=null;
+},{passive:false});
 cv.addEventListener('mousedown',e=>{ds=xy(e);cs={...cam};dm=false;md=true;});cv.addEventListener('mousemove',e=>{if(!md)return;const[x,y]=xy(e);if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;cam.x=cs.x+x-ds[0];cam.y=cs.y+y-ds[1];clampCam();});cv.addEventListener('mouseup',e=>{if(!dm&&ds)onTap(ds[0],ds[1]);ds=null;md=false;});
 cv.addEventListener('wheel',e=>{e.preventDefault();const m=xy(e);zoomAt(zoom*(e.deltaY<0?1.1:.9),m[0],m[1]);},{passive:false});
 document.getElementById('zin').onclick=()=>zoomAt(zoom*1.2,APP_W/2,APP_H/2);document.getElementById('zout').onclick=()=>zoomAt(zoom/1.2,APP_W/2,APP_H/2);
