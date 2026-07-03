@@ -239,7 +239,6 @@ function zoneCost(){const o=W.cropzones.filter(z=>z.owned).length;return Math.fl
 // une parcelle n'est visible/achetable que si sa clairiere (landgroup) est defrichee
 function zoneAvailable(z){if(z.group==null||z.group<0)return true;const g=W.landgroups&&W.landgroups[z.group];return !!(g&&g.owned);}
 
-var NIGHT=0.32;   // assombrissement global (ambiance Mystic Nature)
 function draw(){
   ctx.clearRect(0,0,APP_W,APP_H);
   // tri de toutes les cases par profondeur (c+r), avec hauteur prise en compte dans le rendu
@@ -270,7 +269,7 @@ function draw(){
       ctx.save();ctx.beginPath();ctx.moveTo(ix,iy-hh/2);ctx.lineTo(ix+w/2,iy);ctx.lineTo(ix,iy+hh/2);ctx.lineTo(ix-w/2,iy);ctx.closePath();ctx.clip();
       // 1) degrade de profondeur : turquoise clair en haut -> bleu profond en bas
       const grd=ctx.createLinearGradient(ix,iy-hh/2,ix,iy+hh/2);
-      grd.addColorStop(0,'#6fd0c4');grd.addColorStop(0.5,'#3fa89a');grd.addColorStop(1,'#256b66');
+      grd.addColorStop(0,'#3f9d92');grd.addColorStop(0.5,'#236b62');grd.addColorStop(1,'#123f3b');
       ctx.fillStyle=grd;ctx.fillRect(ix-w,iy-hh*2,w*2,hh*4);
       // 2) ANIMATION : cycle des 4 frames d'eau avec fondu enchaine -> surface qui ondule en continu
       const fps=2.2;                      // vitesse du cycle (frames/sec)
@@ -346,8 +345,6 @@ function draw(){
           ctx.restore();}
         if(c.state==='ready'){const t=performance.now()/400;ctx.save();ctx.globalAlpha=.6+.4*Math.sin(t);ctx.font=(12*zoom)+'px serif';ctx.textAlign='center';ctx.fillText('✨',ix,iy-TH()*0.5);ctx.restore();}}}
   }
-  // SHADER : assombrit tout le monde rendu (sous les labels/particules)
-  ctx.save();ctx.fillStyle='rgba(12,16,30,'+NIGHT+')';ctx.fillRect(0,0,APP_W,APP_H);ctx.restore();
   // zones achetables (uniquement celles dont la clairiere est defrichee)
   for(const z of W.cropzones){if(z.owned||!zoneAvailable(z))continue;
     // 4 coins du losange (alignes sur les cellules: de zx a zx+n)
