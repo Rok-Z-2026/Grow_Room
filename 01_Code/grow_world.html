@@ -70,7 +70,7 @@
 .labbuy:active{transform:translateY(2px);box-shadow:0 1px 0 #c88410;}
 .labbuy:disabled{background:#555;color:#999;box-shadow:0 3px 0 #333;cursor:default;}
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag">🌍 Mon Monde · 🏮v4</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag">🌍 Mon Monde · 🏮v5</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
 <div class="hint">Glisse · pince pour zoomer · touche une zone 🔒</div>
@@ -121,6 +121,8 @@ const W=WORLD,MW=W.MW,MH=W.MH;
 const TW0=64,TH0=32,EH0=26; let zoom=0.7;
 function TW(){return TW0*zoom;}function TH(){return TH0*zoom;}function EH(){return EH0*zoom;}
 let cam={x:0,y:0},coin=300,stock=0,marketPrice=8;  // stock en grammes, prix/g
+let totalHarvest=0;  // grammes TOTAUX récoltés depuis le début -> débloque les parcelles bonus de palier
+let unlockedShown=0; // nb de parcelles bonus déjà annoncées comme débloquées (évite de re-toaster)
 let boosts={water:20,sun:15,nute:10};  // stocks de soins limités
 let combo={count:0,last:0,window:1200};  // système de combo
 let lab={yield:0,speed:0,value:0};  // niveaux des améliorations labo
@@ -143,6 +145,32 @@ const H=(x,y)=>{const ix=Math.floor(x),iy=Math.floor(y);return(ix>=0&&iy>=0&&ix<
 
 const cropCells={};
 function rebuildCrop(){for(const z of W.cropzones){if(!z.owned)continue;for(let dy=0;dy<z.n;dy++)for(let dx=0;dx<z.n;dx++){const x=z.zx+dx,y=z.zy+dy,k=x+','+y;if(!cropCells[k])cropCells[k]={x,y,state:'empty',grow:0,variety:0};}}}
+// === PARCELLES BONUS DE PALIER (extension collée au champ, débloquée aux grammes totaux récoltés) ===
+const PALIERS=[200,600,1500,3500,8000,18000,40000,90000];  // grammes totaux -> ouvre la parcelle bonus suivante
+function zoneCellsValid(zx,zy,n){
+  if(zx<0||zy<0||zx+n>MW||zy+n>MH)return false;                                  // dans la map
+  for(const z of W.cropzones){if(Math.abs(z.zx-zx)<n&&Math.abs(z.zy-zy)<n)return false;}  // pas de chevauchement d'une autre parcelle
+  for(let dy=0;dy<n;dy++)for(let dx=0;dx<n;dx++){const g=W.ground[zy+dy]&&W.ground[zy+dy][zx+dx];if(g==='water'||g==='pond')return false;}  // pas sur l'eau
+  return true;
+}
+function clearZoneLand(z){const CUT=['tree','treeC','bush','bushF','flower','stump','rock'];  // dégage le décor + terre labourée
+  for(let dy=0;dy<z.n;dy++)for(let dx=0;dx<z.n;dx++){const x=z.zx+dx,y=z.zy+dy;
+    if(W.decor[y]&&W.decor[y][x]&&CUT.includes(W.decor[y][x][0]))W.decor[y][x]=null;
+    if(W.ground[y])W.ground[y][x]='soil';}}
+function initBonusZones(){   // génère les parcelles bonus collées au champ de départ (une fois, à l'init)
+  const base=W.cropzones.find(z=>z.owned)||W.cropzones[0];if(!base)return;
+  const n=base.n||3, OFF=[[1,0],[0,1],[-1,0],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1],[2,0],[0,2],[-2,0],[0,-2]];
+  let pi=0;
+  for(const o of OFF){if(pi>=PALIERS.length)break;
+    const zx=base.zx+o[0]*n, zy=base.zy+o[1]*n;
+    if(!zoneCellsValid(zx,zy,n))continue;
+    W.cropzones.push({zx,zy,n,owned:false,bonus:true,palier:PALIERS[pi]});pi++;}
+}
+function checkPaliers(px,py){   // annonce quand un nouveau palier ouvre une parcelle à acheter
+  const avail=W.cropzones.filter(z=>z.bonus&&totalHarvest>=z.palier).length;
+  if(avail>unlockedShown){unlockedShown=avail;toast('Nouvelle parcelle à acheter ! 🌱');if(px!=null)burst(px,py,'#9dffb8',20);}
+}
+initBonusZones();
 rebuildCrop();
 
 function isoX(c,r){return APP_W/2+(c-r)*TW()/2+cam.x;}
@@ -249,7 +277,7 @@ function groundKey(g){return g==='path'?'sq_path':g==='grass'?'sq_grass':g==='di
 
 function zoneCost(){const o=W.cropzones.filter(z=>z.owned).length;return Math.floor(300*Math.pow(1.7,o-1));}
 // une parcelle n'est visible/achetable que si sa clairiere (landgroup) est defrichee
-function zoneAvailable(z){if(z.group==null||z.group<0)return true;const g=W.landgroups&&W.landgroups[z.group];return !!(g&&g.owned);}
+function zoneAvailable(z){if(z.bonus)return totalHarvest>=z.palier;if(z.group==null||z.group<0)return true;const g=W.landgroups&&W.landgroups[z.group];return !!(g&&g.owned);}
 
 function draw(){
   ctx.clearRect(0,0,APP_W,APP_H);
@@ -429,6 +457,21 @@ function draw(){
     ctx.fillStyle='rgba(255,220,80,.22)';ctx.strokeStyle='#ffd84d';ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(nx,ny);ctx.lineTo(ex,ey);ctx.lineTo(sx2,sy2);ctx.lineTo(wx,wy);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold '+(12*zoom+5)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🔒 '+zoneCost(),cx,cy);ctx.restore();}
+  // PROCHAINE parcelle bonus (palier pas encore atteint) : losange grisé pointillé + grammes restants -> objectif
+  {let nz=null;for(const z of W.cropzones){if(z.owned||!z.bonus||totalHarvest>=z.palier)continue;if(!nz||z.palier<nz.palier)nz=z;}
+   if(nz){const z=nz,hh=TH();
+    const nx=isoX(z.zx+0.5,z.zy+0.5),ny=isoY(z.zx+0.5,z.zy+0.5)-hh/2;
+    const ex=isoX(z.zx+z.n-0.5,z.zy+0.5)+TW()/2,ey=isoY(z.zx+z.n-0.5,z.zy+0.5);
+    const sx2=isoX(z.zx+z.n-0.5,z.zy+z.n-0.5),sy2=isoY(z.zx+z.n-0.5,z.zy+z.n-0.5)+hh/2;
+    const wx=isoX(z.zx+0.5,z.zy+z.n-0.5)-TW()/2,wy=isoY(z.zx+0.5,z.zy+z.n-0.5);
+    const mcx=z.zx+(z.n-1)/2+0.5, mcy=z.zy+(z.n-1)/2+0.5;const cx=isoX(mcx,mcy),cy=isoY(mcx,mcy);
+    if(!(cx<-60||cx>APP_W+60||cy<-60||cy>APP_H+60)){
+      ctx.save();ctx.globalAlpha=.26+.1*Math.sin(performance.now()/600);
+      ctx.fillStyle='rgba(120,170,90,.18)';ctx.strokeStyle='rgba(170,215,130,.75)';ctx.lineWidth=2;ctx.setLineDash([6,5]);
+      ctx.beginPath();ctx.moveTo(nx,ny);ctx.lineTo(ex,ey);ctx.lineTo(sx2,sy2);ctx.lineTo(wx,wy);ctx.closePath();ctx.fill();ctx.stroke();ctx.setLineDash([]);
+      ctx.globalAlpha=.95;ctx.fillStyle='#e6ffd6';ctx.font='bold '+(11*zoom+4)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('🔓 +'+Math.max(0,Math.ceil(z.palier-totalHarvest))+' g',cx,cy);ctx.restore();}
+   }}
   // clairieres forestieres a defricher (halo vert + prix)
   if(W.landgroups){for(const g of W.landgroups){if(g.owned)continue;
     const q=groupQuad(g);
@@ -554,9 +597,10 @@ function showSeedbar(s){document.getElementById('seedbar').classList.toggle('sho
 function onTap(px,py){const c=pickCrop(px,py);if(c){
     if(c.state==='empty'){selCell=c;showSeedbar(true);showCarebar(false);}   // selectionner -> graines
     else if(c.state==='ready'){const q=c.quality||1;const grams=Math.floor((12+Math.floor(Math.random()*10))*q*yieldMult());  // recolte x qualité x labo
-      stock+=grams;updateStock();
+      stock+=grams;totalHarvest+=grams;updateStock();
       const ix=isoX(c.x+0.5,c.y+0.5),iy=isoY(c.x+0.5,c.y+0.5);
       ft(ix,iy-TH(),'+'+grams+' g 🌿');
+      checkPaliers(ix,iy);   // un nouveau palier vient-il d'ouvrir une parcelle bonus ?
       const cols=['#8bd450','#b86bff','#5a9bff','#ff9d3c','#9b8fb5','#e0913c'][c.variety]||'#8bd450';
       burst(ix,iy,cols,18);
       c.state='empty';c.grow=0;selCell=null;showSeedbar(false);showCarebar(false);save();}
@@ -565,7 +609,7 @@ function onTap(px,py){const c=pickCrop(px,py);if(c){
     return;}
   // tap ailleurs -> tout fermer
   selCell=null;showSeedbar(false);showCarebar(false);
-  const z=pickZone(px,py);if(z){const cost=zoneCost();if(coin<cost){ft(px,py,'Pas assez 💰','#ff8080');return;}setCoin(coin-cost);z.owned=true;rebuildCrop();ft(px,py-20,'Zone débloquée ! 🌱','#9dffb8');save();return;}
+  const z=pickZone(px,py);if(z){const cost=zoneCost();if(coin<cost){ft(px,py,'Pas assez 💰','#ff8080');return;}setCoin(coin-cost);z.owned=true;if(z.bonus)clearZoneLand(z);rebuildCrop();ft(px,py-20,'Parcelle débloquée ! 🌱','#9dffb8');save();return;}
   const g=pickLandGroup(px,py);if(g)buyLandGroup(g,px,py);}
 // boutons graines
 document.querySelectorAll('.seed').forEach(btn=>{
@@ -608,14 +652,15 @@ function save(){try{
   const crops={};for(const k in cropCells){const c=cropCells[k];if(c.state!=='empty')crops[k]={s:c.state,g:c.grow,vv:c.variety,w:c.water||0,su:c.sun||0,n:c.nute||0,q:c.quality||1};}
   const zones=[];W.cropzones.forEach((z,i)=>{if(z.owned)zones.push(i);});
   const land=[];(W.landgroups||[]).forEach((g,i)=>{if(g.owned)land.push(i);});
-  localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,t:Date.now(),coin,stock,marketPrice,boosts,careT,lab,zones,land,crops}));
+  localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,t:Date.now(),coin,stock,marketPrice,totalHarvest,boosts,careT,lab,zones,land,crops}));
 }catch(e){}}
 function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){s=null;}
   if(!s||s.v!==1)return;
-  setCoin(s.coin);stock=s.stock;marketPrice=s.marketPrice;
+  setCoin(s.coin);stock=s.stock;marketPrice=s.marketPrice;totalHarvest=s.totalHarvest||0;
   if(s.boosts)boosts=s.boosts; if(s.lab)lab=s.lab; careT=s.careT||Date.now();
   if(W.landgroups&&s.land)for(const gi of s.land){if(W.landgroups[gi]){W.landgroups[gi].owned=true;applyClearing(gi);}}
-  if(s.zones)for(const zi of s.zones){if(W.cropzones[zi])W.cropzones[zi].owned=true;}
+  if(s.zones)for(const zi of s.zones){const z=W.cropzones[zi];if(z){z.owned=true;if(z.bonus)clearZoneLand(z);}}   // re-dégage le décor des parcelles bonus achetées
+  unlockedShown=W.cropzones.filter(z=>z.bonus&&totalHarvest>=z.palier).length;   // ne pas re-toaster au retour
   rebuildCrop();
   if(s.crops)for(const k in s.crops){const c=cropCells[k];if(c){const d=s.crops[k];c.state=d.s;c.grow=d.g;c.variety=d.vv;c.water=d.w;c.sun=d.su;c.nute=d.n;c.quality=d.q;}}
   const off=Math.min(Date.now()-(s.t||Date.now()),8*3600*1000);   // OFFLINE (capé 8h)
