@@ -348,7 +348,7 @@ function draw(){
         for(let i=0;i<BASE.length;i++){const h=(((x*73856093)^(y*19349663)^(i*83492791))>>>0);
           inst.push({fc:BASE[i][0]+(((h&255)/255)-0.5)*0.06, fr:BASE[i][1]+((((h>>8)&255)/255)-0.5)*0.06, scl:0.80+((h>>16)&255)/255*0.24, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
         inst.sort((a,b)=>(a.fc+a.fr)-(b.fc+b.fr));
-        for(const p of inst){const sx=isoX(x+p.fc,y+p.fr),sy=isoY(x+p.fc,y+p.fr)+TH()*0.34+bob, tw=TW()*(0.22+0.18*(st/8))*p.scl;
+        for(const p of inst){const sx=isoX(x+p.fc,y+p.fr),sy=isoY(x+p.fc,y+p.fr)+TH()*0.55+bob, tw=TW()*(0.22+0.18*(st/8))*p.scl;
           if(st>=3)shadow(sx,sy+tw*0.03,tw*0.44);
           if(img&&img.complete&&img.naturalWidth){const r=img.naturalHeight/img.naturalWidth,th=tw*r;
             const sway=Math.sin(Ts*0.9+p.ph)*amp+Math.sin(Ts*2.7+p.ph*1.7)*amp*0.25;
