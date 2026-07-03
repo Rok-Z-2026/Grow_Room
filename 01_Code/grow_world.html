@@ -344,11 +344,11 @@ function draw(){
         // (c) TOUFFE dense et variée (rangées décalées, jitter/flip/échelle par hash, tri arrière->avant, vent)
         const img=IMG['plant_'+v+'_'+st], bob=c.state==='ready'?Math.sin(now/450)*TH()*0.04:0;
         const amp=st<3?0.02:st<6?0.04:0.06, frost=(c.quality||1)>=1.8&&st>=6;
-        const BASE=[[0.28,0.24],[0.55,0.21],[0.78,0.31],[0.20,0.50],[0.50,0.50],[0.77,0.55],[0.33,0.77],[0.63,0.78]], inst=[];
+        const BASE=[[0.42,0.36],[0.58,0.36],[0.36,0.50],[0.50,0.50],[0.64,0.50],[0.44,0.64],[0.58,0.64]], inst=[];
         for(let i=0;i<BASE.length;i++){const h=(((x*73856093)^(y*19349663)^(i*83492791))>>>0);
-          inst.push({fc:BASE[i][0]+(((h&255)/255)-0.5)*0.10, fr:BASE[i][1]+((((h>>8)&255)/255)-0.5)*0.10, scl:0.82+((h>>16)&255)/255*0.34, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
+          inst.push({fc:BASE[i][0]+(((h&255)/255)-0.5)*0.06, fr:BASE[i][1]+((((h>>8)&255)/255)-0.5)*0.06, scl:0.80+((h>>16)&255)/255*0.24, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
         inst.sort((a,b)=>(a.fc+a.fr)-(b.fc+b.fr));
-        for(const p of inst){const sx=isoX(x+p.fc,y+p.fr),sy=isoY(x+p.fc,y+p.fr)+TH()*0.12+bob, tw=TW()*(0.24+0.20*(st/8))*p.scl;
+        for(const p of inst){const sx=isoX(x+p.fc,y+p.fr),sy=isoY(x+p.fc,y+p.fr)+TH()*0.34+bob, tw=TW()*(0.22+0.18*(st/8))*p.scl;
           if(st>=3)shadow(sx,sy+tw*0.03,tw*0.44);
           if(img&&img.complete&&img.naturalWidth){const r=img.naturalHeight/img.naturalWidth,th=tw*r;
             const sway=Math.sin(Ts*0.9+p.ph)*amp+Math.sin(Ts*2.7+p.ph*1.7)*amp*0.25;
