@@ -313,12 +313,10 @@ function draw(){
       if(isBig(t)&&zoom>0.9){for(const kk in cropCells){const c=cropCells[kk];
         if((x+y)>(c.x+c.y)                                        // objet DEVANT le champ (le recouvre)
           &&Math.abs(isoX(c.x+.5,c.y+.5)-ix)<TW()*1.1
-          &&isoY(c.x+.5,c.y+.5)>iy-TH()*4 && isoY(c.x+.5,c.y+.5)<iy+TH()*1.2){a=0.26;break;}}}
+          &&isoY(c.x+.5,c.y+.5)>iy-TH()*4 && isoY(c.x+.5,c.y+.5)<iy+TH()*1.2){a=Math.max(0,Math.min(0.4,(1.42-zoom)));break;}}}
       const wind=['tree','treeC','bush','bushF','flower'].includes(t);
-      if(a!=null){                                               // masque un champ -> transparent + flou
-        ctx.save();ctx.filter='blur(3px)';
-        drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc,a);
-        ctx.restore();
+      if(a!=null){                                               // masque un champ -> estompé+flou, ou INVISIBLE si trop proche (a~0)
+        if(a>0.03){ctx.save();ctx.filter='blur(3px)';drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc,a);ctx.restore();}
       } else if(wind){
         const amp=(t==='flower'?0.10:t==='bush'||t==='bushF'?0.055:0.035); // fleurs souples, arbres raides
         drawSpWind(IMG[img],ix,iy+TH()*0.62,TW()*sc,amp,(x*1.3+y*0.7));
@@ -356,12 +354,12 @@ function draw(){
         const amp=st<3?0.02:st<6?0.04:0.06, frost=(c.quality||1)>=1.8&&st>=6;
         const bedCX=ix, bedCY=iy+TH()*0.2;   // centre du BAC de terre visible (pas la case-moteur)
         const r=(img&&img.naturalWidth)?img.naturalHeight/img.naturalWidth:1.25;
-        const POS=[[0.0,0.0],[-0.5,-0.22],[0.5,-0.22],[-0.32,0.30],[0.32,0.30],[0.0,-0.48],[0.0,0.52]], inst=[];
+        const POS=[[0.0,0.0],[-0.42,-0.16],[0.42,-0.16],[-0.24,0.26],[0.24,0.26],[0.0,-0.34],[0.0,0.40]], inst=[];
         for(let i=0;i<POS.length;i++){const h=(((x*73856093)^(y*19349663)^(i*83492791))>>>0);
-          inst.push({u:POS[i][0]+(((h&255)/255)-0.5)*0.12, v:POS[i][1]+((((h>>8)&255)/255)-0.5)*0.12, scl:0.82+((h>>16)&255)/255*0.22, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
+          inst.push({u:POS[i][0]+(((h&255)/255)-0.5)*0.10, v:POS[i][1]+((((h>>8)&255)/255)-0.5)*0.10, scl:0.84+((h>>16)&255)/255*0.20, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
         inst.sort((a,b)=>a.v-b.v);   // arrière (v bas) -> avant
-        for(const p of inst){const tw=TW()*(0.24+0.20*(st/8))*p.scl, th=tw*r;
-          const cxp=bedCX+p.u*TW()*0.42, cyp=bedCY+p.v*TH()*0.42+bob, sy=cyp+th*0.5;   // plant CENTRÉ vertical. sur cyp (peu importe le stade)
+        for(const p of inst){const tw=TW()*(0.19+0.15*(st/8))*p.scl, th=tw*r;   // clump plus PETIT -> ne déborde pas sur la case voisine
+          const cxp=bedCX+p.u*TW()*0.30, cyp=bedCY+p.v*TH()*0.32+bob, sy=cyp+th*0.5;   // plant CENTRÉ vertical. sur cyp, étalement resserré
           if(st>=3)shadow(cxp,sy,tw*0.42);
           if(img&&img.complete&&img.naturalWidth){
             const sway=Math.sin(Ts*0.9+p.ph)*amp+Math.sin(Ts*2.7+p.ph*1.7)*amp*0.25;
