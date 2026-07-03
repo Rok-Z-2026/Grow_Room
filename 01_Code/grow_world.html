@@ -336,25 +336,21 @@ function draw(){
         ctx.lineWidth=2.5;ctx.strokeStyle='rgba(157,255,184,'+(0.6+0.4*pulse)+')';ctx.stroke();ctx.restore();}
       if(c.state!=='empty'){const v=['v','p','b','o','n','a'][c.variety];const st=c.state==='ready'?8:Math.max(1,Math.min(8,Math.ceil(c.grow*8)));
         for(const[fc,fr]of[[0.30,0.30],[0.70,0.30],[0.30,0.70],[0.70,0.70]]){const sx=isoX(x+fc,y+fr),sy=isoY(x+fc,y+fr)+TH()*0.12;drawSp(IMG['plant_'+v+'_'+st],sx,sy,TW()*(0.28+0.20*(st/8)));}
-        // barre de progression ARRONDIE avec degrade + reflet (pro)
-        if(c.state==='growing'&&zoom>0.55){const bw=TW()*0.72,bh=7*zoom,bx=ix-bw/2,by=iy-TH()*1.15,rr=bh/2;
-          function rrect(x,y,w,hh,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+hh,r);ctx.arcTo(x+w,y+hh,x,y+hh,r);ctx.arcTo(x,y+hh,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
-          // ombre portee douce
-          ctx.save();ctx.shadowColor='rgba(0,0,0,0.4)';ctx.shadowBlur=4*zoom;ctx.shadowOffsetY=1.5*zoom;
-          // fond sombre arrondi
-          rrect(bx,by,bw,bh,rr);ctx.fillStyle='rgba(28,32,26,0.9)';ctx.fill();ctx.restore();
-          // remplissage progression avec degrade vertical
-          const g=Math.max(0.001,Math.min(1,c.grow));
-          ctx.save();rrect(bx,by,bw*g,bh,rr);ctx.clip();
+        // barre de progression : FINE, étroite et discrète, juste au-dessus des plants
+        if(c.state==='growing'&&zoom>0.6){
+          const g=Math.max(0.02,Math.min(1,c.grow));
+          const bw=TW()*0.46, bh=Math.max(3,3.2*zoom), bx=ix-bw/2, by=iy-TH()*0.72, rr=bh/2;
+          const rrect=(X,Y,W,Hh,R)=>{ctx.beginPath();ctx.moveTo(X+R,Y);ctx.arcTo(X+W,Y,X+W,Y+Hh,R);ctx.arcTo(X+W,Y+Hh,X,Y+Hh,R);ctx.arcTo(X,Y+Hh,X,Y,R);ctx.arcTo(X,Y,X+W,Y,R);ctx.closePath();};
+          ctx.save();
+          rrect(bx,by,bw,bh,rr);ctx.fillStyle='rgba(16,22,14,0.5)';ctx.fill();     // fond translucide léger
+          ctx.lineWidth=1;ctx.strokeStyle='rgba(255,255,255,0.10)';ctx.stroke();   // fin liseré clair
+          rrect(bx,by,bw,bh,rr);ctx.clip();                                        // remplissage clippé
           const grd=ctx.createLinearGradient(bx,by,bx,by+bh);
           if(g<0.5){grd.addColorStop(0,'#a8e85a');grd.addColorStop(1,'#6cb22e');}
           else if(g<0.85){grd.addColorStop(0,'#d4f25c');grd.addColorStop(1,'#a8cc34');}
           else{grd.addColorStop(0,'#ffe87a');grd.addColorStop(1,'#f0b820');}
           ctx.fillStyle=grd;ctx.fillRect(bx,by,bw*g,bh);
-          // reflet lumineux en haut (brillance)
-          const gl=ctx.createLinearGradient(bx,by,bx,by+bh*0.5);
-          gl.addColorStop(0,'rgba(255,255,255,0.55)');gl.addColorStop(1,'rgba(255,255,255,0)');
-          ctx.fillStyle=gl;ctx.fillRect(bx,by,bw*g,bh*0.5);
+          ctx.fillStyle='rgba(255,255,255,0.30)';ctx.fillRect(bx,by,bw*g,Math.max(1,bh*0.34)); // reflet fin
           ctx.restore();}
         if(c.state==='ready'){const t=performance.now()/400;ctx.save();ctx.globalAlpha=.6+.4*Math.sin(t);ctx.font=(12*zoom)+'px serif';ctx.textAlign='center';ctx.fillText('✨',ix,iy-TH()*0.5);ctx.restore();}}}
   }
