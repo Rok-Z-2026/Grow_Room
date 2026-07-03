@@ -415,6 +415,14 @@ updateStock();
 let ds=null,dm=false,cs=null,md=false,pinch=null;
 function xy(e){const r=cv.getBoundingClientRect(),s=APP_W/r.width,t=e.touches?e.touches[0]:e;return[(t.clientX-r.left)*s,(t.clientY-r.top)*s];}
 function dist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);}
+// milieu des 2 doigts en coords ecran (APP)
+function midXY(e){const r=cv.getBoundingClientRect(),s=APP_W/r.width,t=e.touches;return[((t[0].clientX+t[1].clientX)/2-r.left)*s,((t[0].clientY+t[1].clientY)/2-r.top)*s];}
+// zoom ANCRE sur un point ecran (sx,sy) : le monde sous ce point y reste (pinch/molette/boutons)
+function zoomAt(nz,sx,sy){nz=clamp(nz,0.4,1.7);
+  const wx=(sx-APP_W/2-cam.x)/(TW()/2), wy=(sy-APP_H*0.28-cam.y)/(TH()/2); // point monde sous l'ancre
+  zoom=nz;
+  cam.x=sx-APP_W/2-wx*(TW()/2); cam.y=sy-APP_H*0.28-wy*(TH()/2);           // recadre pour garder l'ancre
+  clampCam();}
 function ft(px,py,t,c){const e=document.createElement('div');e.className='float';e.textContent=t;e.style.left=px+'px';e.style.top=py+'px';if(c)e.style.color=c;document.getElementById('app').appendChild(e);setTimeout(()=>e.remove(),1100);}
 function coinPulse(){const el=document.getElementById('coin');el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');}
 function showCarebar(s){const el=document.getElementById('carebar');if(el)el.classList.toggle('show',s);updateCareUI();}
@@ -504,10 +512,10 @@ document.querySelectorAll('.seed').forEach(btn=>{
   });
 });
 cv.addEventListener('touchstart',e=>{e.preventDefault();if(e.touches.length===2)pinch={d:dist(e.touches),z:zoom};else{ds=xy(e);cs={...cam};dm=false;}},{passive:false});
-cv.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===2&&pinch){zoom=Math.max(0.4,Math.min(1.7,pinch.z*dist(e.touches)/pinch.d));clampCam();return;}if(!ds)return;const[x,y]=xy(e);if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;cam.x=cs.x+x-ds[0];cam.y=cs.y+y-ds[1];clampCam();},{passive:false});
+cv.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===2&&pinch){const m=midXY(e);zoomAt(pinch.z*dist(e.touches)/pinch.d,m[0],m[1]);return;}if(!ds)return;const[x,y]=xy(e);if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;cam.x=cs.x+x-ds[0];cam.y=cs.y+y-ds[1];clampCam();},{passive:false});
 cv.addEventListener('touchend',e=>{e.preventDefault();if(pinch){pinch=null;return;}if(!dm&&ds)onTap(ds[0],ds[1]);ds=null;},{passive:false});
 cv.addEventListener('mousedown',e=>{ds=xy(e);cs={...cam};dm=false;md=true;});cv.addEventListener('mousemove',e=>{if(!md)return;const[x,y]=xy(e);if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;cam.x=cs.x+x-ds[0];cam.y=cs.y+y-ds[1];clampCam();});cv.addEventListener('mouseup',e=>{if(!dm&&ds)onTap(ds[0],ds[1]);ds=null;md=false;});
-cv.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(0.4,Math.min(1.7,zoom*(e.deltaY<0?1.1:.9)));clampCam();},{passive:false});
-document.getElementById('zin').onclick=()=>{zoom=Math.min(1.7,zoom*1.2);clampCam();};document.getElementById('zout').onclick=()=>{zoom=Math.max(0.4,zoom/1.2);clampCam();};
+cv.addEventListener('wheel',e=>{e.preventDefault();const m=xy(e);zoomAt(zoom*(e.deltaY<0?1.1:.9),m[0],m[1]);},{passive:false});
+document.getElementById('zin').onclick=()=>zoomAt(zoom*1.2,APP_W/2,APP_H/2);document.getElementById('zout').onclick=()=>zoomAt(zoom/1.2,APP_W/2,APP_H/2);
 setInterval(()=>{for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'){c.grow+=0.0067/speedMult();if(c.grow>=1){c.grow=1;c.state='ready';}}}},200);
 </script></body></html>
