@@ -298,18 +298,6 @@ function draw(){
       const t=dec[0],img=decImg(dec),sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
       drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc);}
   }
-  // PASSE CHAMPS : sol laboure CONTINU (sq_soil, sans bordure) + cadre PIERRE (field_border) par parcelle.
-  // -> terre d'un seul tenant + un seul tour de pierre qui met la parcelle en valeur (fini la grille de 9 cadres bois).
-  for(const kk in cropCells){const c=cropCells[kk];if(vis(c.x,c.y))tile('sq_soil',c.x,c.y);}   // sol continu
-  for(const z of W.cropzones){if(!z.owned)continue;
-    const mcx=z.zx+(z.n-1)/2+0.5, mcy=z.zy+(z.n-1)/2+0.5;                 // centre de la parcelle
-    const cx=isoX(mcx,mcy),cy=isoY(mcx,mcy);
-    if(cx<-APP_W||cx>APP_W*2||cy<-APP_H||cy>APP_H*2)continue;             // cull large
-    const fb=IMG['field_border'];
-    if(fb&&fb.complete&&fb.naturalWidth){
-      const dw=z.n*TW()*1.04, dh=dw*(fb.naturalHeight/fb.naturalWidth);  // largeur = n tuiles + epaisseur pierre
-      ctx.drawImage(fb,cx-dw/2,cy-dh*0.61,dw,dh);}                        // centre CREUX de l'anneau cale sur le centre du champ (blocs montent)
-  }
   // PASSE OMBRES : APRES tout le sol, AVANT les objets -> l'ombre se pose sur le terrain
   for(const {x,y} of cells){
     const dec=W.decor[y][x];
@@ -337,7 +325,10 @@ function draw(){
       }}
     // 4) crop
     const ck=x+','+y;if(cropCells[ck]){const c=cropCells[ck];const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
-      // Sol laboure (sq_soil) + cadre pierre (field_border) dessines dans la PASSE CHAMPS plus haut.
+      // TERRE LABOUREE a sillons : sprite 'parc' complet par case (bordure bois incluse, ratio 0.605),
+      // mappe exactement sur le losange de la tuile -> pave parfaitement, zero chevauchement. (NE PAS clipper.)
+      let pk=c.state==='growing'?(c.grow<0.15?'parc3':'parc2'):c.state==='ready'?'parc4':'parc1';
+      {const pimg=IMG[pk];if(pimg&&pimg.complete&&pimg.naturalWidth){const dw=TW()*1.04,dh=TH()*1.04;ctx.drawImage(pimg,ix-dw/2,iy-dh/2,dw,dh);}}
       // surbrillance de la case selectionnee (cadre lumineux pulse + animation)
       if(selCell===c){const w=TW(),hh=TH(),cyS=iy;const pulse=0.5+0.5*Math.sin(performance.now()/300);
         ctx.save();ctx.beginPath();ctx.moveTo(ix,cyS-hh/2);ctx.lineTo(ix+w/2,cyS);ctx.lineTo(ix,cyS+hh/2);ctx.lineTo(ix-w/2,cyS);ctx.closePath();
@@ -360,22 +351,24 @@ function draw(){
         if(wet>0.05){const w=TW(),hh=TH(),cyW=iy;ctx.save();ctx.beginPath();ctx.moveTo(ix,cyW-hh/2);ctx.lineTo(ix+w/2,cyW);ctx.lineTo(ix,cyW+hh/2);ctx.lineTo(ix-w/2,cyW);ctx.closePath();ctx.clip();ctx.fillStyle='rgba(22,14,6,'+(0.32*wet)+')';ctx.fillRect(ix-w/2,cyW-hh/2,w,hh);ctx.restore();}
         // (b) HALO DORÉ sous les plants si PRÊTE
         if(c.state==='ready'){const pl=0.55+0.45*Math.sin(now/500),R=TW()*0.55,cyG=iy;ctx.save();const gg=ctx.createRadialGradient(ix,cyG,R*0.12,ix,cyG,R);gg.addColorStop(0,'rgba(255,226,130,'+(0.34*pl)+')');gg.addColorStop(0.6,'rgba(255,210,90,'+(0.12*pl)+')');gg.addColorStop(1,'rgba(255,210,90,0)');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(ix,cyG,R,0,7);ctx.fill();ctx.restore();}
-        // (c) 4 plants/case en grille iso alignée -> champ DENSE et luxuriant, rangées régulières
-        const img=IMG['plant_'+v+'_'+st], bob=c.state==='ready'?Math.sin(now/450)*TH()*0.05:0;
+        // (c) TOUFFE dense de 5 plants/case (le look d'avant), CONTENUE dans la case (pas de débordement
+        // sur l'herbe/voisines), jitter déterministe LÉGER, tri arrière->avant, ancre au pied, vent doux.
+        const img=IMG['plant_'+v+'_'+st], bob=c.state==='ready'?Math.sin(now/450)*TH()*0.04:0;
         const amp=st<3?0.008:st<6?0.016:0.024, frost=(c.quality||1)>=1.8&&st>=6;   // vent DOUX (calme)
+        const bedCX=ix, bedCY=iy;   // centre de la tuile
         const r=(img&&img.naturalWidth)?img.naturalHeight/img.naturalWidth:1.25;
-        // 4 plants par case en GRILLE ISO FIXE (rangées alignées, AUCUN jitter) -> champ dense et
-        // régulier ; les rangées se prolongent d'une case à l'autre (espacement constant 0.5 case).
-        const S=0.24, SUB=[[-S,-S],[S,-S],[-S,S],[S,S]];   // ordre = arrière -> avant (du+dv croissant)
-        const tw=TW()*(0.34+0.22*(st/8)), th=tw*r;         // 4 plants plus petits -> canopée dense mais lisible
-        for(let gi=0;gi<SUB.length;gi++){const du=SUB[gi][0],dv=SUB[gi][1];
-          const h=(((x*73856093)^(y*19349663)^(gi*83492791))>>>0), flip=(h&1)===1, ph=(h&255)/255*6.283;
-          const cxp=isoX(x+0.5+du,y+0.5+dv), cyp=isoY(x+0.5+du,y+0.5+dv)+TH()*0.12+bob, sy=cyp;
-          if(st>=3)shadow(cxp,sy,tw*0.36);
+        // [u, v, taille] : 2 arrière (petits), 2 milieu, 1 héros devant (plus grand). Empreinte < demi-tuile.
+        const POS=[[-0.26,-0.20,0.80],[0.26,-0.20,0.80],[-0.34,0.06,0.90],[0.34,0.06,0.90],[0.0,0.24,1.15]], inst=[];
+        for(let i=0;i<POS.length;i++){const h=(((x*73856093)^(y*19349663)^(i*83492791))>>>0);
+          inst.push({u:POS[i][0]+(((h&255)/255)-0.5)*0.04, v:POS[i][1]+((((h>>8)&255)/255)-0.5)*0.035, s:POS[i][2], scl:0.94+((h>>16)&255)/255*0.12, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
+        inst.sort((a,b)=>a.v-b.v);   // arrière (v bas) dessiné d'abord -> héros au-dessus
+        for(const p of inst){const tw=TW()*(0.21+0.15*(st/8))*p.scl*p.s, th=tw*r;   // grossit avec le stade
+          const cxp=bedCX+p.u*TW()*0.30, cyp=bedCY+TH()*0.24+p.v*TH()*0.42+bob, sy=cyp;   // pied ASSIS dans le bas de la case
+          if(st>=3)shadow(cxp,sy,tw*0.42);
           if(img&&img.complete&&img.naturalWidth){
-            const sway=Math.sin(Ts*0.9+ph)*amp+Math.sin(Ts*2.7+ph*1.7)*amp*0.25;
-            ctx.save();ctx.translate(cxp,sy);if(flip)ctx.scale(-1,1);ctx.transform(1,0,sway,1,0,0);ctx.drawImage(img,-tw/2,-th,tw,th);ctx.restore();
-            if(frost){ctx.save();for(let k=0;k<3;k++){const a=ph*2.3+k*2.1;ctx.globalAlpha=0.3+0.3*Math.sin(now/500+ph+k*2);ctx.fillStyle='#eafff2';ctx.beginPath();ctx.arc(cxp+Math.cos(a)*tw*0.2,sy-th*0.55+Math.sin(a)*tw*0.16,Math.max(0.7,tw*0.02),0,7);ctx.fill();}ctx.restore();}}}
+            const sway=Math.sin(Ts*0.9+p.ph)*amp+Math.sin(Ts*2.7+p.ph*1.7)*amp*0.25;
+            ctx.save();ctx.translate(cxp,sy);if(p.flip)ctx.scale(-1,1);ctx.transform(1,0,sway,1,0,0);ctx.drawImage(img,-tw/2,-th,tw,th);ctx.restore();
+            if(frost){ctx.save();for(let k=0;k<3;k++){const a=p.ph*2.3+k*2.1;ctx.globalAlpha=0.3+0.35*Math.sin(now/500+p.ph+k*2);ctx.fillStyle='#eafff2';ctx.beginPath();ctx.arc(cxp+Math.cos(a)*tw*0.20,sy-th*0.55+Math.sin(a)*tw*0.16,Math.max(0.7,tw*0.022),0,7);ctx.fill();}ctx.restore();}}}
         // (d) barre de progression : FINE, étroite et discrète, juste au-dessus des plants
         if(c.state==='growing'&&zoom>0.6){
           const g=Math.max(0.02,Math.min(1,c.grow));
