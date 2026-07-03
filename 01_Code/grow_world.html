@@ -124,6 +124,10 @@ let cam={x:0,y:0},coin=300,stock=0,marketPrice=8;  // stock en grammes, prix/g
 let boosts={water:20,sun:15,nute:10};  // stocks de soins limités
 let combo={count:0,last:0,window:1200};  // système de combo
 let lab={yield:0,speed:0,value:0};  // niveaux des améliorations labo
+let careT=Date.now(), lastTick=Date.now();            // horodatages temps-réel (careT restauré au load)
+const GROW_MS=30000;                                  // durée de pousse de base (~30s, tunable)
+const CARE_MAX={water:20,sun:15,nute:10}, CARE_REFILL_MS=60000; // soins: +1 de chaque /60s jusqu'au cap
+const SAVE_KEY='tinygrow_save_v1';
 let selCell=null;  // cellule selectionnee — DECLAREE AVANT draw() (draw() la lit ligne ~305). Sinon TDZ: le 1er draw() synchrone throw si une parcelle est visible frame 1 -> boucle rAF morte -> canvas blanc.
 const LAB=[
   {key:'yield',name:'Rendement',emo:'🌿',base:120,mul:1.6,max:20,desc:'+25% grammes'},
@@ -402,7 +406,7 @@ function renderLab(){
 function money(n){return Math.floor(n).toLocaleString('fr-FR');}
 function buyLab(k){const u=LAB.find(x=>x.key===k),l=lab[k];if(l>=u.max)return;const cost=labCost(u);
   if(coin<cost){toast('Pas assez 💰');return;}
-  setCoin(coin-cost);lab[k]=l+1;coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderLab();updateStock();}
+  setCoin(coin-cost);lab[k]=l+1;coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderLab();updateStock();save();}
 function openLab(){document.getElementById('labmodal').classList.add('show');renderLab();}
 function closeLab(){document.getElementById('labmodal').classList.remove('show');}
 document.getElementById('labbtn').addEventListener('click',openLab);
@@ -426,9 +430,8 @@ function ft(px,py,t,c){const e=document.createElement('div');e.className='float'
 function coinPulse(){const el=document.getElementById('coin');el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');}
 function showCarebar(s){const el=document.getElementById('carebar');if(el)el.classList.toggle('show',s);updateCareUI();}
 function updateCareUI(){
-  document.getElementById('bw') && (document.getElementById('bw').textContent=boosts.water);
-  document.getElementById('bs') && (document.getElementById('bs').textContent=boosts.sun);
-  document.getElementById('bn') && (document.getElementById('bn').textContent=boosts.nute);
+  const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=boosts[t]+'/'+CARE_MAX[t];};
+  set('bw','water');set('bs','sun');set('bn','nute');
 }
 function applyCare(type){
   if(!selCell||selCell.state!=='growing'){showCarebar(false);return;}
@@ -454,34 +457,39 @@ function applyCare(type){
   if(c>=2)ft(ix,iy-TH()*1.3,emo+' x'+c,fx);else ft(ix,iy-TH(),emo,fx);
   updateCareUI();
   if(selCell.state==='ready'){showCarebar(false);selCell=null;}
+  save();
 }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),1800);}
 function updateStock(){const el=document.getElementById('stockval');if(el)el.textContent=stock+' g';const bar=document.getElementById('sellbar');if(bar)bar.classList.toggle('show',stock>0);const pe=document.getElementById('sellprice');if(pe)pe.textContent='≈ '+Math.floor(stock*marketPrice*valueMult())+' 💰';}
 function sellAll(){if(stock<=0)return;const earned=Math.floor(stock*marketPrice*valueMult());setCoin(coin+earned);coinPulse();
   toast('Vendu '+stock+' g · +'+earned+' 💰');stock=0;updateStock();
   // fluctuation du prix apres vente
-  marketPrice=Math.max(5,Math.min(14,marketPrice+(Math.random()*2-1)));}
+  marketPrice=Math.max(5,Math.min(14,marketPrice+(Math.random()*2-1)));save();}
 function pickCrop(px,py){let b=null,bd=1e9;for(const k in cropCells){const c=cropCells[k];const x=isoX(c.x+.5,c.y+.5),y=isoY(c.x+.5,c.y+.5)+TH()*.5;const d=Math.abs(px-x)/(TW()*.55)+Math.abs(py-y)/(TH()*.55);if(d<=1&&d<bd){bd=d;b=c;}}return b;}
 function pickZone(px,py){for(const z of W.cropzones){if(z.owned||!zoneAvailable(z))continue;const mcx=z.zx+(z.n-1)/2+0.5,mcy=z.zy+(z.n-1)/2+0.5;const cx=isoX(mcx,mcy),cy=isoY(mcx,mcy);if(Math.abs(px-cx)<TW()*1.6&&Math.abs(py-cy)<TH()*2.6)return z;}return null;}
 // === CLAIRIERES (landgroups) : gros lots forestiers a defricher ===
 function pointInQuad(px,py,q){let s=0;for(let i=0;i<4;i++){const a=q[i],b=q[(i+1)%4];const cr=(b[0]-a[0])*(py-a[1])-(b[1]-a[1])*(px-a[0]);const sg=cr>0?1:cr<0?-1:0;if(sg){if(s&&sg!==s)return false;s=sg;}}return true;}
 function groupQuad(g){return [[isoX(g.gx,g.gy),isoY(g.gx,g.gy)],[isoX(g.gx+g.gw,g.gy),isoY(g.gx+g.gw,g.gy)],[isoX(g.gx+g.gw,g.gy+g.gh),isoY(g.gx+g.gw,g.gy+g.gh)],[isoX(g.gx,g.gy+g.gh),isoY(g.gx,g.gy+g.gh)]];}
 function pickLandGroup(px,py){if(!W.landgroups)return null;for(const g of W.landgroups){if(g.owned)continue;if(pointInQuad(px,py,groupQuad(g)))return g;}return null;}
-function buyLandGroup(g,px,py){
-  if(coin<g.cost){ft(px,py,'Pas assez 💰','#ff8080');return;}
-  setCoin(coin-g.cost);g.owned=true;coinPulse();
-  const gi=W.landgroups.indexOf(g),CUT=['tree','treeC','bush','bushF','flower','stump'];
+// coupe le décor + met la terre (PUR, rejouable au load) — sans coût/FX/toast
+function applyClearing(gi){const g=W.landgroups&&W.landgroups[gi];if(!g)return;const CUT=['tree','treeC','bush','bushF','flower','stump'];
   for(let y=g.gy;y<g.gy+g.gh;y++)for(let x=g.gx;x<g.gx+g.gw;x++){
-    if(x<0||y<0||x>=MW||y>=MH)continue;
-    const d=W.decor[y][x];
-    if(d&&CUT.includes(d[0])){burst(isoX(x+0.5,y+0.5),isoY(x+0.5,y+0.5)-TH()*0.5,'#7cae4a',6);W.decor[y][x]=null;}
-  }
-  // sous les futures parcelles: terre cultivable + on vire les rochers
+    if(x<0||y<0||x>=MW||y>=MH)continue;const d=W.decor[y][x];
+    if(d&&CUT.includes(d[0]))W.decor[y][x]=null;}
   for(const z of W.cropzones){if(z.group!==gi)continue;
     for(let dy=0;dy<z.n;dy++)for(let dx=0;dx<z.n;dx++){const x=z.zx+dx,y=z.zy+dy;if(x<0||y<0||x>=MW||y>=MH)continue;
       if(W.decor[y][x]&&W.decor[y][x][0]==='rock')W.decor[y][x]=null;
       W.ground[y][x]='soil';}}
-  toast('Forêt défrichée ! 🪓');
+}
+function buyLandGroup(g,px,py){
+  if(coin<g.cost){ft(px,py,'Pas assez 💰','#ff8080');return;}
+  setCoin(coin-g.cost);g.owned=true;coinPulse();
+  const gi=W.landgroups.indexOf(g),CUT=['tree','treeC','bush','bushF','flower','stump'];
+  for(let y=g.gy;y<g.gy+g.gh;y++)for(let x=g.gx;x<g.gx+g.gw;x++){   // FX de coupe (avant retrait)
+    if(x<0||y<0||x>=MW||y>=MH)continue;const d=W.decor[y][x];
+    if(d&&CUT.includes(d[0]))burst(isoX(x+0.5,y+0.5),isoY(x+0.5,y+0.5)-TH()*0.5,'#7cae4a',6);}
+  applyClearing(gi);
+  toast('Forêt défrichée ! 🪓');save();
 }
 // selCell est déclarée plus haut (avant draw) pour éviter le TDZ
 function showSeedbar(s){document.getElementById('seedbar').classList.toggle('show',s);}
@@ -493,13 +501,13 @@ function onTap(px,py){const c=pickCrop(px,py);if(c){
       ft(ix,iy-TH(),'+'+grams+' g 🌿');
       const cols=['#8bd450','#b86bff','#5a9bff','#ff9d3c','#9b8fb5','#e0913c'][c.variety]||'#8bd450';
       burst(ix,iy,cols,18);
-      c.state='empty';c.grow=0;selCell=null;showSeedbar(false);showCarebar(false);}
+      c.state='empty';c.grow=0;selCell=null;showSeedbar(false);showCarebar(false);save();}
     else if(c.state==='growing'){  // selectionner -> panneau de soins
       selCell=c;showCarebar(true);showSeedbar(false);}
     return;}
   // tap ailleurs -> tout fermer
   selCell=null;showSeedbar(false);showCarebar(false);
-  const z=pickZone(px,py);if(z){const cost=zoneCost();if(coin<cost){ft(px,py,'Pas assez 💰','#ff8080');return;}setCoin(coin-cost);z.owned=true;rebuildCrop();ft(px,py-20,'Zone débloquée ! 🌱','#9dffb8');return;}
+  const z=pickZone(px,py);if(z){const cost=zoneCost();if(coin<cost){ft(px,py,'Pas assez 💰','#ff8080');return;}setCoin(coin-cost);z.owned=true;rebuildCrop();ft(px,py-20,'Zone débloquée ! 🌱','#9dffb8');save();return;}
   const g=pickLandGroup(px,py);if(g)buyLandGroup(g,px,py);}
 // boutons graines
 document.querySelectorAll('.seed').forEach(btn=>{
@@ -507,7 +515,7 @@ document.querySelectorAll('.seed').forEach(btn=>{
     if(!selCell)return;
     const v=parseInt(btn.dataset.v);
     selCell.state='growing';selCell.grow=0;selCell.variety=v;selCell.water=0;selCell.sun=0;selCell.nute=0;selCell.quality=1;
-    selCell=null;showSeedbar(false);
+    selCell=null;showSeedbar(false);save();
   });
 });
 cv.addEventListener('touchstart',e=>{e.preventDefault();if(e.touches.length===2)pinch={d:dist(e.touches),z:zoom};else{ds=xy(e);cs={...cam};dm=false;}},{passive:false});
@@ -516,5 +524,34 @@ cv.addEventListener('touchend',e=>{e.preventDefault();if(pinch){pinch=null;retur
 cv.addEventListener('mousedown',e=>{ds=xy(e);cs={...cam};dm=false;md=true;});cv.addEventListener('mousemove',e=>{if(!md)return;const[x,y]=xy(e);if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;cam.x=cs.x+x-ds[0];cam.y=cs.y+y-ds[1];clampCam();});cv.addEventListener('mouseup',e=>{if(!dm&&ds)onTap(ds[0],ds[1]);ds=null;md=false;});
 cv.addEventListener('wheel',e=>{e.preventDefault();const m=xy(e);zoomAt(zoom*(e.deltaY<0?1.1:.9),m[0],m[1]);},{passive:false});
 document.getElementById('zin').onclick=()=>zoomAt(zoom*1.2,APP_W/2,APP_H/2);document.getElementById('zout').onclick=()=>zoomAt(zoom/1.2,APP_W/2,APP_H/2);
-setInterval(()=>{for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'){c.grow+=0.0067/speedMult();if(c.grow>=1){c.grow=1;c.state='ready';}}}},200);
+// ===== FONDATIONS IDLE : temps réel, sauvegarde, offline, régén des soins =====
+function growCells(ms){let became=0;for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'){c.grow+=ms/(GROW_MS*speedMult());if(c.grow>=1){c.grow=1;c.state='ready';became++;}}}return became;}
+function regenCare(now){const n=Math.floor((now-careT)/CARE_REFILL_MS);if(n<=0)return;for(const t in CARE_MAX)boosts[t]=Math.min(CARE_MAX[t],boosts[t]+n);careT+=n*CARE_REFILL_MS;updateCareUI();}
+function save(){try{
+  const crops={};for(const k in cropCells){const c=cropCells[k];if(c.state!=='empty')crops[k]={s:c.state,g:c.grow,vv:c.variety,w:c.water||0,su:c.sun||0,n:c.nute||0,q:c.quality||1};}
+  const zones=[];W.cropzones.forEach((z,i)=>{if(z.owned)zones.push(i);});
+  const land=[];(W.landgroups||[]).forEach((g,i)=>{if(g.owned)land.push(i);});
+  localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,t:Date.now(),coin,stock,marketPrice,boosts,careT,lab,zones,land,crops}));
+}catch(e){}}
+function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){s=null;}
+  if(!s||s.v!==1)return;
+  setCoin(s.coin);stock=s.stock;marketPrice=s.marketPrice;
+  if(s.boosts)boosts=s.boosts; if(s.lab)lab=s.lab; careT=s.careT||Date.now();
+  if(W.landgroups&&s.land)for(const gi of s.land){if(W.landgroups[gi]){W.landgroups[gi].owned=true;applyClearing(gi);}}
+  if(s.zones)for(const zi of s.zones){if(W.cropzones[zi])W.cropzones[zi].owned=true;}
+  rebuildCrop();
+  if(s.crops)for(const k in s.crops){const c=cropCells[k];if(c){const d=s.crops[k];c.state=d.s;c.grow=d.g;c.variety=d.vv;c.water=d.w;c.sun=d.su;c.nute=d.n;c.quality=d.q;}}
+  const off=Math.min(Date.now()-(s.t||Date.now()),8*3600*1000);   // OFFLINE (capé 8h)
+  if(off>0)growCells(off);
+  regenCare(Date.now());
+  updateStock();updateCareUI();
+  let rc=0;for(const k in cropCells)if(cropCells[k].state==='ready')rc++;
+  if(off>60000&&rc>0)setTimeout(()=>toast('Bon retour ! 🌿 '+rc+' plant'+(rc>1?'s':'')+' prêt'+(rc>1?'s':'')+' à récolter'),700);
+}
+load(); lastTick=Date.now();
+setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;growCells(dt);regenCare(now);},200);
+setInterval(save,10000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
+window.addEventListener('pagehide',save);
+window.__wipe=()=>{localStorage.removeItem(SAVE_KEY);location.reload();};
 </script></body></html>
