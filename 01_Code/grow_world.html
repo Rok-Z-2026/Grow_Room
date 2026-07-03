@@ -354,12 +354,14 @@ function draw(){
         const amp=st<3?0.02:st<6?0.04:0.06, frost=(c.quality||1)>=1.8&&st>=6;
         const bedCX=ix, bedCY=iy+TH()*0.2;   // centre du BAC de terre visible (pas la case-moteur)
         const r=(img&&img.naturalWidth)?img.naturalHeight/img.naturalWidth:1.25;
-        const POS=[[0.0,0.0],[-0.42,-0.16],[0.42,-0.16],[-0.24,0.26],[0.24,0.26],[0.0,-0.34],[0.0,0.40]], inst=[];
+        // 5 plants en petit monticule CONTENU dans la case (empreinte < demi-tuile -> pas de fusion avec les voisines).
+        // [u, v, taille] : 2 à l'arrière (petites), 2 milieu, 1 héros devant (plus grande). base ANCRÉE sur la terre.
+        const POS=[[-0.34,-0.30,0.80],[0.34,-0.30,0.80],[-0.52,0.02,0.90],[0.52,0.02,0.90],[0.0,0.28,1.12]], inst=[];
         for(let i=0;i<POS.length;i++){const h=(((x*73856093)^(y*19349663)^(i*83492791))>>>0);
-          inst.push({u:POS[i][0]+(((h&255)/255)-0.5)*0.10, v:POS[i][1]+((((h>>8)&255)/255)-0.5)*0.10, scl:0.84+((h>>16)&255)/255*0.20, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
-        inst.sort((a,b)=>a.v-b.v);   // arrière (v bas) -> avant
-        for(const p of inst){const tw=TW()*(0.19+0.15*(st/8))*p.scl, th=tw*r;   // clump plus PETIT -> ne déborde pas sur la case voisine
-          const cxp=bedCX+p.u*TW()*0.30, cyp=bedCY+p.v*TH()*0.32+bob, sy=cyp+th*0.5;   // plant CENTRÉ vertical. sur cyp, étalement resserré
+          inst.push({u:POS[i][0]+(((h&255)/255)-0.5)*0.08, v:POS[i][1]+((((h>>8)&255)/255)-0.5)*0.06, s:POS[i][2], scl:0.90+((h>>16)&255)/255*0.16, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
+        inst.sort((a,b)=>a.v-b.v);   // arrière (v bas, dessiné d'abord) -> avant (héros au-dessus)
+        for(const p of inst){const tw=TW()*(0.15+0.11*(st/8))*p.scl*p.s, th=tw*r;   // compact : héros ~0.3·TW, jamais de débordement
+          const cxp=bedCX+p.u*TW()*0.30, cyp=bedCY+p.v*TH()*0.34+bob, sy=cyp;   // base POSÉE sur le sol (pousse vers le haut), pas centrée
           if(st>=3)shadow(cxp,sy,tw*0.42);
           if(img&&img.complete&&img.naturalWidth){
             const sway=Math.sin(Ts*0.9+p.ph)*amp+Math.sin(Ts*2.7+p.ph*1.7)*amp*0.25;
