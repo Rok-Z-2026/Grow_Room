@@ -307,14 +307,23 @@ function draw(){
   for(const {x,y} of cells){
     const dec=W.decor[y][x];
     if(dec && !['pond_big','pond_mare','cascade'].includes(dec[0])){const t=dec[0],img=decImg(dec),sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
-      let a=null;if(isBig(t)&&zoom>0.95){for(const kk in cropCells){const c=cropCells[kk];if(c.state==='ready'&&(c.x+c.y)>(x+y)&&Math.abs(isoX(c.x+.5,c.y+.5)-ix)<TW()&&isoY(c.x+.5,c.y+.5)>iy-TH()*3&&isoY(c.x+.5,c.y+.5)<iy+TH()){a=0.45;break;}}}
-      // effet vent : seuls les vegetaux se balancent (arbres/buissons/fleurs), pas les structures
+      // FONDU : un gros objet (arbre/bâtiment) qui MASQUE un champ cultivable en zoom
+      // -> on l'estompe (faible opacité) + on le floute, pour voir les parcelles derrière.
+      let a=null;
+      if(isBig(t)&&zoom>0.9){for(const kk in cropCells){const c=cropCells[kk];
+        if((x+y)>(c.x+c.y)                                        // objet DEVANT le champ (le recouvre)
+          &&Math.abs(isoX(c.x+.5,c.y+.5)-ix)<TW()*1.1
+          &&isoY(c.x+.5,c.y+.5)>iy-TH()*4 && isoY(c.x+.5,c.y+.5)<iy+TH()*1.2){a=0.26;break;}}}
       const wind=['tree','treeC','bush','bushF','flower'].includes(t);
-      if(wind && a==null){
+      if(a!=null){                                               // masque un champ -> transparent + flou
+        ctx.save();ctx.filter='blur(3px)';
+        drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc,a);
+        ctx.restore();
+      } else if(wind){
         const amp=(t==='flower'?0.10:t==='bush'||t==='bushF'?0.055:0.035); // fleurs souples, arbres raides
         drawSpWind(IMG[img],ix,iy+TH()*0.62,TW()*sc,amp,(x*1.3+y*0.7));
       } else {
-        drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc,a);
+        drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc,null);
       }}
     // 4) crop
     const ck=x+','+y;if(cropCells[ck]){const c=cropCells[ck];const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
