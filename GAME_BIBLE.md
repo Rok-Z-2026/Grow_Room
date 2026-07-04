@@ -176,7 +176,7 @@ Système à **deux niveaux** :
 Tous ces systèmes font partie de la vision finale :
 
 - **👷 Employés** — automatisent la récolte et la replante. Le pilier de l'idle. ✅ *(implémenté — voir 7bis)*
-- **🎯 Missions / Objectifs** — quêtes avec récompenses, donnent un but à court terme et guident la progression.
+- **🎯 Missions / Objectifs** — quêtes avec récompenses, donnent un but à court terme et guident la progression. ✅ *(implémenté — voir 7ter)*
 - **😴 Gains hors-ligne (Idle)** — la ferme produit pendant l'absence du joueur ; il encaisse à son retour.
 - **🧪 Croisement de variétés (Labo)** — créer de nouvelles souches en croisant les existantes.
 - **🎲 Mini-jeux** — ex. la *Fontaine de Sève* (et autres), pour varier le rythme et offrir des récompenses.
@@ -217,6 +217,30 @@ avec la pousse : au retour, toast « 👷 Tes ouvriers ont récolté X g ! ».
 
 *Visuel : emoji 👷 canvas (ombre, balancement de marche) en attendant les sprites `worker_1..3`
 — le moteur les chargera automatiquement dès qu'ils entreront au PACK via le pipeline `tools/`.*
+
+---
+
+## 7ter. 🎯 Missions & Objectifs ✅ *(implémenté)*
+
+Le **fil rouge de James** : une chaîne séquentielle de **40 missions en 6 chapitres** qui raconte
+son ascension et guide le joueur vers chaque système dans l'ordre naturel. **Une seule mission
+active à la fois** : pilule-tracker permanente sous la topbar (progression live, dorée pulsée
+quand c'est accompli), modal détail au tap (citation de James, barre, récompense), **claim
+manuel** — réclamer est le geste plaisir, jamais d'auto-claim. Récompense créditée atomiquement.
+
+Chapitres : **I — Le lopin hérité** (tuto gestes : planter, soigner, récolter, vendre, combo) ·
+**II — L'artisan** (labo, variétés, Cabane, 1er ouvrier) · **III — La ferme** (montée maison/
+ouvriers/labo, 1re clairière) · **IV — Le domaine** (expansion) · **V — Le baron** (gros caps) ·
+**VI — La légende** (toute la vallée, 6 ouvriers, 400 kg, Domaine de Luxe 🏆).
+
+Récompenses 💰 (50 → 250 000, total ≈ 908 000 ≈ 18 % des coûts endgame — coup de pouce, pas de
+triche) + quelques recharges de soins. Objectifs dérivés de l'état (`totalHarvest`, `houseLevel`,
+`workerCount`, zones/clairières, niveaux labo/upgrades) → **progression rétroactive** ; les
+gestes (semis, soins, combo, ventes) sont comptés dans `stats{}` (persisté).
+
+**Vieux saves** : stratégie « gestes tôt + preuve d'état » — les missions prouvables par l'état
+se valident seules (un vétéran chain-claim ses récompenses en retard dans le modal), les gestes
+non prouvables restent demandés mais minuscules (<1 min, tuto rejouable, jamais punitif).
 
 ---
 
@@ -261,6 +285,8 @@ Le but ultime, c'est de réunir les quatre : le territoire, le domaine, les homm
   qualité), labo (rendement/vitesse/valeur), sauvegarde auto + offline capé par la maison.
 - **👷 Ouvriers** : embauche (6 slots liés au niveau de maison), travail visible sur la map
   (marche, récolte, replante même variété), 3 upgrades, gains hors-ligne analytiques — voir 7bis.
+- **🎯 Missions** : chaîne de 40 missions en 6 chapitres (voix de James), tracker permanent,
+  claim manuel atomique, rétro-compatible vieux saves — voir 7ter.
 
 **Atlas sources à intégrer (`02_Asset/`) :**
 - `Glow_Arbre.png` — 12 arbres premium.

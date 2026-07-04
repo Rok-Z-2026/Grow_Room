@@ -30,7 +30,7 @@
 .sellprice{color:#ffe87a;font-weight:800;font-size:18px;}
 .sellbtn{background:linear-gradient(180deg,#ffd84d,#f0a820);color:#3a2810;font-weight:800;font-size:15px;border:none;border-radius:14px;padding:12px 20px;cursor:pointer;box-shadow:0 3px 0 #c88410,0 4px 10px rgba(0,0,0,.4);transition:transform .1s;}
 .sellbtn:active{transform:translateY(2px);box-shadow:0 1px 0 #c88410;}
-.toast{position:absolute;left:50%;top:80px;transform:translateX(-50%) translateY(-20px);background:rgba(20,28,16,0.95);color:#fff;padding:10px 18px;border-radius:14px;font-size:14px;font-weight:600;border:1px solid #4a6c38;opacity:0;pointer-events:none;transition:all .3s;z-index:40;white-space:nowrap;}
+.toast{position:absolute;left:50%;top:88px;transform:translateX(-50%) translateY(-20px);background:rgba(20,28,16,0.95);color:#fff;padding:10px 18px;border-radius:14px;font-size:14px;font-weight:600;border:1px solid #4a6c38;opacity:0;pointer-events:none;transition:all .3s;z-index:40;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 .carebar{position:absolute;left:0;right:0;bottom:0;box-sizing:border-box;max-height:calc(100dvh - 60px);overflow-y:auto;background:linear-gradient(180deg,rgba(20,28,18,0.0),rgba(16,22,14,0.96) 22%);padding:12px 10px calc(10px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .28s cubic-bezier(.2,.8,.3,1);z-index:31;}
@@ -107,6 +107,23 @@
 @keyframes flashgo{0%{opacity:0}18%{opacity:0.85}100%{opacity:0}}
 .cineblock{position:absolute;inset:0;z-index:45;display:none;}
 .cineblock.show{display:block;}
+/* === 🎯 MISSIONS : tracker pilule permanent + modal === */
+.mtrack{position:absolute;top:54px;left:8px;right:62px;height:26px;display:none;align-items:center;gap:6px;padding:0 10px;background:rgba(8,12,8,.72);border:1px solid #3a4a2a;border-radius:13px;z-index:6;overflow:hidden;cursor:pointer;}
+.mtrack i{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(143,217,111,.16);transition:width .4s;}
+.mtrack span{position:relative;}
+.mico{font-size:13px;flex-shrink:0;}
+.mtxt{flex:1;min-width:0;color:#cfe6bd;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px #000;}
+.mnum{color:#9dffb8;font-size:11px;font-weight:800;flex-shrink:0;}
+.mtrack.done{border-color:#ffd84d;animation:mgold 1.1s ease-in-out infinite;}
+.mtrack.done .mnum,.mtrack.done .mtxt{color:#ffd84d;}
+.mtrack.done i{background:rgba(255,216,77,.20);}
+@keyframes mgold{0%,100%{box-shadow:0 0 4px rgba(255,216,77,.25)}50%{box-shadow:0 0 14px rgba(255,216,77,.75)}}
+.mdesc{color:#c9d8b4;font-style:italic;font-size:13px;line-height:1.45;background:rgba(255,255,255,.04);border-left:3px solid #5a7038;border-radius:8px;padding:10px 12px;margin:10px 0 14px;}
+.mprog{height:10px;background:rgba(255,255,255,.08);border-radius:6px;overflow:hidden;margin:6px 0 4px;}
+.mprog i{display:block;height:100%;background:linear-gradient(90deg,#8fd96f,#5aa03c);border-radius:6px;transition:width .4s;}
+.mprog.full i{background:linear-gradient(90deg,#ffd84d,#f0a820);box-shadow:0 0 8px rgba(255,216,77,.7);}
+.mreward{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:10px;}
+.mrtxt{color:#ffe0a0;font-size:14px;font-weight:700;}
 /* ecrans courts (paysage) : boutons flottants compacts + galerie scrollable (APRES les regles de base pour gagner la cascade) */
 @media (max-height:430px){
   .labbtn{width:48px;height:48px;font-size:22px;border-radius:14px;top:min(340px,38vh);}
@@ -117,9 +134,11 @@
   .hcard{flex-basis:180px;padding:10px;}
   .hcard img{width:122px;height:122px;}
   .homefoot{padding:6px 12px calc(8px + env(safe-area-inset-bottom));}
+  .mtrack{top:50px;height:22px;right:56px;}.mtxt{font-size:10px;}.mnum{font-size:10px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v13</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v14</span></div>
+<div id="mtrack" class="mtrack"><i id="mtfill"></i><span class="mico" id="mico">🎯</span><span class="mtxt" id="mtxt"></span><span class="mnum" id="mnum"></span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
 <button id="homebtn" class="homebtn">🏠</button>
@@ -158,6 +177,12 @@
   <div class="modalbox">
     <div class="modalhead"><span id="wktitle">👷 Mes Ouvriers</span><button id="wkclose" class="modalx">✕</button></div>
     <div id="wklist" class="lablist"></div>
+  </div>
+</div>
+<div id="mmodal" class="modal">
+  <div class="modalbox">
+    <div class="modalhead"><span id="mhead">🎯 Mission</span><button id="mclose" class="modalx">✕</button></div>
+    <div id="mbody"></div>
   </div>
 </div>
 <div id="homemodal" class="homefull">
@@ -453,6 +478,63 @@ function wkOfflineGains(offMs){
   const effS=Math.max(0,offMs/1000-growS);
   return Math.floor(rate*effS*wkOfflineEff()*16.5*yieldMult());           // 16.5 = espérance de la récolte, quality 1
 }
+
+// === 🎯 MISSIONS : la chaîne d'objectifs qui raconte l'ascension de James (40 missions, 6 chapitres).
+// UNE mission active à la fois (mi). p() = progression courante lue dans l'état global -> tout ce qui
+// est dérivable est rétroactif gratuitement. Les gestes (stats) sont comptés dans les fonctions du jeu.
+var stats={pl:0,ha:0,ca:0,se:0,ea:0,cb:0,vm:0};   // gestes persistés : plant, harvest main, care, sells, earned, best combo, bitmask variétés
+let mi=0;                                          // index de la mission active (persisté)
+function bits(n){let c=0;while(n){c+=n&1;n>>=1;}return c;}
+function zonesOwned(){return W.cropzones.filter(z=>z.owned).length;}
+function landOwned(){return (W.landgroups||[]).filter(g=>g.owned).length;}
+function labSum(){return lab.yield+lab.speed+lab.value;}
+function wkUpSum(){return wkUp.walk+wkUp.dex+wkUp.night;}
+const MCH=[[0,"I — Le lopin hérité"],[7,"II — L'artisan"],[13,"III — La ferme"],
+           [20,"IV — Le domaine"],[26,"V — Le baron"],[32,"VI — La légende"]];
+// Vieux saves : les gestes prouvables par l'état intègrent la preuve dans p() (max(stats, preuve)) ;
+// les autres (soins/combo/variétés/ventes) restent demandés mais minuscules -> tuto rejouable, jamais punitif.
+const MISSIONS=[
+  {ico:'🌱',n:'Plante 3 graines',t:3,p:()=>Math.max(stats.pl,totalHarvest>0?3:0),r:50,d:"« Trois graines et un lopin. Papa disait : tout empire commence par une graine. »"},
+  {ico:'💧',n:'Soigne 5 fois',t:5,p:()=>stats.ca,r:75,rb:{water:5},d:"« Une plante, ça s'écoute, ça se chouchoute. Ça se parle aussi — mais pas trop fort. »"},
+  {ico:'✂️',n:'Récolte 3 plants',t:3,p:()=>Math.max(stats.ha,totalHarvest>=45?3:0),r:75,d:"« Ça sent la sève et la victoire. Ma première récolte, à la main, comme un artisan. »"},
+  {ico:'💰',n:'Vends ta récolte',t:1,p:()=>Math.max(stats.se,totalHarvest>=200?1:0),r:100,d:"« Le marché fluctue, qu'ils disent. Moi je fluctue vers l'avant. »"},
+  {ico:'⚡',n:'Fais un combo x5',t:5,p:()=>stats.cb,r:125,rb:{nute:3},d:"« Enchaîne les soins sans respirer — la vallée aime le rythme. »"},
+  {ico:'🌿',n:'Récolte 200 g au total',t:200,p:()=>totalHarvest,r:150,d:"« Les anciens parlaient d'un palier à 200 grammes… La terre récompense les patients. »"},
+  {ico:'🗺️',n:'Achète 1 parcelle',t:2,p:()=>zonesOwned(),r:200,d:"« La parcelle d'à côté me fait de l'œil. Un champ de plus, un pas vers l'empire. »"},
+  {ico:'🧪',n:'1 amélioration labo',t:1,p:()=>labSum(),r:150,d:"« Un tabouret, trois fioles, zéro diplôme. Je m'appelle moi-même docteur. »"},
+  {ico:'🌈',n:'Plante 3 variétés',t:3,p:()=>bits(stats.vm),r:200,d:"« Verte, violette, bleue… la vallée est un arc-en-ciel qui pousse. »"},
+  {ico:'🏠',n:'Maison niveau 2',t:2,p:()=>houseLevel,r:300,d:"« Marre de dormir sous la bâche. Une cabane, un vrai toit — et un lit qui bosse pour moi. »"},
+  {ico:'👷',n:'Embauche 1 ouvrier',t:1,p:()=>workerCount,r:350,d:"« Premier employé de l'empire Lucky. Je fournis les graines, il fournit les bras. »"},
+  {ico:'🗺️',n:'3 parcelles',t:3,p:()=>zonesOwned(),r:400,d:"« Trois champs. De là-haut, ça commence à ressembler à quelque chose. »"},
+  {ico:'🌿',n:'Récolte 1,5 kg au total',t:1500,p:()=>totalHarvest,r:500,d:"« Un kilo et demi. Maman n'y aurait jamais cru. Moi non plus, pour être honnête. »"},
+  {ico:'🏠',n:'Maison niveau 3',t:3,p:()=>houseLevel,r:600,d:"« Une chaumière avec des murs en dur. Les murs, c'est comme les plants : ça se mérite. »"},
+  {ico:'👷',n:'2 ouvriers',t:2,p:()=>workerCount,r:800,d:"« Deux paires de bras. On ne dit plus \"moi\", on dit \"l'équipe\". »"},
+  {ico:'🧪',n:'5 améliorations labo',t:5,p:()=>labSum(),r:900,d:"« La science verte, c'est 10 % de génie et 90 % de terreau sous les ongles. »"},
+  {ico:'💰',n:'Vends 10 fois',t:10,p:()=>stats.se,r:700,rb:{sun:5},d:"« Le marché me connaît par mon prénom maintenant. Et il tremble un peu. »"},
+  {ico:'🌿',n:'Récolte 3,5 kg au total',t:3500,p:()=>totalHarvest,r:1000,d:"« 3 kilos et demi. La vallée murmure mon nom dans le vent. »"},
+  {ico:'🏠',n:'Maison niveau 4',t:4,p:()=>houseLevel,r:1200,d:"« Une maisonnette, des dépendances. James Lucky, propriétaire. Ça sonne bien. »"},
+  {ico:'🪓',n:'Défriche 1 clairière',t:1,p:()=>landOwned(),r:1500,d:"« Cette forêt cache de la bonne terre. Pardon les arbres — c'est pour la bonne cause. »"},
+  {ico:'🗺️',n:'5 parcelles',t:5,p:()=>zonesOwned(),r:1800,d:"« Cinq champs. Les corbeaux se sont mis d'accord : c'est chez moi ici. »"},
+  {ico:'🏠',n:'Maison niveau 5',t:5,p:()=>houseLevel,r:2500,d:"« Une vraie ferme, avec une tour de guet. Pour surveiller quoi ? Mon empire, pardi. »"},
+  {ico:'👷',n:'3 ouvriers',t:3,p:()=>workerCount,r:3000,d:"« Trois ouvriers. Je commence à comprendre pourquoi les patrons sourient tout le temps. »"},
+  {ico:'👟',n:'3 upgrades ouvriers',t:3,p:()=>wkUpSum(),r:2000,d:"« Des bottes, des gants, des lanternes. Un artisan vaut ce que valent ses outils. »"},
+  {ico:'🪓',n:'3 clairières',t:3,p:()=>landOwned(),r:3500,d:"« La forêt recule, la ferme avance. C'est le sens de l'histoire. »"},
+  {ico:'🏠',n:'Maison niveau 6',t:6,p:()=>houseLevel,r:5000,d:"« La Grande Ferme. On la voit depuis l'autre bout de la vallée. C'est le but. »"},
+  {ico:'🌿',n:'Récolte 18 kg au total',t:18000,p:()=>totalHarvest,r:6000,d:"« 18 kilos. Quelque part, un registre s'écrit tout seul avec mon nom dedans. »"},
+  {ico:'🏠',n:'Maison niveau 7',t:7,p:()=>houseLevel,r:10000,d:"« Une Maison de Maître. Le maître, c'est moi — je vérifie chaque matin dans le miroir. »"},
+  {ico:'💰',n:'25 000 💰 de ventes',t:25000,p:()=>stats.ea,r:8000,d:"« Le marché et moi, c'est plus du commerce, c'est de la poésie comptable. »"},
+  {ico:'👷',n:'4 ouvriers',t:4,p:()=>workerCount,r:12000,d:"« Quatre ouvriers logés, nourris, équipés. Le hameau Lucky prend forme. »"},
+  {ico:'🏠',n:'Maison niveau 8',t:8,p:()=>houseLevel,r:25000,d:"« La Demeure. Mes parents dormaient sous une bâche. Je plante leur souvenir dans la pierre. »"},
+  {ico:'🌿',n:'Récolte 90 kg au total',t:90000,p:()=>totalHarvest,r:30000,d:"« 90 kilos. Les oiseaux migrateurs font un détour pour voir mes champs. »"},
+  {ico:'🪓',n:'Toutes les clairières',t:8,p:()=>landOwned(),r:20000,d:"« Huit clairières. La forêt et moi, on a signé la paix : elle me laisse la vallée. »"},
+  {ico:'🏠',n:'Maison niveau 9',t:9,p:()=>houseLevel,r:50000,d:"« Une Villa. Avec des jardins qu'on soigne pour la beauté, pas pour le rendement. Le luxe. »"},
+  {ico:'👷',n:'5 ouvriers',t:5,p:()=>workerCount,r:60000,d:"« Cinq ouvriers. Le soir, leurs lanternes dessinent des constellations dans mes champs. »"},
+  {ico:'🗺️',n:'10 parcelles',t:10,p:()=>zonesOwned(),r:40000,d:"« Dix champs. Le carrefour du monde, c'est chez moi — les routes se croisent devant ma porte. »"},
+  {ico:'🏠',n:'Maison niveau 10',t:10,p:()=>houseLevel,r:100000,d:"« Un Manoir. L'orphelin de la vallée reçoit dans de grandes ailes, maintenant. »"},
+  {ico:'👷',n:'6 ouvriers',t:6,p:()=>workerCount,r:120000,d:"« L'équipe au complet. Six growers d'élite. On m'appelle patron, j'ai arrêté de corriger. »"},
+  {ico:'🌿',n:'Récolte 400 kg au total',t:400000,p:()=>totalHarvest,r:150000,d:"« 400 kilos. Les Graines de l'Oubli ? Plus personne n'oubliera jamais ce nom. »"},
+  {ico:'🏆',n:'Le Domaine de Luxe',t:11,p:()=>houseLevel,r:250000,d:"« Piscine, garage, villa moderne. Parti d'une bâche et d'une graine. Je suis la légende de la vallée. »"},
+];
 
 function isoX(c,r){return APP_W/2+(c-r)*TW()/2+cam.x;}
 var particles=[];
@@ -862,6 +944,56 @@ document.getElementById('wkbtn').addEventListener('click',openWk);
 document.getElementById('wkclose').addEventListener('click',closeWk);
 document.getElementById('wkmodal').addEventListener('click',e=>{if(e.target.id==='wkmodal')closeWk();});
 updateWkBtn();
+// === 🎯 MISSIONS : tracker + modal + claim (jamais d'auto-claim : réclamer est le geste du joueur) ===
+function curMission(){return mi<MISSIONS.length?MISSIONS[mi]:null;}
+function missionDone(m){return m.p()>=m.t;}
+function missionChap(i){let c=MCH[0][1];for(const [s,n] of MCH)if(i>=s)c=n;return c;}
+let _mSig='',_mNotif=false;
+function updateMissionUI(){   // tick 200ms + après claim/load — memo de signature : zéro churn DOM
+  const el=document.getElementById('mtrack'),m=curMission();
+  if(!m){el.style.display='none';if(document.getElementById('mmodal').classList.contains('show'))renderMission();return;}   // fin de chaîne : écran trophée
+  const cur=Math.min(m.t,Math.max(0,m.p())),done=cur>=m.t,sig=mi+'|'+cur+'|'+done;
+  if(sig===_mSig)return;_mSig=sig;
+  el.style.display='flex';el.classList.toggle('done',done);
+  document.getElementById('mico').textContent=done?'🎁':m.ico;
+  document.getElementById('mtxt').textContent=done?'Mission accomplie — réclame !':m.n;
+  document.getElementById('mnum').textContent=cur.toLocaleString('fr-FR')+'/'+m.t.toLocaleString('fr-FR');
+  document.getElementById('mtfill').style.width=(cur/m.t*100)+'%';
+  if(done&&!_mNotif){_mNotif=true;toast('🎯 Mission accomplie !');burst(APP_W*0.4,72,'#ffd84d',18);}
+  if(document.getElementById('mmodal').classList.contains('show'))renderMission();
+}
+function renderMission(){
+  const box=document.getElementById('mbody'),m=curMission();
+  document.getElementById('mhead').textContent='🎯 Mission '+Math.min(mi+1,MISSIONS.length)+'/'+MISSIONS.length;
+  if(!m){box.innerHTML='<div class="labname" style="font-size:17px">🏆 Légende de la vallée</div>'+
+    '<div class="mdesc">« Parti d\'une bâche et d\'une graine… » Tu as TOUT accompli, James. La vallée entière raconte ton histoire.</div>';return;}
+  const cur=Math.min(m.t,Math.max(0,m.p())),done=cur>=m.t;
+  const rbTxt=m.rb?Object.keys(m.rb).map(t=>' +'+m.rb[t]+({water:'💧',sun:'☀️',nute:'🧪'}[t])).join(''):'';
+  box.innerHTML='<div class="labname" style="font-size:17px">'+m.ico+' '+m.n+'</div>'+
+    '<div class="lablvl">Chapitre '+missionChap(mi)+'</div>'+
+    '<div class="mdesc">'+m.d+'</div>'+
+    '<div class="mprog'+(done?' full':'')+'"><i style="width:'+(cur/m.t*100)+'%"></i></div>'+
+    '<div class="lablvl">'+cur.toLocaleString('fr-FR')+' / '+m.t.toLocaleString('fr-FR')+'</div>'+
+    '<div class="mreward"><span class="mrtxt">🎁 +'+money(m.r)+' 💰'+rbTxt+'</span>'+
+    '<button class="hbtn" id="mclaim" '+(done?'':'disabled')+'>Réclamer 🎁</button></div>';
+  const cb=document.getElementById('mclaim');if(cb)cb.addEventListener('click',claimMission);
+}
+function openMissions(){document.getElementById('mmodal').classList.add('show');renderMission();}
+function closeMissions(){document.getElementById('mmodal').classList.remove('show');}
+function claimMission(){
+  const m=curMission();if(!m||!missionDone(m))return;
+  if(m.r)setCoin(coin+m.r);
+  if(m.rb)for(const t in m.rb)boosts[t]=Math.min(careMax(t),boosts[t]+m.rb[t]);
+  mi++;_mNotif=false;save();   // récompense + mi++ + save ATOMIQUES
+  coinPulse();updateCareUI();burst(APP_W/2,APP_H*0.3,'#ffd84d',26);
+  toast('🎁 +'+money(m.r)+' 💰 — bien joué James !');
+  clearTimeout(window._mt);const nx=curMission();
+  window._mt=setTimeout(()=>toast(nx?('🎯 Nouvelle mission : '+nx.n):'🏆 Légende de la vallée — tout est accompli !'),1900);
+  _mSig='';updateMissionUI();   // le modal reste ouvert -> chain-claim naturel (vieux saves)
+}
+document.getElementById('mtrack').addEventListener('click',openMissions);
+document.getElementById('mclose').addEventListener('click',closeMissions);
+document.getElementById('mmodal').addEventListener('click',e=>{if(e.target.id==='mmodal')closeMissions();});
 // === MON DOMAINE : galerie de collection (11 cartes), achat, cinématique de chantier ===
 function homeNext(){return houseLevel<HOUSE.length?HOUSE[houseLevel]:null;}   // data du niveau suivant (HOUSE est 0-indexé)
 function homeBonusSummary(){const p=[];
@@ -971,12 +1103,13 @@ function updateCareUI(){
 function applyCare(type){
   if(!selCell||selCell.state!=='growing'){showCarebar(false);return;}
   if(boosts[type]<=0){toast('Plus de '+(type==='water'?'💧 eau':type==='sun'?'☀️ soleil':'🧪 sérum')+' !');return;}
-  boosts[type]--;
+  boosts[type]--;stats.ca++;   // missions : soins donnés
   // combo
   const now=performance.now();
   if(now-combo.last<combo.window)combo.count++;else combo.count=1;
   combo.last=now;
   const c=combo.count, mult=1+Math.min(c,30)*0.05;
+  if(c>stats.cb)stats.cb=c;   // missions : meilleur combo
   const amt=34*mult;
   selCell[type]=clamp((selCell[type]||0)+amt,0,200);
   // qualité = moyenne des 3 jauges (influence le rendement)
@@ -997,6 +1130,7 @@ function applyCare(type){
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),1800);}
 function updateStock(){const el=document.getElementById('stockval');if(el)el.textContent=stock+' g';const bar=document.getElementById('sellbar');if(bar)bar.classList.toggle('show',stock>0);const pe=document.getElementById('sellprice');if(pe)pe.textContent='≈ '+Math.floor(stock*marketPrice*valueMult()*homeSellMult())+' 💰';}
 function sellAll(){if(stock<=0)return;const earned=Math.floor(stock*marketPrice*valueMult()*homeSellMult());setCoin(coin+earned);coinPulse();
+  stats.se++;stats.ea+=earned;   // missions : ventes + total gagné (jamais alimenté par les récompenses)
   toast('Vendu '+stock+' g · +'+earned+' 💰');stock=0;updateStock();
   // fluctuation du prix apres vente
   marketPrice=Math.max(5,Math.min(14,marketPrice+(Math.random()*2-1)));save();}
@@ -1030,7 +1164,7 @@ function buyLandGroup(g,px,py){
 function showSeedbar(s){document.getElementById('seedbar').classList.toggle('show',s);}
 function onTap(px,py){const c=pickCrop(px,py);if(c){
     if(c.state==='empty'){selCell=c;showSeedbar(true);showCarebar(false);}   // selectionner -> graines
-    else if(c.state==='ready'){harvestCell(c);selCell=null;showSeedbar(false);showCarebar(false);save();}
+    else if(c.state==='ready'){harvestCell(c);stats.ha++;selCell=null;showSeedbar(false);showCarebar(false);save();}   // stats.ha = récoltes À LA MAIN (pas les ouvriers)
     else if(c.state==='growing'){  // selectionner -> panneau de soins
       selCell=c;showCarebar(true);showSeedbar(false);}
     return;}
@@ -1044,6 +1178,7 @@ document.querySelectorAll('.seed').forEach(btn=>{
     if(!selCell)return;
     const v=parseInt(btn.dataset.v);
     selCell.state='growing';selCell.grow=0;selCell.variety=v;selCell.water=0;selCell.sun=0;selCell.nute=0;selCell.quality=1;
+    stats.pl++;stats.vm|=1<<v;   // missions : semis + variétés découvertes
     selCell=null;showSeedbar(false);save();
   });
 });
@@ -1079,7 +1214,7 @@ function save(){try{
   const crops={};for(const k in cropCells){const c=cropCells[k];if(c.state!=='empty')crops[k]={s:c.state,g:c.grow,vv:c.variety,w:c.water||0,su:c.sun||0,n:c.nute||0,q:c.quality||1};}
   const zones=[];W.cropzones.forEach((z,i)=>{if(z.owned)zones.push(i);});
   const land=[];(W.landgroups||[]).forEach((g,i)=>{if(g.owned)land.push(i);});
-  localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,t:Date.now(),coin,stock,marketPrice,totalHarvest,houseLevel,boosts,careT,lab,wk:{n:workerCount,up:wkUp},zones,land,crops}));
+  localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,t:Date.now(),coin,stock,marketPrice,totalHarvest,houseLevel,boosts,careT,lab,wk:{n:workerCount,up:wkUp},mi,st:stats,zones,land,crops}));
 }catch(e){}}
 function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){s=null;}
   if(!s||s.v!==1)return;
@@ -1087,6 +1222,7 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   houseLevel=s.houseLevel||1;placeHome();   // re-pose la maison au bon niveau
   if(s.boosts)boosts=s.boosts; if(s.lab)lab=s.lab; careT=s.careT||Date.now();
   if(s.wk){workerCount=Math.min(WK_CFG.MAX,s.wk.n||0);if(s.wk.up)wkUp={walk:0,dex:0,night:0,...s.wk.up};}   // vieux saves sans wk -> 0 ouvrier
+  mi=Math.min(s.mi||0,MISSIONS.length);if(s.st)stats={...stats,...s.st};   // vieux saves sans missions -> chaîne rétro-claimable
   if(W.landgroups&&s.land)for(const gi of s.land){if(W.landgroups[gi]){W.landgroups[gi].owned=true;applyClearing(gi);}}
   if(s.zones)for(const zi of s.zones){const z=W.cropzones[zi];if(z){z.owned=true;if(z.bonus)clearZoneLand(z);}}   // re-dégage le décor des parcelles bonus achetées
   unlockedShown=W.cropzones.filter(z=>z.bonus&&totalHarvest>=z.palier).length;   // ne pas re-toaster au retour
@@ -1102,9 +1238,11 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   let rc=0;for(const k in cropCells)if(cropCells[k].state==='ready')rc++;
   if(off>60000&&rc>0)setTimeout(()=>toast('Bon retour ! 🌿 '+rc+' plant'+(rc>1?'s':'')+' prêt'+(rc>1?'s':'')+' à récolter'),700);
   if(wkG>0)setTimeout(()=>toast('👷 Tes ouvriers ont récolté '+money(wkG)+' g !'),2600);   // séquencé après le « Bon retour »
+  const m0=curMission();   // mission déjà accomplie au retour -> rappel différé (après les autres toasts), sans re-toaster ensuite
+  if(m0&&missionDone(m0)){_mNotif=true;setTimeout(()=>toast('🎯 Mission accomplie — réclame ta récompense !'),4400);}
 }
-load(); lastTick=Date.now();
-setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;growCells(dt);regenCare(now);updateWorkers(performance.now());},200);
+load(); updateMissionUI(); lastTick=Date.now();
+setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;growCells(dt);regenCare(now);updateWorkers(performance.now());updateMissionUI();},200);
 setInterval(save,10000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
 window.addEventListener('pagehide',save);

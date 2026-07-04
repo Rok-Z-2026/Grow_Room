@@ -79,6 +79,8 @@
 - **Ouvriers** : `WK_CFG`/`workers`, machine à états (idle/walk/harvest/plant) au tick 200ms,
   rendu emoji 👷 (fallback — sprites `worker_1..3` chargés auto s'ils entrent au PACK),
   offline analytique `wkOfflineGains()` ✓
+- **Missions** : chaîne `MISSIONS[40]` + compteurs `stats{}`, tracker `.mtrack` + modal `#mmodal`,
+  claim atomique, save `{mi,st}` additif ✓
 
 ---
 
