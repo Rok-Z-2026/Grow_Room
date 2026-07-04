@@ -75,6 +75,10 @@
 - **Ombres** (`function shadow`) ✓
 - **Plantes** : 4 variétés (`v` / `p` / `b` / `o`) × 8 stades → `plant_X_1` à `plant_X_8`
 - **Décor** : trees, bushes, flowers, rocks, stumps, bâtiments, rampes, plans d'eau
+- **Mon Domaine** : galerie 11 niveaux (`HOUSE`), bonus cumulatifs, cinématique `glideCam` ✓
+- **Ouvriers** : `WK_CFG`/`workers`, machine à états (idle/walk/harvest/plant) au tick 200ms,
+  rendu emoji 👷 (fallback — sprites `worker_1..3` chargés auto s'ils entrent au PACK),
+  offline analytique `wkOfflineGains()` ✓
 
 ---
 

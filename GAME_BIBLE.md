@@ -175,13 +175,48 @@ Système à **deux niveaux** :
 
 Tous ces systèmes font partie de la vision finale :
 
-- **👷 Employés** — automatisent plantation, arrosage et récolte. Le pilier de l'idle.
+- **👷 Employés** — automatisent la récolte et la replante. Le pilier de l'idle. ✅ *(implémenté — voir 7bis)*
 - **🎯 Missions / Objectifs** — quêtes avec récompenses, donnent un but à court terme et guident la progression.
 - **😴 Gains hors-ligne (Idle)** — la ferme produit pendant l'absence du joueur ; il encaisse à son retour.
 - **🧪 Croisement de variétés (Labo)** — créer de nouvelles souches en croisant les existantes.
 - **🎲 Mini-jeux** — ex. la *Fontaine de Sève* (et autres), pour varier le rythme et offrir des récompenses.
 - **💾 Sauvegarde auto (localStorage)** — la partie se sauvegarde toute seule.
 - **🌸 Prestige / Rebirth** — repartir à zéro contre des bonus permanents (talents Canabawa), pour relancer la boucle plus fort.
+
+---
+
+## 7bis. 👷 Les Ouvriers ✅ *(implémenté)*
+
+James a maintenant un toit — il peut embaucher. Les ouvriers **sortent du domaine** (l'allée
+sud-ouest) et travaillent les champs, visibles sur la map : ils marchent case par case, se
+penchent pour récolter (✂️) et replanter (🌱).
+
+**Règle d'or : « tu sèmes, ils entretiennent. »** Un ouvrier récolte les plants mûrs et replante
+la **même variété** au même endroit. Il ne sème jamais une case vide que le joueur n'a pas semée,
+ne soigne pas (qualité 1 — soigner reste le geste du joueur), et **ne vend jamais** (le marché
+appartient au joueur). Si le joueur récolte à la main la cible d'un ouvrier, la main gagne.
+
+**Embauche** (panneau 👷, débloqué à la maison niv 2 — il faut les loger) :
+
+| Slot | Coût 💰 | Maison requise |
+|---|---|---|
+| 1 | 800 | niv 2 — La Cabane |
+| 2 | 4 000 | niv 3 — La Chaumière |
+| 3 | 20 000 | niv 5 — La Ferme |
+| 4 | 90 000 | niv 7 — La Maison de Maître |
+| 5 | 350 000 | niv 9 — La Villa |
+| 6 | 1 200 000 | niv 10 — Le Manoir |
+
+**Upgrades** : 👟 Bonnes bottes (+12% marche, ×10) · 🧤 Gants experts (-8% temps d'action, ×10) ·
+🏮 Lanternes (+5% d'efficacité hors-ligne, ×5).
+
+**Hors-ligne** : les ouvriers travaillent pendant l'absence à **35%** d'efficacité (jusqu'à
+**60%** avec les Lanternes), dans la limite du cap de la maison (`homeOfflineH()`). Simulation
+analytique déterministe (`min(bras, champ) × temps × efficacité × 16,5 g`), sans double-compte
+avec la pousse : au retour, toast « 👷 Tes ouvriers ont récolté X g ! ».
+
+*Visuel : emoji 👷 canvas (ombre, balancement de marche) en attendant les sprites `worker_1..3`
+— le moteur les chargera automatiquement dès qu'ils entreront au PACK via le pipeline `tools/`.*
 
 ---
 
@@ -223,7 +258,9 @@ Le but ultime, c'est de réunir les quatre : le territoire, le domaine, les homm
   totaux récoltés — `totalHarvest` — puis achetées en 💰 ; prochaine parcelle affichée en
   pointillés avec l'objectif "🔓 +X g").
 - Système de plantes (6 variétés × 8 stades), marché fluctuant, soins (eau/soleil/sérum + combo +
-  qualité), labo (rendement/vitesse/valeur), sauvegarde auto + offline capé 8h.
+  qualité), labo (rendement/vitesse/valeur), sauvegarde auto + offline capé par la maison.
+- **👷 Ouvriers** : embauche (6 slots liés au niveau de maison), travail visible sur la map
+  (marche, récolte, replante même variété), 3 upgrades, gains hors-ligne analytiques — voir 7bis.
 
 **Atlas sources à intégrer (`02_Asset/`) :**
 - `Glow_Arbre.png` — 12 arbres premium.
