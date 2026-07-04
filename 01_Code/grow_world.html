@@ -70,7 +70,7 @@
 .labbuy:active{transform:translateY(2px);box-shadow:0 1px 0 #c88410;}
 .labbuy:disabled{background:#555;color:#999;box-shadow:0 3px 0 #333;cursor:default;}
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag">🌍 Mon Monde · 🏮v7</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag">🌍 Mon Monde · 🏮v8</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
 <div class="hint">Glisse · pince pour zoomer · touche une zone 🔒</div>
@@ -175,37 +175,35 @@ rebuildCrop();
 // TEST palier 1 « Le Taudis » — placement temporaire près de la ferme (sera remplacé par le système Maison).
 function placeTaudisTest(){
   const base=W.cropzones.find(z=>z.starter||z.owned)||W.cropzones[0]; if(!base)return;
-  const ox=base.zx+6, oy=base.zy+4;   // ancre du campement (sud-est de la ferme)
+  const cx=base.zx+7, cy=base.zy+6;   // CENTRE du campement (sud-est de la ferme)
   const inb=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&W.decor[y];
-  const setG=(x,y,g)=>{ if(W.ground[y]&&W.ground[y][x]!=='water'&&W.ground[y][x]!=='soil') W.ground[y][x]=g; };
-  // 1) dégager la zone du camp
-  for(let y=oy-2;y<=oy+7;y++)for(let x=ox-3;x<=ox+7;x++){ if(inb(x,y)) W.decor[y][x]=null; }
-  // 2) sol : terre battue au coeur (+ un peu de boue) -> aspect taudis
-  for(let y=oy;y<=oy+5;y++)for(let x=ox-2;x<=ox+5;x++){ setG(x,y,'dirt'); }
-  setG(ox+1,oy+3,'mud'); setG(ox+2,oy+2,'mud'); setG(ox+3,oy+4,'mud'); setG(ox,oy+4,'mud');
-  // 3) chemins de gravier qui relient : vers la ferme (NO) et vers la route (NE)
-  for(const [x,y] of [[ox-1,oy+1],[ox-2,oy],[ox-3,oy-1], [ox+2,oy],[ox+3,oy-1],[ox+4,oy-2]]) setG(x,y,'gravel');
-  // 4) campement AGENCÉ autour de la tente (centre), stock de bois groupé, foyer devant
+  const setG=(x,y,g)=>{ if(inb(x,y)&&W.ground[y][x]!=='water'&&W.ground[y][x]!=='soil') W.ground[y][x]=g; };
+  // 1) dégager une zone compacte autour du camp
+  for(let y=cy-3;y<=cy+3;y++)for(let x=cx-3;x<=cx+3;x++){ if(inb(x,y)) W.decor[y][x]=null; }
+  // 2) sol : UNE seule terre battue, patch losange ORGANIQUE (bords adoucis, pas de rectangle net)
+  const dirtR=(x,y)=>{const dx=Math.abs(x-cx),dy=Math.abs(y-cy);return (dx+dy)<=2 || (dx<=1&&dy<=2) || (dx<=2&&dy<=1);};
+  for(let y=cy-3;y<=cy+3;y++)for(let x=cx-3;x<=cx+3;x++){ if(dirtR(x,y)) setG(x,y,'dirt'); }
+  // 3) campement RESSERRÉ autour de la tente
   const CAMP=[
-    ['maison_1',   ox+2, oy+2],   // tente = centre
-    ['dom_1_buches',ox,   oy+1],  // stock de bois (arrière-gauche, groupé)
-    ['dom_1_planches',ox+1,oy+1],
-    ['dom_1_bois',  ox+4, oy+1],
-    ['dom_1_tas',   ox+4, oy+2],
-    ['dom_1_linge', ox-1, oy+2],  // corde à linge (gauche)
-    ['dom_1_abri',  ox-1, oy+4],  // abri secondaire (avant-gauche)
-    ['dom_1_seau',  ox+1, oy+3],  // seau près de l'entrée
-    ['dom_1_cagette',ox+3,oy+3],  // cagette (droite)
-    ['dom_1_feu',   ox+2, oy+4],  // foyer DEVANT la tente
+    ['maison_1',   cx,   cy],     // tente = centre
+    ['dom_1_planches',cx-1,cy-1], // stock bois derrière (gauche)
+    ['dom_1_buches',cx,  cy-1],
+    ['dom_1_tas',  cx+1, cy-1],
+    ['dom_1_bois', cx+2, cy],     // bois (droite)
+    ['dom_1_linge',cx-2, cy],     // corde à linge (gauche)
+    ['dom_1_seau', cx-1, cy+1],   // seau (entrée gauche)
+    ['dom_1_cagette',cx+1,cy+1],  // cagette (entrée droite)
+    ['dom_1_feu',  cx,   cy+1],   // foyer DEVANT la tente
+    ['dom_1_abri', cx-2, cy+1],   // abri secondaire (avant-gauche)
   ];
   for(const [k,x,y] of CAMP){ if(inb(x,y)) W.decor[y][x]=[k]; }
-  // 5) décor rustique (assets existants) pour habiller les bords -> réaliste
-  const DECO=[
-    [['rock',2],ox-2,oy+3],[['rock',4],ox+5,oy+3],[['rock',6],ox+3,oy+5],
-    [['bush',3],ox-2,oy],[['bushF',2],ox+5,oy+1],[['bush',5],ox,oy+5],
-    [['flower',1],ox+4,oy+5],[['flower',4],ox-1,oy+5],[['stump',1],ox+4,oy+4],
+  // 4) bordure SCRUBBY réaliste (camp pauvre) : souches, rochers, buissons secs, rares herbes
+  const EDGE=[
+    [['stump',1],cx-2,cy-1],[['stump',4],cx+2,cy-1],[['stump',3],cx+2,cy+1],
+    [['rock',2],cx-2,cy+2],[['rock',5],cx+2,cy+2],[['rock',3],cx-1,cy-2],
+    [['bush',1],cx+1,cy-2],[['bush',4],cx-1,cy+2],[['flower',2],cx+1,cy+2],
   ];
-  for(const [d,x,y] of DECO){ if(inb(x,y)) W.decor[y][x]=d; }
+  for(const [d,x,y] of EDGE){ if(inb(x,y)) W.decor[y][x]=d; }
 }
 placeTaudisTest();
 
