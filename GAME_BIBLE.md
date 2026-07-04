@@ -196,6 +196,11 @@ la **même variété** au même endroit. Il ne sème jamais une case vide que le
 ne soigne pas (qualité 1 — soigner reste le geste du joueur), et **ne vend jamais** (le marché
 appartient au joueur). Si le joueur récolte à la main la cible d'un ouvrier, la main gagne.
 
+**Répartition sur les champs** *(v15)* : chaque ouvrier choisit d'abord un **champ** (le moins
+occupé par ses collègues, puis le plus proche) et y reste tant qu'il produit (assignation
+sticky) — les équipes se répartissent naturellement sur toute la vallée. Trajet lointain →
+il **presse le pas** (×1,8 au-delà de 6 cases) : on les voit traverser les routes.
+
 **Embauche** (panneau 👷, débloqué à la maison niv 2 — il faut les loger) :
 
 | Slot | Coût 💰 | Maison requise |
@@ -224,9 +229,12 @@ avec la pousse : au retour, toast « 👷 Tes ouvriers ont récolté X g ! ».
 
 Le **fil rouge de James** : une chaîne séquentielle de **40 missions en 6 chapitres** qui raconte
 son ascension et guide le joueur vers chaque système dans l'ordre naturel. **Une seule mission
-active à la fois** : pilule-tracker permanente sous la topbar (progression live, dorée pulsée
-quand c'est accompli), modal détail au tap (citation de James, barre, récompense), **claim
-manuel** — réclamer est le geste plaisir, jamais d'auto-claim. Récompense créditée atomiquement.
+active à la fois** : carte-tracker permanente sous la topbar *(v15 : médaillon doré, barre
+épaisse avec reflet animé, fraction ; accomplie → fond or, rayons tournants, 🎁 qui bounce)*,
+modal détail au tap (citation de James, barre, récompense, bouton **📍 Montre-moi** qui guide
+caméra/bouton vers l'objectif), **claim manuel** — réclamer est le geste plaisir, jamais
+d'auto-claim. Au claim : pièces 💰 qui **volent vers le compteur** (count-up animé), bannières
+d'événement « Mission accomplie ! » / « Nouvelle mission ». Récompense créditée atomiquement.
 
 Chapitres : **I — Le lopin hérité** (tuto gestes : planter, soigner, récolter, vendre, combo) ·
 **II — L'artisan** (labo, variétés, Cabane, 1er ouvrier) · **III — La ferme** (montée maison/
