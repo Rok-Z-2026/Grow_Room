@@ -70,7 +70,7 @@
 .labbuy:active{transform:translateY(2px);box-shadow:0 1px 0 #c88410;}
 .labbuy:disabled{background:#555;color:#999;box-shadow:0 3px 0 #333;cursor:default;}
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag">🌍 Mon Monde · 🏮v10</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag">🌍 Mon Monde · 🏮v11</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
 <div class="hint">Glisse · pince pour zoomer · touche une zone 🔒</div>
@@ -206,9 +206,9 @@ function buildRoads(){
   const lay=(x,y)=>{ if(x<1||y<1||x>=MW-1||y>=MH-1)return; const g=W.ground[y][x];
     if(g==='water'||g==='soil'||inZone(x,y))return;
     W.ground[y][x]='path'; if(W.decor[y][x]&&!String(W.decor[y][x][0]).startsWith('home_'))W.decor[y][x]=null; };
-  for(let y=0;y<MH;y++){const x=47+Math.round(3.5*Math.sin(y/7)+2*Math.sin(y/3.1+1));lay(x,y);lay(x+1,y);}   // route Nord-Sud (passe à l'est de la maison)
-  for(let x=0;x<MW;x++){const y=40+Math.round(3.5*Math.sin(x/8)+2*Math.sin(x/3.4+2));lay(x,y);lay(x,y+1);}   // route Ouest-Est (passe au nord de la maison)
-  for(let t=6;t<MW-6;t++){const y=MH-8-t+Math.round(2.5*Math.sin(t/5));if(y>2&&y<MH-3)lay(t,y);}             // sente diagonale SW-NE
+  for(let y=0;y<MH;y++){const x=47+Math.round(4*Math.sin(y/9));lay(x,y);lay(x+1,y);}          // route Nord-Sud (courbe douce, passe à l'est de la maison)
+  for(let x=0;x<MW;x++){const y=40+Math.round(4*Math.sin(x/10+1));lay(x,y);lay(x,y+1);}       // route Ouest-Est (passe au nord de la maison)
+  for(let t=6;t<MW-6;t++){const y=MH-8-t+Math.round(3*Math.sin(t/9));if(y>2&&y<MH-3){lay(t,y);lay(t,y+1);}}  // piste diagonale SW-NE (2 cases aussi)
 }
 buildRoads();
 // 3) COMBLER LES TROUS laissés par les ex-villages : végétation naturelle éparse (déterministe)
@@ -232,12 +232,29 @@ let houseLevel=1;   // niveau actuel (1=campement hérité). Évoluera via le fu
 function placeHome(){
   const cx=HOME_POS.x, cy=HOME_POS.y;
   const inb=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&W.decor[y];
+  const gOK=(x,y)=>inb(x,y)&&W.ground[y][x]!=='water'&&W.ground[y][x]!=='soil';
   for(let y=cy-3;y<=cy+3;y++)for(let x=cx-3;x<=cx+3;x++){ if(inb(x,y)&&!(W.decor[y][x]&&String(W.decor[y][x][0]).startsWith('home_'))) W.decor[y][x]=null; }
   // parvis : coussin de terre douce sous le diorama (il embarque son propre sol, on fond les bords)
-  for(let y=cy-2;y<=cy+2;y++)for(let x=cx-2;x<=cx+2;x++){ if(inb(x,y)&&Math.abs(x-cx)+Math.abs(y-cy)<=2&&W.ground[y][x]!=='water'&&W.ground[y][x]!=='soil'&&W.ground[y][x]!=='path')W.ground[y][x]='dirt'; }
-  // couronne fleurie/rustique autour du domaine (rayon 3, déterministe)
-  const RING=[[0,-3,['flower',2]],[2,-2,['bushF',1]],[3,0,['flower',5]],[2,2,['bushF',4]],[0,3,['flower',3]],[-2,2,['bush',2]],[-3,0,['rock',3]],[-2,-2,['bushF',6]]];
-  for(const [dx,dy,d] of RING){ const x=cx+dx,y=cy+dy; if(inb(x,y)&&!W.decor[y][x]&&W.ground[y][x]!=='water'&&W.ground[y][x]!=='path'&&W.ground[y][x]!=='soil')W.decor[y][x]=d; }
+  for(let y=cy-2;y<=cy+2;y++)for(let x=cx-2;x<=cx+2;x++){ if(gOK(x,y)&&Math.abs(x-cx)+Math.abs(y-cy)<=2&&W.ground[y][x]!=='path')W.ground[y][x]='dirt'; }
+  // ALLÉE d'accès : relie le parvis à la route Nord-Sud (à l'est) et au lopin (au sud-ouest)
+  for(let x=cx+2;x<=cx+4;x++){ if(gOK(x,cy)) W.ground[cy][x]='path'; }
+  for(let k=1;k<=3;k++){ const x=cx-2-Math.floor(k/2), y=cy+1+k; if(gOK(x,y)) W.ground[y][x]='path'; }
+  // COURONNE décorée complète (rayon 3) : fleurs + buissons fleuris tout autour, 2 entrées laissées
+  // ouvertes (est -> route, sud-ouest -> lopin). Déterministe.
+  const OPEN=new Set(['3,0','2,1','-2,2','-1,3']);   // les entrées
+  let ri=0;
+  for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){
+    if(Math.abs(dx)+Math.abs(dy)!==3)continue;                 // uniquement l'anneau
+    if(OPEN.has(dx+','+dy))continue;
+    const x=cx+dx,y=cy+dy;
+    if(!gOK(x,y)||W.decor[y][x]||W.ground[y][x]==='path')continue;
+    const h=(((x*73856093)^(y*19349663))>>>0);
+    W.decor[y][x]=(ri%3===2)?['flower',1+(h%6)]:['bushF',1+((h>>8)%6)];   // 2 buissons fleuris pour 1 tapis de fleurs
+    ri++;
+  }
+  // deux beaux rochers en sentinelles près de l'entrée est
+  if(gOK(cx+3,cy-1)&&!W.decor[cy-1][cx+3])W.decor[cy-1][cx+3]=['rock',3];
+  if(gOK(cx+3,cy+1)&&!W.decor[cy+1][cx+3])W.decor[cy+1][cx+3]=['rock',5];
   if(inb(cx,cy)) W.decor[cy][cx]=['home_'+Math.max(1,Math.min(11,houseLevel))];
 }
 placeHome();

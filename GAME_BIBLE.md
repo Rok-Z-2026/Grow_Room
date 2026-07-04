@@ -24,14 +24,44 @@ tous, au milieu de nulle part, et on s'élève jusqu'à la richesse folle.
 
 ### La Maison de James — 11 niveaux d'évolution
 Le cœur visuel de la progression : le **domaine de James évolue en 11 étapes** (assets
-`Home_Level_1..11` → runtime `home_1..home_11`), chacune étant un diorama complet (maison + terrain
-+ dépendances) :
-- **Niv 1 — le campement hérité** : bâche rapiécée, feu de camp, seau, cagette. La misère totale.
-- **Niv 2-4** : cabane, premiers murs en dur, la ferme s'organise.
-- **Niv 5-8** : vraie ferme prospère (bâtisse, dépendances, potagers, atelier).
-- **Niv 9-11** : villa puis **domaine de luxe moderne** (piscine, panneaux solaires, garage).
+`Home_Level_1..11` → runtime `home_1..home_11`), chacune étant un **diorama complet** (maison +
+terrain + dépendances). *(Noms indicatifs, à affiner.)*
 
-La maison n'est jamais estompée par le fondu de zoom : c'est le repère du joueur.
+| Niv | Nom | Ce qu'on voit |
+|---|---|---|
+| 1 | **Le Campement hérité** | Bâche rapiécée, feu de camp, seau, cagette — la misère totale |
+| 2 | La Cabane | Premiers murs, un vrai toit |
+| 3 | La Chaumière | Petite maison en dur, charme rustique |
+| 4 | La Maisonnette | La ferme s'organise, dépendances |
+| 5 | La Ferme | Grande bâtisse, atelier, potagers, tour de guet |
+| 6 | La Grande Ferme | Extensions, dépendances multiples |
+| 7 | La Maison de Maître | Étage, standing, beaux matériaux |
+| 8 | La Demeure | Grande demeure aboutie |
+| 9 | La Villa | Élégance, jardins soignés |
+| 10 | Le Manoir | Prestige, grandes ailes |
+| 11 | **Le Domaine de Luxe** | Villa moderne, piscine, garage — le sommet |
+
+Règles : la maison est posée **au centre de la vallée** (`HOME_POS`), n'est **jamais estompée** par le
+fondu de zoom (c'est le repère du joueur), et son niveau (`houseLevel`) est **sauvegardé**.
+Le système d'achat/évolution (payer pour passer au niveau suivant + bonus par niveau) est le
+prochain chantier gameplay.
+
+---
+
+## 1bis. 🗺️ Le Monde & la Carte
+
+Une **vallée sauvage de 88×88 cases** (iso 3/4), rivières émeraude, forêts d'automne, cerisiers.
+
+- **Au lancement, 100% nature** : aucun village, aucun bâtiment (`clearWorldToNature()` retire tout
+  le bâti au boot). Les anciennes esplanades sont comblées de végétation (`natureFill()`).
+- **Le domaine de James est AU CENTRE** de la vallée (`HOME_POS`), parvis de terre + couronne fleurie
+  + allées d'accès. La caméra s'ouvre dessus. Son lopin hérité est collé au sud-ouest.
+- **Trois routes de terre traversent la vallée** (`buildRoads()`) : Nord-Sud, Ouest-Est et une piste
+  diagonale — elles **se croisent près de chez James** (il est au carrefour du monde, tout un
+  symbole pour le futur baron).
+- **Le territoire s'achète** : parcelles de palier collées au champ (grammes récoltés → 💰),
+  clairières à défricher plus loin (éloignées du centre par `relocateObstacles()`).
+- **Plus tard** : les villages renaîtront ici — construits par James, peuplés par ses ouvriers.
 
 ---
 
@@ -146,16 +176,21 @@ Le but ultime, c'est de réunir les quatre : le territoire, le domaine, les homm
 ## 9. 🗺️ État du projet (résumé)
 
 **Déjà en place (moteur iso) :**
-- Monde isométrique : vallée en terrasses, rivière, décor riche — **remis à l'état 100% nature au
-  lancement** (`clearWorldToNature()` : tout le bâti humain est retiré ; les villages seront
-  construits par le joueur plus tard).
-- **Maison de James** : 11 dioramas d'évolution (`home_1..home_11`) intégrés au runtime ; niv 1
-  (campement) posé près du lopin de départ ; `houseLevel` sauvegardé (système d'achat/évolution : à
-  brancher).
-- Rendu : clip losange, eau animée 4 frames, effet vent sur la végétation, ombres.
-- Champs : terre labourée à sillons, touffes de 5 plants/case centrées, lanternes aux coins des
-  parcelles ; **parcelles bonus de palier** (débloquées aux grammes totaux récoltés, achetées en 💰).
-- Système de plantes (variétés × stades), parcelles de culture, marché, soins, labo, prestige, missions, mini-jeu Fontaine de Sève, employés.
+- **Monde** : vallée 88×88 remise à l'état **100% nature** au boot ; **maison de James au centre**
+  (parvis + couronne fleurie + allées) ; **3 routes de terre** qui traversent et se croisent au
+  centre ; trous des ex-villages comblés de végétation ; clairières éloignées du domaine.
+  (Pipeline : `relocateStarter` → `relocateObstacles` → `initBonusZones` → `clearWorldToNature` →
+  `buildRoads` → `natureFill` → `placeHome` — voir CLAUDE.md.)
+- **Maison de James** : 11 dioramas (`home_1..home_11`) intégrés ; `houseLevel` sauvegardé ;
+  jamais estompée (système d'achat/évolution : à brancher).
+- Rendu : clip losange, eau animée 4 frames, effet vent sur la végétation, ombres (les ombres des
+  arbres fondent avec leur arbre au zoom).
+- Champs : terre labourée à sillons (`parc1..4`), touffes de 5 plants/case centrées, lanternes aux
+  coins des parcelles owned ; **parcelles bonus de palier** (`PALIERS`, débloquées aux grammes
+  totaux récoltés — `totalHarvest` — puis achetées en 💰 ; prochaine parcelle affichée en
+  pointillés avec l'objectif "🔓 +X g").
+- Système de plantes (6 variétés × 8 stades), marché fluctuant, soins (eau/soleil/sérum + combo +
+  qualité), labo (rendement/vitesse/valeur), sauvegarde auto + offline capé 8h.
 
 **Atlas sources à intégrer (`02_Asset/`) :**
 - `Glow_Arbre.png` — 12 arbres premium.
