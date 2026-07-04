@@ -33,8 +33,12 @@
 - `IMG{}` est rempli en bouclant sur `PACK` : `im.src = ASSET_BASE + k + ".png"`.
   Clés des sols via `groundKey()`.
 - **Manifest** : `02_Asset/runtime/manifest.json` liste les 185 clés (source de vérité).
-- **Histoire/monde** : au boot, `clearWorldToNature()` retire TOUT le bâti humain de la map (James
-  hérite d'un lopin en pleine nature) et `placeHome()` pose `home_<houseLevel>` près du lopin.
+- **Histoire/monde** : pipeline de boot — `relocateStarter()` (lopin au centre) →
+  `relocateObstacles()` (clairières éloignées du domaine) → `initBonusZones()` →
+  `clearWorldToNature()` (zéro bâti humain, sable/pavé→prairie) → `buildRoads()` (3 routes de terre
+  qui traversent et se croisent au centre) → `natureFill()` (comble les trous des ex-villages,
+  végétation déterministe) → `placeHome()` (`home_<houseLevel>` AU CENTRE `HOME_POS`, parvis +
+  couronne décorée).
 - **Boucle de rendu** : `function draw()` en `requestAnimationFrame`, **tri de profondeur
   isométrique** par `d = x + y`.
 
