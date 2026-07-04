@@ -161,7 +161,7 @@
   .toast{top:96px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v16</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v17</span></div>
 <div id="mtrack" class="mtrack"><span class="mmed"><span class="mico" id="mico">🎯</span></span><div class="mcol"><span class="mtxt" id="mtxt"></span><div class="mbar"><i id="mtfill"></i><span class="mnum" id="mnum"></span><span class="mshine"></span></div></div><span class="mchev">›</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
@@ -346,33 +346,49 @@ natureFill();
 // 4) LA MAISON DE JAMES (home_1..home_11) : diorama complet AU CENTRE, parvis décoré.
 let houseLevel=1;   // niveau actuel (1=campement hérité), monté via la galerie « Mon Domaine »
 let homeShownLevel=null;   // niveau AFFICHÉ pendant la cinématique de chantier (l'état réel est déjà commité/sauvé)
+// === L'ESPLANADE DU DOMAINE : les abords évoluent avec la maison. 3 tiers (rustique / ferme /
+// prestige), sols et mobilier posés case par case en absolu -> idempotent, rejoué au boot et au
+// REVEAL (l'esplanade se transforme pendant la cinématique de chantier, avec le diorama).
 function placeHome(){
   const cx=HOME_POS.x, cy=HOME_POS.y;
+  const lvl=Math.max(1,Math.min(11,homeShownLevel||houseLevel));
+  const tier=lvl>=8?3:lvl>=4?2:1;   // 1-3 rustique · 4-7 ferme · 8-11 prestige
   const inb=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&W.decor[y];
   const gOK=(x,y)=>inb(x,y)&&W.ground[y][x]!=='water'&&W.ground[y][x]!=='soil';
-  for(let y=cy-3;y<=cy+3;y++)for(let x=cx-3;x<=cx+3;x++){ if(inb(x,y)&&!(W.decor[y][x]&&String(W.decor[y][x][0]).startsWith('home_'))) W.decor[y][x]=null; }
-  // parvis : coussin de terre douce sous le diorama (il embarque son propre sol, on fond les bords)
-  for(let y=cy-2;y<=cy+2;y++)for(let x=cx-2;x<=cx+2;x++){ if(gOK(x,y)&&Math.abs(x-cx)+Math.abs(y-cy)<=2&&W.ground[y][x]!=='path')W.ground[y][x]='dirt'; }
-  // ALLÉE d'accès : relie le parvis à la route Nord-Sud (à l'est) et au lopin (au sud-ouest)
-  for(let x=cx+2;x<=cx+4;x++){ if(gOK(x,cy)) W.ground[cy][x]='path'; }
-  for(let k=1;k<=3;k++){ const x=cx-2-Math.floor(k/2), y=cy+1+k; if(gOK(x,y)) W.ground[y][x]='path'; }
-  // COURONNE décorée complète (rayon 3) : fleurs + buissons fleuris tout autour, 2 entrées laissées
-  // ouvertes (est -> route, sud-ouest -> lopin). Déterministe.
-  const OPEN=new Set(['3,0','2,1','-2,2','-1,3']);   // les entrées
-  let ri=0;
-  for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){
-    if(Math.abs(dx)+Math.abs(dy)!==3)continue;                 // uniquement l'anneau
-    if(OPEN.has(dx+','+dy))continue;
-    const x=cx+dx,y=cy+dy;
-    if(!gOK(x,y)||W.decor[y][x]||W.ground[y][x]==='path')continue;
-    const h=(((x*73856093)^(y*19349663))>>>0);
-    W.decor[y][x]=(ri%3===2)?['flower',1+(h%6)]:['bushF',1+((h>>8)%6)];   // 2 buissons fleuris pour 1 tapis de fleurs
-    ri++;
+  const inCrop=(x,y)=>W.cropzones.some(z=>z.owned&&x>=z.zx&&x<z.zx+z.n&&y>=z.zy&&y<z.zy+z.n);
+  // 1) PURGE : décor Chebyshev<=4 (11x11), arbres <=5 (canopées larges) — home_* préservé,
+  //    les sols/champs (soil) ne sont JAMAIS touchés par la purge (décor uniquement)
+  for(let y=cy-5;y<=cy+5;y++)for(let x=cx-5;x<=cx+5;x++){
+    if(!inb(x,y)||!W.decor[y][x])continue; const t=String(W.decor[y][x][0]);
+    if(t.startsWith('home_'))continue;
+    const ch=Math.max(Math.abs(x-cx),Math.abs(y-cy));
+    if(ch<=4||((t==='tree'||t==='treeC')&&ch<=5))W.decor[y][x]=null;
   }
-  // deux beaux rochers en sentinelles près de l'entrée est
-  if(gOK(cx+3,cy-1)&&!W.decor[cy-1][cx+3])W.decor[cy-1][cx+3]=['rock',3];
-  if(gOK(cx+3,cy+1)&&!W.decor[cy+1][cx+3])W.decor[cy+1][cx+3]=['rock',5];
-  if(inb(cx,cy)) W.decor[cy][cx]=['home_'+Math.max(1,Math.min(11,homeShownLevel||houseLevel))];
+  if(inb(cx+5,cy))W.decor[cy][cx+5]=null;   // siège du banc T3 (Chebyshev 5, hors boucle arbres)
+  // 2) SOLS par anneau (Manhattan) — ÉCRASE le path de la route N-S qui traversait le diamant
+  //    (c'était LE patchwork sous le socle). 3 ouvertures : E (3,0) -> rivière, SW (-1,2) -> lopin,
+  //    N (0,-3) -> raccord de la route du monde (James au carrefour).
+  const CORE=['dirt','gravel','pavel'][tier-1], WALK=['path','gravel','pavel'][tier-1];
+  const setG=(x,y,g)=>{if(gOK(x,y)&&!inCrop(x,y))W.ground[y][x]=g;};
+  for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){
+    const m=Math.abs(dx)+Math.abs(dy); if(m>3)continue;
+    setG(cx+dx,cy+dy, m<=2?CORE:(tier===3?'pavel':'grass'));
+  }
+  for(const[dx,dy]of[[2,0],[3,0],[4,0],[-1,2],[-2,2],[-3,3]])setG(cx+dx,cy+dy,WALK);   // allées EST + SW
+  setG(cx,cy-3, tier===3?'pavel':'path');   // ouverture N : raccord route
+  if(tier===3)setG(cx+5,cy,'pavel');        // parvis de rivière (le banc)
+  // 3) MOBILIER du tier — positions et variétés FIXES (zéro hash, zéro random : un jardin ORDONNÉ)
+  const T1=[[2,1,['bushF',2]],[1,2,['flower',5]],[0,3,['bushF',2]],[-2,1,['bushF',2]],[-3,0,['flower',5]],
+            [-2,-1,['bushF',2]],[-1,-2,['flower',5]],[1,-2,['bushF',2]],[2,-1,['flower',5]]];
+  const T2=[[2,1,['lamp']],[2,-1,['lamp']],[0,3,['lamp']],[-3,0,['lamp']],[1,2,['bush',2]],
+            [-2,1,['bush',2]],[-2,-1,['bush',2]],[1,-2,['bush',2]],[-1,-2,['flower',5]],[3,1,['barrel']]];
+  const T3=[[2,1,['lamp']],[2,-1,['lamp']],[-2,1,['lamp']],[-2,-1,['lamp']],[0,3,['fountain']],
+            [1,2,['planter']],[1,-2,['planter']],[-3,0,['potflower']],[-1,-2,['potflower']],
+            [4,0,['arch']],[5,0,['bench']]];   // l'arche enjambe l'allée pavée, le banc face à la rivière
+  for(const[dx,dy,d]of(tier===3?T3:tier===2?T2:T1)){const x=cx+dx,y=cy+dy;
+    if(gOK(x,y)&&!inCrop(x,y))W.decor[y][x]=d;}
+  // 4) la maison, toujours en dernier
+  if(inb(cx,cy))W.decor[cy][cx]=['home_'+lvl];
 }
 placeHome();
 // === MON DOMAINE : 11 niveaux de maison. Passer au niveau i+1 demande HOUSE[i].cost 💰 ET
@@ -687,6 +703,12 @@ const HOME_SC=[
 function decYOff(t){return 0.85+(t.startsWith('home_')?HOME_SC[(+t.slice(5))-1].oy:0);}   // ancre verticale — seuls les home_* sont calibrés
 function decScale(t){if(t.startsWith('rocriv'))return 6.0;if(t.startsWith('pont'))return 3.2;if(t==='pond_big'||t==='pond_mare'||t==='cascade')return 2.6;if(t==='house5')return 1.35;if(['house1','house2','house3','house4','cabin','atelier1'].includes(t))return 2.2;if(t.startsWith('serre'))return 2.0;if(t==='watertower')return 1.6;if(t==='forge')return 1.5;if(t==='well')return 1.0;if(t==='fountain')return 1.1;if(t==='tree'||t==='treeC')return 1.5;if(t==='rock')return 1.1;
   if(t.startsWith('home_'))return HOME_SC[(+t.slice(5))-1].sc;   // maison de James : échelle calibrée par niveau (largeur du socle constante)
+  if(t==='lamp')return 0.7;   // mobilier de l'esplanade (les lanternes de champ fieldDeco ont leur sc:0.6 explicite)
+  if(t==='arch')return 1.5;
+  if(t==='bench')return 0.65;
+  if(t==='planter')return 0.6;
+  if(t==='potflower'||t==='potplant')return 0.5;
+  if(t==='barrel')return 0.55;
   return 0.95;}
 function isBig(t){return t.startsWith('house')||t.startsWith('serre')||t==='tree'||t==='treeC'||t==='cabin'||t==='atelier1'||t==='watertower'||t==='forge';}   // home_* volontairement EXCLU -> la maison de James ne s'estompe jamais
 function clampCam(){
@@ -772,10 +794,11 @@ function draw(){
   // DECO CHAMP : une lanterne aux 4 coins de chaque parcelle owned -> encadre joliment (PAS de cadre pierre).
   // Dessinees dans la passe crop a la profondeur de leur case-coin (coin Nord derriere les plants, Sud devant).
   const fieldDeco={};
+  const fdOK=(x,y)=>Math.max(Math.abs(x-HOME_POS.x),Math.abs(y-HOME_POS.y))>4;   // pas de lanterne de champ collée à l'esplanade
   for(const z of W.cropzones){if(!z.owned)continue;const x0=z.zx,y0=z.zy,x1=z.zx+z.n-1,y1=z.zy+z.n-1;
-    fieldDeco[x0+','+y0]={sp:'lamp',ux:0,uy:-1,front:false,sc:0.6};    // coin Nord (arriere) : lanterne
-    fieldDeco[x1+','+y0]={sp:'lamp',ux:1,uy:0,front:false,sc:0.6};     // coin Est : lanterne
-    fieldDeco[x0+','+y1]={sp:'lamp',ux:-1,uy:0,front:false,sc:0.6};}   // coin Ouest : lanterne (coin Sud laisse ouvert)
+    if(fdOK(x0,y0))fieldDeco[x0+','+y0]={sp:'lamp',ux:0,uy:-1,front:false,sc:0.6};    // coin Nord (arriere) : lanterne
+    if(fdOK(x1,y0))fieldDeco[x1+','+y0]={sp:'lamp',ux:1,uy:0,front:false,sc:0.6};     // coin Est : lanterne
+    if(fdOK(x0,y1))fieldDeco[x0+','+y1]={sp:'lamp',ux:-1,uy:0,front:false,sc:0.6};}   // coin Ouest : lanterne (coin Sud laisse ouvert)
   // OUVRIERS : position interpolée -> indexés par case arrondie, dessinés à la profondeur de leur case
   const nowW=performance.now(), wkByCell={};
   for(const w of workers){const p=workerPos(w,nowW);
@@ -795,7 +818,15 @@ function draw(){
         drawSpWind(IMG[img],ix,iy+TH()*0.62,TW()*sc,amp,(x*1.3+y*0.7));
       } else {
         drawSp(IMG[img],ix,iy+TH()*decYOff(t),TW()*sc,null);
-      }}
+      }
+      // halo chaud pulsant des lampadaires de l'esplanade (pattern du halo des plants ready — perf prouvée)
+      if(t==='lamp'){const pl=0.8+0.2*Math.sin(performance.now()/900+(x*2.1+y*3.7));
+        const gy=iy+TH()*0.85-TW()*sc*1.68*0.78, R=TW()*0.55;
+        const gg=ctx.createRadialGradient(ix,gy,R*0.08,ix,gy,R);
+        gg.addColorStop(0,'rgba(255,214,120,'+(0.30*pl)+')');
+        gg.addColorStop(0.55,'rgba(255,190,90,'+(0.10*pl)+')');
+        gg.addColorStop(1,'rgba(255,190,90,0)');
+        ctx.fillStyle=gg;ctx.beginPath();ctx.arc(ix,gy,R,0,7);ctx.fill();}}
     // 4) crop
     const ck=x+','+y;if(cropCells[ck]){const c=cropCells[ck];const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
       // TERRE LABOUREE a sillons : sprite 'parc' complet par case (bordure bois incluse, ratio 0.605),
