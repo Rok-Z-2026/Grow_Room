@@ -76,6 +76,10 @@
 - **Plantes** : 4 variétés (`v` / `p` / `b` / `o`) × 8 stades → `plant_X_1` à `plant_X_8`
 - **Décor** : trees, bushes, flowers, rocks, stumps, bâtiments, rampes, plans d'eau
 - **Mon Domaine** : galerie 11 niveaux (`HOUSE`), bonus cumulatifs, cinématique `glideCam` ✓
+- **Jardins du Domaine** : mobilier par tier dans `placeHome()` (T1 camp fleuri / T2 cour de
+  ferme / T3 esplanade prestige). ⚠️ Slots **safe uniquement** — le diorama fait 4.6 tuiles de
+  large : jamais de décor aux diagonales proches (`(2,1)`, `(1,2)`, `(-1,-2)`, `(-2,-1)`…),
+  jamais sur les allées E/SW/N ni dans une parcelle (même bonus non achetée) ✓
 - **Ouvriers** : `WK_CFG`/`workers`, machine à états (idle/walk/harvest/plant) au tick 200ms,
   rendu emoji 👷 (fallback — sprites `worker_1..3` chargés auto s'ils entrent au PACK),
   offline analytique `wkOfflineGains()` ✓
