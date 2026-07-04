@@ -43,8 +43,39 @@ terrain + dépendances). *(Noms indicatifs, à affiner.)*
 
 Règles : la maison est posée **au centre de la vallée** (`HOME_POS`), n'est **jamais estompée** par le
 fondu de zoom (c'est le repère du joueur), et son niveau (`houseLevel`) est **sauvegardé**.
-Le système d'achat/évolution (payer pour passer au niveau suivant + bonus par niveau) est le
-prochain chantier gameplay.
+
+### « Mon Domaine » — le système d'évolution ✅ *(implémenté)*
+
+La progression de la maison est une **expérience**, pas un simple bouton d'achat :
+
+- **Galerie de collection plein écran** (bouton 🏠 sous le labo, ou badge « 🏠N » de la topbar) :
+  carrousel des 11 cartes (diorama, nom, bonus unique, état ✅ Possédé / 💰 Achetable /
+  🔒 Verrouillé en silhouette noire), barre de progression dorée X/11, footer des bonus cumulés.
+- **Conditions doubles** pour passer au niveau suivant : un **coût 💰** ET des **grammes totaux
+  récoltés 🌿** (`totalHarvest`) — la maison monte avec la carrière du grower, pas juste le
+  portefeuille. La carte affiche la condition manquante en clair (« Encore X g à récolter »).
+- **Cinématique de chantier** à l'achat : la caméra glisse vers la maison (`glideCam`, ~600ms,
+  zoom 1.05) → **chantier** ~1,6s (nuage de poussière/copeaux + 🔨✨ en rythme) → **reveal**
+  (swap du diorama, onde dorée + halo radial, flash blanc doux) → toast « 🏠 Niveau X — Nom ! ».
+
+| Niv | Nom | Coût 💰 | Grammes 🌿 | Bonus unique (cumulatif) |
+|---|---|---|---|---|
+| 1 | Le Campement hérité | — | — | — (le point de départ) |
+| 2 | La Cabane | 500 | 0 | **+2h** de gains hors-ligne (un vrai lit !) |
+| 3 | La Chaumière | 1 500 | 300 | **+8%** prix de vente |
+| 4 | La Maisonnette | 4 000 | 1 000 | **+5** de stock max de soins |
+| 5 | La Ferme | 10 000 | 2 500 | **-10%** sur le prix des parcelles |
+| 6 | La Grande Ferme | 25 000 | 6 000 | **+2h** hors-ligne |
+| 7 | La Maison de Maître | 60 000 | 15 000 | **+10%** prix de vente |
+| 8 | La Demeure | 140 000 | 35 000 | **+30%** régénération des soins |
+| 9 | La Villa | 320 000 | 80 000 | **+12%** prix de vente |
+| 10 | Le Manoir | 700 000 | 180 000 | **-20%** sur le labo |
+| 11 | Le Domaine de Luxe | 1 500 000 | 400 000 | **+15% vente** et **+4h** hors-ligne 🏆 |
+
+Au sommet : **+45% vente · 16h hors-ligne · +5 soins max · -10% parcelles · +30% régén · -20% labo.**
+Côté moteur : table `HOUSE`, helpers `homeSellMult/homeOfflineH/homeCareBonus/homeZoneDiscount/`
+`homeCareRegenMult/homeLabDiscount` branchés dans `sellAll`, `updateStock`, `load()` (cap offline,
+8h de base), `careMax()`, `zoneCost()`, `regenCare()` et `labCost()`.
 
 ---
 
@@ -182,7 +213,9 @@ Le but ultime, c'est de réunir les quatre : le territoire, le domaine, les homm
   (Pipeline : `relocateStarter` → `relocateObstacles` → `initBonusZones` → `clearWorldToNature` →
   `buildRoads` → `natureFill` → `placeHome` — voir CLAUDE.md.)
 - **Maison de James** : 11 dioramas (`home_1..home_11`) intégrés ; `houseLevel` sauvegardé ;
-  jamais estompée (système d'achat/évolution : à brancher).
+  jamais estompée. **Système « Mon Domaine » branché** : galerie de collection plein écran,
+  conditions doubles (💰 + grammes totaux), bonus uniques cumulatifs par niveau, cinématique de
+  chantier à l'achat (caméra + poussière + reveal doré) — voir section 1.
 - Rendu : clip losange, eau animée 4 frames, effet vent sur la végétation, ombres (les ombres des
   arbres fondent avec leur arbre au zoom).
 - Champs : terre labourée à sillons (`parc1..4`), touffes de 5 plants/case centrées, lanternes aux
