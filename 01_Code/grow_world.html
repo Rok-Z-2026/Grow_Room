@@ -161,7 +161,7 @@
   .toast{top:96px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v15</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v16</span></div>
 <div id="mtrack" class="mtrack"><span class="mmed"><span class="mico" id="mico">🎯</span></span><div class="mcol"><span class="mtxt" id="mtxt"></span><div class="mbar"><i id="mtfill"></i><span class="mnum" id="mnum"></span><span class="mshine"></span></div></div><span class="mchev">›</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
@@ -278,6 +278,7 @@ function initBonusZones(){   // génère les parcelles bonus collées au champ d
   let pi=0;
   for(const o of OFF){if(pi>=PALIERS.length)break;
     const zx=base.zx+o[0]*n, zy=base.zy+o[1]*n;
+    if(!(zx>HOME_POS.x+3||zx+n-1<HOME_POS.x-3||zy>HOME_POS.y+3||zy+n-1<HOME_POS.y-3))continue;   // jamais sous le bloc maison (7x7 : parvis + couronne) — sinon le diorama recouvre le champ
     if(!zoneCellsValid(zx,zy,n))continue;
     W.cropzones.push({zx,zy,n,owned:false,bonus:true,palier:PALIERS[pi]});pi++;}
 }
@@ -675,8 +676,17 @@ function fadeA(x,y,t,ix,iy){
   return null;
 }
 function decImg(d){const[t,v]=d;if(['tree','treeC','bush','bushF','flower','rock','stump'].includes(t))return t+v;return t;}
+// Calibrage des dioramas home_1..11 (mesure du contenu réel des PNG — tous pleine largeur, mais
+// l'équateur du socle varie de 147 à 217px du bas). sc : largeur du socle constante (réf home_6) ;
+// oy : offset vertical (fraction de TH, + = descend) pour poser le socle au même niveau partout
+// (home_4 a ~43px de marge transparente sous le socle -> gros oy).
+const HOME_SC=[
+  {sc:4.62,oy: 0.25},{sc:4.63,oy:-0.11},{sc:4.62,oy: 0.00},{sc:4.60,oy: 0.72},
+  {sc:4.60,oy: 0.03},{sc:4.60,oy: 0.00},{sc:4.62,oy: 0.16},{sc:4.60,oy:-0.05},
+  {sc:4.60,oy: 0.41},{sc:4.60,oy:-0.23},{sc:4.70,oy: 0.06}];
+function decYOff(t){return 0.85+(t.startsWith('home_')?HOME_SC[(+t.slice(5))-1].oy:0);}   // ancre verticale — seuls les home_* sont calibrés
 function decScale(t){if(t.startsWith('rocriv'))return 6.0;if(t.startsWith('pont'))return 3.2;if(t==='pond_big'||t==='pond_mare'||t==='cascade')return 2.6;if(t==='house5')return 1.35;if(['house1','house2','house3','house4','cabin','atelier1'].includes(t))return 2.2;if(t.startsWith('serre'))return 2.0;if(t==='watertower')return 1.6;if(t==='forge')return 1.5;if(t==='well')return 1.0;if(t==='fountain')return 1.1;if(t==='tree'||t==='treeC')return 1.5;if(t==='rock')return 1.1;
-  if(t.startsWith('home_'))return 4.6;   // maison de James : diorama domaine complet (~4-5 tuiles de large)
+  if(t.startsWith('home_'))return HOME_SC[(+t.slice(5))-1].sc;   // maison de James : échelle calibrée par niveau (largeur du socle constante)
   return 0.95;}
 function isBig(t){return t.startsWith('house')||t.startsWith('serre')||t==='tree'||t==='treeC'||t==='cabin'||t==='atelier1'||t==='watertower'||t==='forge';}   // home_* volontairement EXCLU -> la maison de James ne s'estompe jamais
 function clampCam(){
@@ -784,7 +794,7 @@ function draw(){
         const amp=(t==='flower'?0.10:t==='bush'||t==='bushF'?0.055:0.035); // fleurs souples, arbres raides
         drawSpWind(IMG[img],ix,iy+TH()*0.62,TW()*sc,amp,(x*1.3+y*0.7));
       } else {
-        drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc,null);
+        drawSp(IMG[img],ix,iy+TH()*decYOff(t),TW()*sc,null);
       }}
     // 4) crop
     const ck=x+','+y;if(cropCells[ck]){const c=cropCells[ck];const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
