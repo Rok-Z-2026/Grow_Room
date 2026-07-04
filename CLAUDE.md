@@ -28,10 +28,13 @@
 
 - Le **moteur** est dans le HTML (le **dernier `<script>`**). Les **assets sont externes**.
 - **PACK** = **tableau de clés** (`const PACK = ["plant_v_8", ...]`) + `const ASSET_BASE =
-  "../02_Asset/runtime/"`. **170 assets**, chacun un PNG dans `02_Asset/runtime/<clé>.png`.
+  "../02_Asset/runtime/"`. **185 assets**, chacun un PNG dans `02_Asset/runtime/<clé>.png`
+  (dont `home_1..home_11` : les 11 niveaux du domaine de James, dioramas complets).
 - `IMG{}` est rempli en bouclant sur `PACK` : `im.src = ASSET_BASE + k + ".png"`.
   Clés des sols via `groundKey()`.
-- **Manifest** : `02_Asset/runtime/manifest.json` liste les 170 clés (source de vérité).
+- **Manifest** : `02_Asset/runtime/manifest.json` liste les 185 clés (source de vérité).
+- **Histoire/monde** : au boot, `clearWorldToNature()` retire TOUT le bâti humain de la map (James
+  hérite d'un lopin en pleine nature) et `placeHome()` pose `home_<houseLevel>` près du lopin.
 - **Boucle de rendu** : `function draw()` en `requestAnimationFrame`, **tri de profondeur
   isométrique** par `d = x + y`.
 

@@ -7,13 +7,31 @@
 
 ---
 
-## 1. 🎯 Pitch
+## 1. 🎯 Pitch & Histoire
 
-**TINY GROW** est un jeu mobile *idle / cultivation* où le joueur incarne un cultivateur solitaire qui démarre son business de beuh à partir de rien — un petit lopin de terre, quelques graines — et grimpe, parcelle après parcelle, jusqu'à bâtir l'empire le plus stylé de la vallée.
+**TINY GROW** est un jeu mobile *idle / cultivation* où le joueur incarne **James Lucky**.
+
+**L'histoire** : James vient de perdre ses parents. En héritage, il ne reste qu'une chose — **un petit
+lopin de terre perdu au fond d'une vallée sauvage**. Pas de village, pas de voisins, pas d'argent :
+juste la nature à perte de vue, une bâche pour dormir et quelques graines. C'est ici que tout
+commence… et c'est ici que James va bâtir **son empire** — d'abord à la main, parcelle après
+parcelle, puis avec des **ouvriers**, des **villages entiers** qui pousseront autour de son domaine.
 
 > *« Pars d'une graine et d'un bout de terre. Deviens une légende. »*
 
-Le titre **"Les Graines de l'Oubli"** raconte cette ascension : on commence oublié de tous, dans son coin, et on s'élève jusqu'à la richesse folle.
+Le titre **"Les Graines de l'Oubli"** raconte cette ascension : on commence orphelin et oublié de
+tous, au milieu de nulle part, et on s'élève jusqu'à la richesse folle.
+
+### La Maison de James — 11 niveaux d'évolution
+Le cœur visuel de la progression : le **domaine de James évolue en 11 étapes** (assets
+`Home_Level_1..11` → runtime `home_1..home_11`), chacune étant un diorama complet (maison + terrain
++ dépendances) :
+- **Niv 1 — le campement hérité** : bâche rapiécée, feu de camp, seau, cagette. La misère totale.
+- **Niv 2-4** : cabane, premiers murs en dur, la ferme s'organise.
+- **Niv 5-8** : vraie ferme prospère (bâtisse, dépendances, potagers, atelier).
+- **Niv 9-11** : villa puis **domaine de luxe moderne** (piscine, panneaux solaires, garage).
+
+La maison n'est jamais estompée par le fondu de zoom : c'est le repère du joueur.
 
 ---
 
@@ -108,22 +126,35 @@ Tous ces systèmes font partie de la vision finale :
 
 ## 8. 📈 Progression & Endgame
 
-- **Départ** : un petit lopin avec quelques cases, quelques graines. Modeste, mais on n'est pas dans la misère totale.
-- **Milieu** : on étend la ferme, on débloque des variétés, on automatise, on optimise sa stratégie de vente.
+- **Départ — la misère totale** : James arrive sur le lopin hérité de ses parents. **Le monde est
+  100% nature sauvage** (aucun village, aucun bâtiment) ; il n'a que son campement (maison niv 1),
+  quelques pièces et des graines. Tout est manuel, chaque récolte compte.
+- **Milieu** : on étend la ferme (parcelles de palier collées au champ), on débloque des variétés, on
+  fait **évoluer la maison** (niv 2 → 8), on automatise, on optimise sa stratégie de vente.
 - **Endgame — l'EMPIRE COMPLET** :
   - Débloquer **toute la vallée** (expansion maximale du terrain).
+  - Maison au **niveau 11** (domaine de luxe).
+  - **Des villages entiers** construits par James et peuplés de **ses ouvriers** (l'automatisation
+    incarnée dans le monde : ce ne sont plus des menus, ce sont des gens qui bossent pour lui).
   - **Collectionner toutes les variétés rares** (y compris les hybrides légendaires du labo).
   - Devenir le **baron du beu** : richesse maximale.
 
-Le but ultime, c'est de réunir les trois : le territoire, la collection, et la fortune.
+Le but ultime, c'est de réunir les quatre : le territoire, le domaine, les hommes, et la fortune.
 
 ---
 
 ## 9. 🗺️ État du projet (résumé)
 
 **Déjà en place (moteur iso) :**
-- Monde isométrique : vallée en terrasses, rivière, village, décor riche.
+- Monde isométrique : vallée en terrasses, rivière, décor riche — **remis à l'état 100% nature au
+  lancement** (`clearWorldToNature()` : tout le bâti humain est retiré ; les villages seront
+  construits par le joueur plus tard).
+- **Maison de James** : 11 dioramas d'évolution (`home_1..home_11`) intégrés au runtime ; niv 1
+  (campement) posé près du lopin de départ ; `houseLevel` sauvegardé (système d'achat/évolution : à
+  brancher).
 - Rendu : clip losange, eau animée 4 frames, effet vent sur la végétation, ombres.
+- Champs : terre labourée à sillons, touffes de 5 plants/case centrées, lanternes aux coins des
+  parcelles ; **parcelles bonus de palier** (débloquées aux grammes totaux récoltés, achetées en 💰).
 - Système de plantes (variétés × stades), parcelles de culture, marché, soins, labo, prestige, missions, mini-jeu Fontaine de Sève, employés.
 
 **Atlas sources à intégrer (`02_Asset/`) :**
