@@ -336,10 +336,10 @@ function natureFill(){
     if(W.decor[y][x]||inZone(x,y))continue;
     if(Math.abs(x-HOME_POS.x)+Math.abs(y-HOME_POS.y)<=5)continue;   // clairière de la maison préservée
     const h=(((x*73856093)^(y*19349663))>>>0), r=h%1000;
-    if(r<58)W.decor[y][x]=[((h>>4)&1)?'tree':'treeC',1+((h>>8)%6)];
-    else if(r<108)W.decor[y][x]=[((h>>6)&1)?'bush':'bushF',1+((h>>9)%6)];
-    else if(r<148)W.decor[y][x]=['flower',1+((h>>10)%6)];
-    else if(r<163)W.decor[y][x]=['rock',1+((h>>11)%6)];
+    if(r<58)W.decor[y][x]=[((h>>4)&1)?'tree':'treeC',1+((h>>>8)%6)];      // >>> : shift NON signé — h>=2^31 avec >> donnait
+    else if(r<108)W.decor[y][x]=[((h>>6)&1)?'bush':'bushF',1+((h>>>9)%6)]; // des variétés NÉGATIVES -> clés inexistantes ->
+    else if(r<148)W.decor[y][x]=['flower',1+((h>>>10)%6)];                 // 130 décors fantômes (arbres à ombre sans tronc)
+    else if(r<163)W.decor[y][x]=['rock',1+((h>>>11)%6)];
   }
 }
 natureFill();
