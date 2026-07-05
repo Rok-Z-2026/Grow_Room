@@ -954,6 +954,7 @@ function irLvAt(c){const e=cmAt(c.x,c.y);return (e&&e.ir)||0;}
 function nuLvAt(c){const e=cmAt(c.x,c.y);return (e&&e.nu)||0;}
 function irSpd(c){const l5=irLvAt(c)===5?0.15*(enShort()?0.5:1):0;   // le bonus MODULE se dégrade, l'eau du sol reste l'eau
   return 1+0.15*Math.min(200,c.water||0)/200+l5;}
+function irPct(lv){return Math.round(15*MODS_CFG.ir.wcap[lv-1]/200+(lv===5?15:0));}   // M2 : % de pousse EFFECTIF au cap d'eau (5/6/8/9/26)
 // Répliques (bulles de dialogue) : par métier au travail, par personnalité en pause. Le random
 // runtime est OK (l'interdit déterministe ne porte que sur le load/offline).
 const WK_LINES={
@@ -2612,9 +2613,15 @@ function tryPlaceAt(x,y){
   p.ok=modCanPlace(p.k,1,p.x0,p.y0);p.has=true;
   if(!p.ok)S('ui_place_invalid');
   p.keys=modRangeKeys(p.k,1,p.x0,p.y0);
-  const cost=modCost1(p.k);
+  const cost=modCost1(p.k),cfg=MODS_CFG[p.k];let ben='';
+  if(p.ok){let n=0;for(const rk of p.keys)if(cropCells[rk])n++;   // M2 É3 : le bénéfice CONCRET avant l'achat
+    if(p.k==='ir')ben=n?' · 💧 '+n+' champ'+(n>1?'s':'')+' couvert'+(n>1?'s':'')+' · pousse jusqu\'à +'+irPct(1)+'%'
+                       :' · ⚠️ aucun champ couvert — vise tes champs !';
+    else if(p.k==='nu')ben=n?' · 🌾 '+n+' champ'+(n>1?'s':'')+' · fertilité jusqu\'à '+cfg.fcap[0]+'%'
+                            :' · ⚠️ aucun champ couvert — vise tes champs !';
+    else if(p.k==='en')ben=' · ⚡ +'+cfg.prod[0]+' au réseau';}
   document.getElementById('placetxt').textContent=p.ok
-    ?MODS_CFG[p.k].lvN[0]+' — '+money(cost)+' 💰'
+    ?cfg.lvN[0]+' — '+money(cost)+' 💰'+ben
     :'❌ Impossible ici (eau, champ, route, bâtiment…)';
   document.getElementById('placeok').disabled=!p.ok||coin<cost;
 }
