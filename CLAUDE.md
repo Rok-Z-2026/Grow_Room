@@ -102,6 +102,19 @@
   `irSpd` vitesse ≤ +15% +15% Lv5, Sprinklers Lv4+ à la plantation, offline à l'équilibre).
   ⚠️ La qualité reste event-driven (applyCare/wkApplyCare, clamp gCap INVIOLÉ) — la refonte ★
   arrive en v24, ne pas recomputer la qualité dans le tick eau.
+- **Anim/FX v22.5** : horloge de frame `FNOW` posée UNE fois en tête de `draw()` — règle :
+  code INTRA-draw → `FNOW` ; handlers/intervals/cinématiques HORS-frame → `performance.now()`
+  (sinon temps périmé). Émetteurs FX modules 100% **STATELESS** (`drawModFX`, spec
+  `anim:[{t,u,v,...}]` par niveau dans `MODS_CFG`, u,v RELATIFS au rect du sprite) : types
+  `glow`(générique)/`led`/`shine`/`stream`/`drip`/`mist`, phases hash(x,y,i), dessinés APRÈS
+  le drawSp du module à la MÊME profondeur, alpha en lock-step avec le fondu, gates de zoom
+  `FX_TIER` (0=toujours · 1≥0.85 · 2≥1.05), budget `fxN` cap 40/frame, porte debug
+  `__noModFX`. ⚠️ Ne JAMAIS redessiner le contenu baked des PNG (le jet de l'Arrosoir
+  SCINTILLE via 'stream', il n'est pas repeint). `particles` réservé aux ÉVÉNEMENTS
+  (cap `MAX_PART=220`, éviction des plus vieilles). Pop d'apparition : `m.bornT` runtime
+  (jamais sauvé), `popScale` ease-out-back 450ms ancré à la BASE. `pickMod` = rect de sprite
+  (d max = ordre du peintre) puis fallback emprise. Overhead FX mesuré : ~0% (harnais
+  verify_v22_fx, 12 tests).
 - **Décor** : trees, bushes, flowers, rocks, stumps, bâtiments, rampes, plans d'eau
 - **Mon Domaine** : galerie 11 niveaux (`HOUSE`), bonus cumulatifs, cinématique `glideCam` ✓
 - **Jardins du Domaine** : mobilier par tier dans `placeHome()` (T1 camp fleuri / T2 cour de

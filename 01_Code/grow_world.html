@@ -5,6 +5,7 @@
 .topbar{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:6px;align-items:center;background:rgba(8,12,8,.85);border:1px solid #3a4a2a;border-radius:14px;padding:9px 10px;z-index:6}
 .coin{color:#ffcf4d;font-weight:800;font-size:20px;text-shadow:0 1px 2px #000;white-space:nowrap;flex-shrink:0}.coin::before{content:"💰 "}.spacer{flex:1}
 .tag{color:#8fd96f;font-size:12px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vtag{flex-shrink:0}   /* v22.5 : le numéro de version ne se tronque JAMAIS (c'est « Mon Monde » qui cède) */
 .zoombtns{position:absolute;right:10px;top:64px;display:flex;flex-direction:column;gap:6px;z-index:6}.zoombtns button{width:42px;height:42px;border-radius:11px;border:1.5px solid #6fc04d;background:rgba(20,40,15,.85);color:#eaffea;font-size:22px;font-weight:800}
 .hint{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#eaffd0;font-size:11px;font-style:italic;text-shadow:0 1px 3px #000;pointer-events:none;z-index:5}
 .float{position:absolute;color:#ffe87a;font-weight:900;font-size:22px;pointer-events:none;text-shadow:0 2px 6px #000,0 0 12px rgba(255,200,60,.6);z-index:7;opacity:1;transform:translate(-50%,0) scale(0.3);animation:floatpop 1.1s cubic-bezier(.2,1.4,.4,1) forwards;white-space:nowrap}
@@ -190,7 +191,7 @@
   .toast{top:96px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v22</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde ·</span><span class="tag vtag">🏮v22.5</span></div>
 <div id="mtrack" class="mtrack"><span class="mmed"><span class="mico" id="mico">🎯</span></span><div class="mcol"><span class="mtxt" id="mtxt"></span><div class="mbar"><i id="mtfill"></i><span class="mnum" id="mnum"></span><span class="mshine"></span></div></div><span class="mchev">›</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
@@ -272,7 +273,8 @@ const IMG={};let nn=PACK.length,gg=0,ready=false;
 for(const k of PACK){const im=new Image();im.onload=im.onerror=()=>{if(++gg>=nn)ready=true;};im.src=ASSET_BASE+k+".png";IMG[k]=im;}
 const cv=document.getElementById('iso'),ctx=cv.getContext('2d');
 let APP_W=440,APP_H=873,DPR=Math.min(2,window.devicePixelRatio||2);
-function resize(){const a=document.getElementById('app');APP_W=a.clientWidth;APP_H=a.clientHeight;cv.width=APP_W*DPR;cv.height=APP_H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+function resize(){const a=document.getElementById('app');APP_W=a.clientWidth;APP_H=a.clientHeight;cv.width=APP_W*DPR;cv.height=APP_H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';}   // v22.5 : PNG downscalés ×2-4 -> moins de shimmer (le resize reset l'état du contexte : c'est LE bon endroit)
 function onResize(){resize();clampCam();}  // recadre la vue a chaque changement d'ecran/orientation
 window.addEventListener('resize',onResize);
 window.addEventListener('orientationchange',function(){setTimeout(onResize,120);});
@@ -592,6 +594,14 @@ const MODS_CFG={
       cost:[800,4000,20000,120000,600000],cons:[0,10,25,50,90],
       lvN:['Arrosoir','Pompe','Château d\'eau','Sprinklers','Hub auto'],
       rate:[2,4,6,8,12],wcap:[60,80,100,120,140],
+      // v22.5 : émetteurs FX par niveau — u,v RELATIFS au rect du sprite (mesurés au pixel).
+      // 'glow' = type générique (couleur 'r,g,b') réutilisable par les 25 futurs bâtiments.
+      anim:[
+        [{t:'stream',u:0.38,v:0.33,u2:0.40,v2:0.50},{t:'shine',u:0.33,v:0.57,rw:0.13,rh:0.045},{t:'drip',u:0.71,v:0.58,dv:0.10}],
+        [{t:'led',u:0.30,v:0.55,c:'#7ad8ff'},{t:'mist',u:0.52,v:0.10},{t:'drip',u:0.70,v:0.55,dv:0.09}],
+        [{t:'glow',u:0.57,v:0.47,r:0.07,c:'80,200,255',a:0.22},{t:'led',u:0.13,v:0.42,c:'#7cff9a'},{t:'shine',u:0.83,v:0.60,rw:0.07,rh:0.03},{t:'drip',u:0.55,v:0.78,dv:0.07}],
+        [{t:'led',u:0.20,v:0.45,c:'#7cff9a'},{t:'shine',u:0.80,v:0.62,rw:0.08,rh:0.035},{t:'mist',u:0.42,v:0.12},{t:'drip',u:0.62,v:0.70,dv:0.08}],
+        [{t:'glow',u:0.62,v:0.10,r:0.10,c:'255,214,120',a:0.30},{t:'led',u:0.33,v:0.42,c:'#7ad8ff'},{t:'shine',u:0.80,v:0.68,rw:0.08,rh:0.035},{t:'mist',u:0.25,v:0.30},{t:'drip',u:0.55,v:0.75,dv:0.07}]],
       fx:['+2 💧/min aux champs à portée (cap 60)','+4 💧/min (cap 80)','+6 💧/min (cap 100) · réserve d\'eau',
           '+8 💧/min (cap 120) · arrosage auto à la plantation','+12 💧/min (cap 140) · +15% de pousse à portée']},
   nu:{name:'Nutriments',ico:'🌾',hr:4,av:0,fp:[2,2,2,3,3],sc:[1.7,1.9,2.2,2.6,3.1],cost:[2000,10000,50000,250000,1200000],cons:[0,10,25,50,90],lvN:['Table d\'engrais','Mixeur','Station N-P-K','Station auto','AgriLab Premium'],fx:[]},
@@ -855,7 +865,9 @@ function updateWorkers(now){   // LOGIQUE au tick 200ms — timers absolus => ro
     }else if(w.state==='plant'){
       if(now>=w.t1){
         if(c&&c.state==='empty'){c.state='growing';c.grow=0;c.water=0;c.sun=0;c.nute=0;c.quality=1;   // même variety (conservée)
-          const _il=irLvAt(c);if(_il>=4)c.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : le replant ouvrier aussi
+          const _il=irLvAt(c);
+          if(_il>=4){c.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : le replant ouvrier aussi
+            if(vis(c.x,c.y))burst(isoX(c.x+0.5,c.y+0.5),isoY(c.x+0.5,c.y+0.5)-TH()*0.2,'#6fc8ff',6);}   // v22.5 : petite éclaboussure (visible only)
           burst(isoX(c.x+.5,c.y+.5),isoY(c.x+.5,c.y+.5),'#9dffb8',6);}
         w.cyc++;wkGainXp(w.id,2);   // le cycle complet paie l'expérience
         if(_fm>1&&w.job!=='f'){_fmCyc++;if(_fmCyc%5===0){const fi=crew.findIndex(x=>x.j==='f');if(fi>=0)wkGainXp(fi,1);}}
@@ -1065,13 +1077,21 @@ MISSIONS.forEach((m,i)=>{if(MGO[i])m.go=MGO[i];});
 
 function isoX(c,r){return APP_W/2+(c-r)*TW()/2+cam.x;}
 var particles=[];
+// v22.5 HORLOGE DE FRAME : posée UNE fois en tête de draw(). Règle : INTRA-draw -> FNOW
+// (cohérence de phase + ~150 appels performance.now() économisés/frame + patchable par les
+// harnais) ; HORS-frame (handlers/intervals/cinématiques) -> performance.now() direct,
+// sinon temps périmé. var initialisé = zéro TDZ (règle particles).
+var FNOW=performance.now();
+var MAX_PART=220;   // garde-fou population (≈4 chantiers simultanés + marge) — éviction des plus vieilles
 var revealFX=null;   // {x,y,t0,dur} : onde dorée du reveal de la maison (dessinée en fin de draw)
 // OcclusionFade 2.0 : état persistant du fondu des gros objets (var : draw() tourne avant ce
 // bloc au 1er rAF ? non — mais règle particles/TDZ, on ne prend aucun risque).
 var fadeCur={};                    // "x,y" -> alpha COURANT (n'existe que pour les cellules en fondu)
 var fadeLastT=performance.now();   // horloge du lissage (dt de frame local au fondu)
 const FADE_MIN=0.38, FADE_K=16;    // plancher d'opacité ; vitesse (~95% de la transition en 190ms)
-function burst(px,py,color,n){for(var i=0;i<(n||14);i++){var a=Math.random()*Math.PI*2,sp=1.5+Math.random()*3.5;particles.push({x:px,y:py,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,life:1,col:color||'#ffe87a',sz:2+Math.random()*3});}}
+function burst(px,py,color,n){n=n||14;
+  var over=particles.length+n-MAX_PART;if(over>0)particles.splice(0,over);   // v22.5 : éviction des plus VIEILLES (garde-fou, jamais atteint en jeu normal)
+  for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,sp=1.5+Math.random()*3.5;particles.push({x:px,y:py,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,life:1,col:color||'#ffe87a',sz:2+Math.random()*3});}}
 function updateParticles(){for(var i=0;i<particles.length;i++){var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.18;p.vx*=0.96;p.life-=0.025;}particles=particles.filter(function(p){return p.life>0;});}
 function drawParticles(){ctx.save();for(var i=0;i<particles.length;i++){var p=particles[i];ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,7);ctx.fill();}ctx.restore();}
 function isoYb(c,r){return APP_H*0.28+(c+r)*TH()/2+cam.y;}      // sol niveau 0
@@ -1136,7 +1156,7 @@ function drawSp(img,cx,cyB,tw,a){if(!img||!img.complete||!img.naturalWidth)retur
 function drawSpWind(img,cx,cyB,tw,amp,phase,a){
   if(!img||!img.complete||!img.naturalWidth)return;
   const r=img.naturalHeight/img.naturalWidth, th=tw*r;
-  const T=performance.now()/1000;
+  const T=FNOW/1000;   // v22.5 : horloge de frame (appelé ~100×/frame, uniquement depuis draw)
   // brise principale lente + micro-frisson rapide, dephase par objet
   const sway=Math.sin(T*0.9+phase)*amp + Math.sin(T*2.7+phase*1.7)*amp*0.25;
   ctx.save();
@@ -1148,6 +1168,79 @@ function drawSpWind(img,cx,cyB,tw,amp,phase,a){
 }
 
 
+// ═══ v22.5 FX MODULES : émetteurs 100% STATELESS (dérivés de FNOW + phases hash(x,y,i) —
+// pattern du sway des touffes) dessinés PAR-DESSUS le sprite, MÊME profondeur, alpha en
+// lock-step avec le fondu. On ne redessine JAMAIS le baked (le jet de l'Arrosoir SCINTILLE
+// via 'stream', il n'est pas repeint). `particles` reste réservé aux ÉVÉNEMENTS. ═══
+const FX_TIER={glow:0,led:0,shine:1,stream:1,drip:2,mist:2};   // tier de zoom requis
+var fxN=0;   // budget global par frame (reset en tête de draw, cap dur 40 émetteurs)
+function fxHash(x,y,i){return (((x*73856093)^(y*19349663)^((i+1)*83492791))>>>0);}
+function popScale(e){const q=e-1;return 0.6+0.4*(1+3.6*q*q*q+2.6*q*q);}   // ease-out-back 0.6→~1.06→1
+function drawModFX(m,ix,foot,w,h,aF){
+  if(window.__noModFX||fxN>=40)return;
+  const spec=(MODS_CFG[m.k].anim||[])[m.lv-1];if(!spec||!spec.length)return;
+  const tier=zoom>=1.05?2:zoom>=0.85?1:0;   // aligné sur la rampe du fondu (0.8-1.05)
+  ctx.save();
+  for(let i=0;i<spec.length&&fxN<40;i++){const e=spec[i];
+    if(FX_TIER[e.t]>tier)continue;fxN++;
+    const ex=ix-w/2+e.u*w, ey=foot-h+e.v*h;
+    const ph0=(fxHash(m.x,m.y,i)&1023)/1024;
+    if(e.t==='led'){   // point qui respire + petit halo (mini-lamp)
+      const pl=0.5+0.5*Math.sin((FNOW/1400+ph0)*6.283);
+      ctx.globalAlpha=aF*(0.35+0.55*pl);ctx.fillStyle=e.c||'#7cff9a';
+      ctx.beginPath();ctx.arc(ex,ey,Math.max(1,w*0.010),0,7);ctx.fill();
+      ctx.globalAlpha=aF*0.16*pl;
+      ctx.beginPath();ctx.arc(ex,ey,w*0.040,0,7);ctx.fill();
+    }else if(e.t==='glow'){   // lueur générique — pattern lamp exact (lumière procédurale)
+      const pl=0.8+0.2*Math.sin((FNOW/1800+ph0)*6.283), R=w*(e.r||0.10);
+      const g=ctx.createRadialGradient(ex,ey,R*0.15,ex,ey,R);
+      g.addColorStop(0,'rgba('+e.c+','+((e.a||0.25)*pl*aF).toFixed(3)+')');
+      g.addColorStop(1,'rgba('+e.c+',0)');
+      ctx.globalAlpha=1;ctx.fillStyle=g;
+      ctx.beginPath();ctx.arc(ex,ey,R,0,7);ctx.fill();
+    }else if(e.t==='drip'){   // perle qui grossit → chute ease-in → micro-éclat
+      const ph=((FNOW/2600)+ph0)%1, dv=(e.dv||0.09)*h;
+      ctx.fillStyle='#96d7ff';
+      if(ph<0.55){const q=ph/0.55;
+        ctx.globalAlpha=aF*0.85*q;
+        ctx.beginPath();ctx.arc(ex,ey,Math.max(1.2,w*0.014)*q,0,7);ctx.fill();}
+      else if(ph<0.85){const q=(ph-0.55)/0.30;
+        ctx.globalAlpha=aF*0.85;
+        ctx.beginPath();ctx.arc(ex,ey+dv*q*q,Math.max(1.2,w*0.012),0,7);ctx.fill();}
+      else{const q=(ph-0.85)/0.15;
+        ctx.globalAlpha=aF*0.6*(1-q);ctx.strokeStyle='#bee6ff';ctx.lineWidth=1;
+        ctx.beginPath();ctx.arc(ex,ey+dv,w*(0.01+0.02*q),0,7);ctx.stroke();}
+    }else if(e.t==='shine'){   // 3 étincelles re-tirées par cycle dans l'ellipse (surface d'eau)
+      for(let k=0;k<3;k++){
+        const tt2=(FNOW/1600)+k/3+ph0, ph=tt2%1, cyc=Math.floor(tt2)&255;
+        const hs=fxHash(m.x,m.y,i*16+k+cyc);
+        const sx=ex+(((hs&255)/255)-0.5)*2*(e.rw||0.08)*w;
+        const sy=ey+((((hs>>8)&255)/255)-0.5)*2*(e.rh||0.035)*h;
+        const al=Math.sin(ph*Math.PI)*0.75*aF;
+        ctx.globalAlpha=al;ctx.fillStyle='#dff6ff';
+        ctx.beginPath();ctx.arc(sx,sy,Math.max(1,w*0.008),0,7);ctx.fill();
+        if(k===0&&ph>0.45&&ph<0.55){const cr=w*0.02;   // croix d'éclat au pic (pattern frost)
+          ctx.globalAlpha=al*0.9;ctx.strokeStyle='#eaffff';ctx.lineWidth=1;
+          ctx.beginPath();ctx.moveTo(sx-cr,sy);ctx.lineTo(sx+cr,sy);ctx.moveTo(sx,sy-cr);ctx.lineTo(sx,sy+cr);ctx.stroke();}}
+    }else if(e.t==='stream'){   // 3 tirets lumineux le long du jet BAKED — il « coule »
+      const x2=ix-w/2+(e.u2!=null?e.u2:e.u)*w, y2=foot-h+(e.v2!=null?e.v2:e.v+0.15)*h;
+      for(let k=0;k<3;k++){
+        const ph=((FNOW/800)+k/3+ph0)%1;
+        const lx=ex+(x2-ex)*ph+Math.sin((FNOW/300)+k*2.1)*w*0.006, ly=ey+(y2-ey)*ph;
+        ctx.globalAlpha=aF*0.5*Math.sin(ph*Math.PI);ctx.fillStyle='#cfeeff';
+        ctx.beginPath();ctx.ellipse(lx,ly,Math.max(1,w*0.010),Math.max(1.4,w*0.020),0,0,7);ctx.fill();}
+    }else if(e.t==='mist'){   // 2 puffs de buée qui montent et se dissipent
+      for(let k=0;k<2;k++){
+        const ph=((FNOW/3200)+k/2+ph0)%1;
+        const R=w*(0.03+0.03*ph), my=ey-0.07*h*ph;
+        const g=ctx.createRadialGradient(ex,my,R*0.2,ex,my,R);
+        g.addColorStop(0,'rgba(230,245,255,'+(0.10*(1-ph)*aF).toFixed(3)+')');
+        g.addColorStop(1,'rgba(230,245,255,0)');
+        ctx.globalAlpha=1;ctx.fillStyle=g;
+        ctx.beginPath();ctx.arc(ex,my,R,0,7);ctx.fill();}
+    }}
+  ctx.restore();
+}
 // ombre portee elliptique au sol sous un element
 function shadow(cx,cyB,w,a){
   // ombre douce et compacte : sous le pied, pas trop grande -> du relief sans grosse tache
@@ -1203,6 +1296,8 @@ function zoneCost(){const o=W.cropzones.filter(z=>z.owned).length;return Math.fl
 function zoneAvailable(z){if(z.bonus)return totalHarvest>=z.palier;if(z.group==null||z.group<0)return true;const g=W.landgroups&&W.landgroups[z.group];return !!(g&&g.owned);}
 
 function draw(){
+  FNOW=performance.now();   // v22.5 : UNE horloge par frame — toute anim intra-draw lit FNOW
+  fxN=0;                    // budget d'émetteurs FX modules (cap dur 40/frame)
   ctx.clearRect(0,0,APP_W,APP_H);
   // tri de toutes les cases par profondeur (c+r), avec hauteur prise en compte dans le rendu
   const cells=[];
@@ -1228,7 +1323,7 @@ function draw(){
       const g=W.ground[y][x];
       tile(groundKey(g),x,y);
       if(g==='water'){const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5),w=TW()*1.35,hh=TH()*1.35;
-      const T=performance.now()/1000;
+      const T=FNOW/1000;
       ctx.save();ctx.beginPath();ctx.moveTo(ix,iy-hh/2);ctx.lineTo(ix+w/2,iy);ctx.lineTo(ix,iy+hh/2);ctx.lineTo(ix-w/2,iy);ctx.closePath();ctx.clip();
       // 1) degrade de profondeur : turquoise clair en haut -> bleu profond en bas
       const grd=ctx.createLinearGradient(ix,iy-hh/2,ix,iy+hh/2);
@@ -1282,7 +1377,7 @@ function draw(){
     const rvk=x+','+y, rvOn=(rangeView&&rangeView.keys.has(rvk))||(placingMod&&placingMod.has&&placingMod.keys&&placingMod.keys.has(rvk));
     if(rvOn){
       const hx=isoX(x+0.5,y+0.5), hy=isoY(x+0.5,y+0.5), w2=TW()/2, h2=TH()/2;
-      const pulse=0.5+0.5*Math.sin(performance.now()/420);
+      const pulse=0.5+0.5*Math.sin(FNOW/420);
       const isCrop=!!cropCells[rvk];
       ctx.save();ctx.beginPath();
       ctx.moveTo(hx,hy-h2);ctx.lineTo(hx+w2,hy);ctx.lineTo(hx,hy+h2);ctx.lineTo(hx-w2,hy);ctx.closePath();
@@ -1301,7 +1396,7 @@ function draw(){
   }
   // OUVRIERS : position interpolée -> indexés par case arrondie, dessinés à la profondeur de leur
   // case (remonté AVANT les ombres : le fondu d'occlusion protège aussi l'équipe)
-  const nowW=performance.now(), wkByCell={};
+  const nowW=FNOW, wkByCell={};
   for(const w of workers){const p=workerPos(w,nowW);
     const k=Math.round(p.x)+','+Math.round(p.y);(wkByCell[k]=wkByCell[k]||[]).push({w,p});}
   // ── OcclusionFade 2.0 : 1 calcul par frame, partagé ombres+objets ────────────────────────────
@@ -1342,7 +1437,7 @@ function draw(){
           fadeTgt[x+','+y]=aT;break;}}}                                           // early-exit 1re cible
   }
   {  // lissage exponentiel (~190ms) + nettoyage borné — fadeCur ne garde QUE les cellules en fondu
-    const nowF=performance.now(), dtF=Math.min(0.05,(nowF-fadeLastT)/1000); fadeLastT=nowF;
+    const nowF=FNOW, dtF=Math.min(0.05,(nowF-fadeLastT)/1000); fadeLastT=nowF;
     const kF=Math.min(1,dtF*FADE_K);
     for(const k in fadeTgt)if(!(k in fadeCur))fadeCur[k]=1;    // nouveau fondu : part de l'opaque
     for(const k in fadeCur){const tg=(k in fadeTgt)?fadeTgt[k]:1;
@@ -1385,11 +1480,21 @@ function draw(){
       if(wind){
         const amp=(t==='flower'?0.10:t==='bush'||t==='bushF'?0.055:0.035); // fleurs souples, arbres raides
         drawSpWind(IMG[img],ix,iy+TH()*0.62,TW()*sc,amp,(x*1.3+y*0.7),a);
+      } else if(t.startsWith('mod_')){   // v22.5 : pop d'apparition + émetteurs FX, même profondeur
+        const mi2=modCells[x+','+y], m2=mi2!=null?mods[mi2]:null;
+        const im2=IMG[img], foot=iy+TH()*decYOff(t), w2=TW()*sc;
+        const h2=(im2&&im2.naturalWidth)?w2*im2.naturalHeight/im2.naturalWidth:w2;
+        let s=1;
+        if(m2&&m2.bornT!=null){const e=(FNOW-m2.bornT)/450;
+          if(e>=1)delete m2.bornT; else s=popScale(e);}
+        if(s!==1){ctx.save();ctx.translate(ix,foot);ctx.scale(s,s);drawSp(im2,0,0,w2,a);ctx.restore();}   // ancre BASE (pattern drawSpWind)
+        else drawSp(im2,ix,foot,w2,a);
+        if(m2&&m2.bornT==null)drawModFX(m2,ix,foot,w2,h2,a==null?1:a);   // FX coupés pendant le pop
       } else {
         drawSp(IMG[img],ix,iy+TH()*decYOff(t),TW()*sc,a);
       }
       // halo chaud pulsant des lampadaires de l'esplanade (pattern du halo des plants ready — perf prouvée)
-      if(t==='lamp'){const pl=0.8+0.2*Math.sin(performance.now()/900+(x*2.1+y*3.7));
+      if(t==='lamp'){const pl=0.8+0.2*Math.sin(FNOW/900+(x*2.1+y*3.7));
         const gy=iy+TH()*0.85-TW()*sc*1.68*0.78, R=TW()*0.55;
         const gg=ctx.createRadialGradient(ix,gy,R*0.08,ix,gy,R);
         gg.addColorStop(0,'rgba(255,214,120,'+(0.30*pl)+')');
@@ -1403,12 +1508,12 @@ function draw(){
       const fd=fieldDeco[ck];
       if(fd&&!fd.front){const lp=IMG[fd.sp];if(lp&&lp.naturalWidth)drawSp(lp,ix+fd.ux*TW()/2,iy+fd.uy*TH()/2,TW()*fd.sc,null);}
       // surbrillance de la case selectionnee (cadre lumineux pulse + animation)
-      if(selCell===c){const w=TW(),hh=TH(),cyS=iy;const pulse=0.5+0.5*Math.sin(performance.now()/300);
+      if(selCell===c){const w=TW(),hh=TH(),cyS=iy;const pulse=0.5+0.5*Math.sin(FNOW/300);
         ctx.save();ctx.beginPath();ctx.moveTo(ix,cyS-hh/2);ctx.lineTo(ix+w/2,cyS);ctx.lineTo(ix,cyS+hh/2);ctx.lineTo(ix-w/2,cyS);ctx.closePath();
         ctx.fillStyle='rgba(157,255,184,'+(0.12+0.12*pulse)+')';ctx.fill();
         ctx.lineWidth=2.5;ctx.strokeStyle='rgba(157,255,184,'+(0.6+0.4*pulse)+')';ctx.stroke();ctx.restore();
         // petits carrés qui montent et disparaissent + jolies particules flottantes
-        const tt=performance.now();ctx.save();
+        const tt=FNOW;ctx.save();
         for(let k=0;k<5;k++){const ph=((tt/1300)+k/5)%1;
           const sxq=ix+((k+0.5)/5-0.5)*w*0.78, syq=cyS+hh*0.35-ph*(hh*0.5+TH()*1.7);
           const sz=Math.max(2,TW()*0.055*(1-ph*0.35));ctx.globalAlpha=Math.sin(ph*Math.PI)*0.75;ctx.fillStyle='#9dffb8';
@@ -1418,10 +1523,19 @@ function draw(){
           ctx.globalAlpha=Math.sin(ph*Math.PI)*0.6;ctx.fillStyle='#daffe8';ctx.beginPath();ctx.arc(px,py,Math.max(1,TW()*0.022),0,7);ctx.fill();}
         ctx.restore();}
       if(c.state!=='empty'){const v=['v','p','b','o','n','a'][c.variety];const st=c.state==='ready'?8:Math.max(1,Math.min(8,Math.ceil(c.grow*8)));
-        const now=performance.now(), Ts=now/1000;
+        const now=FNOW, Ts=now/1000;
         // (a) TERRE HUMIDE si arrosé -> overlay losange sombre translucide (clip diamant)
         const wet=Math.min(1,(c.water||0)/200);
         if(wet>0.05){const w=TW(),hh=TH(),cyW=iy;ctx.save();ctx.beginPath();ctx.moveTo(ix,cyW-hh/2);ctx.lineTo(ix+w/2,cyW);ctx.lineTo(ix,cyW+hh/2);ctx.lineTo(ix-w/2,cyW);ctx.closePath();ctx.clip();ctx.fillStyle='rgba(22,14,6,'+(0.32*wet)+')';ctx.fillRect(ix-w/2,cyW-hh/2,w,hh);ctx.restore();}
+        // v22.5 : micro-scintillement de REFILL — déterministe (~1 champ couvert sur 6 par
+        // seconde, position stable la seconde, cloche d'alpha), silence une fois au cap.
+        if(zoom>=0.85){const il2=irLvAt(c);
+          if(il2&&(c.water||0)<MODS_CFG.ir.wcap[il2-1]-0.5){
+            const cyc=Math.floor(FNOW/1000), hs=(((c.x*73856093)^(c.y*19349663)^(cyc*83492791))>>>0);
+            if(hs%6===0){const ph=(FNOW%1000)/1000, k2=hs>>>8;
+              ctx.save();ctx.globalAlpha=Math.sin(ph*Math.PI)*0.55;ctx.fillStyle='#bfe6ff';
+              ctx.beginPath();ctx.arc(ix+((k2&255)/255-0.5)*TW()*0.5,iy+(((k2>>8)&255)/255-0.5)*TH()*0.4,
+                Math.max(1,TW()*0.02),0,7);ctx.fill();ctx.restore();}}}
         // (b) HALO DORÉ sous les plants si PRÊTE
         if(c.state==='ready'){const pl=0.55+0.45*Math.sin(now/500),R=TW()*0.55,cyG=iy;ctx.save();const gg=ctx.createRadialGradient(ix,cyG,R*0.12,ix,cyG,R);gg.addColorStop(0,'rgba(255,226,130,'+(0.34*pl)+')');gg.addColorStop(0.6,'rgba(255,210,90,'+(0.12*pl)+')');gg.addColorStop(1,'rgba(255,210,90,0)');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(ix,cyG,R,0,7);ctx.fill();ctx.restore();}
         // (c) TOUFFE dense de 5 plants/case (le look d'avant), CONTENUE dans la case (pas de débordement
@@ -1458,7 +1572,7 @@ function draw(){
           ctx.fillStyle=grd;ctx.fillRect(bx,by,bw*g,bh);
           ctx.fillStyle='rgba(255,255,255,0.30)';ctx.fillRect(bx,by,bw*g,Math.max(1,bh*0.34)); // reflet fin
           ctx.restore();}
-        if(c.state==='ready'){const t=performance.now()/400;ctx.save();ctx.globalAlpha=.6+.4*Math.sin(t);ctx.font=(12*zoom)+'px serif';ctx.textAlign='center';ctx.fillText('✨',ix,iy-TH()*0.5);ctx.restore();}}
+        if(c.state==='ready'){const t=FNOW/400;ctx.save();ctx.globalAlpha=.6+.4*Math.sin(t);ctx.font=(12*zoom)+'px serif';ctx.textAlign='center';ctx.fillText('✨',ix,iy-TH()*0.5);ctx.restore();}}
       // lanterne de coin AVANT (Sud) : posee APRES les plants -> devant eux
       if(fd&&fd.front){const lp=IMG[fd.sp];if(lp&&lp.naturalWidth)drawSp(lp,ix+fd.ux*TW()/2,iy+fd.uy*TH()/2,TW()*fd.sc,null);}
     }
@@ -1482,7 +1596,7 @@ function draw(){
     const mcx=z.zx+(z.n-1)/2+0.5, mcy=z.zy+(z.n-1)/2+0.5;
     const cx=isoX(mcx,mcy),cy=isoY(mcx,mcy);
     if(cx<-60||cx>APP_W+60||cy<-60||cy>APP_H+60)continue;
-    ctx.save();ctx.globalAlpha=.45+.2*Math.sin(performance.now()/500);
+    ctx.save();ctx.globalAlpha=.45+.2*Math.sin(FNOW/500);
     ctx.fillStyle='rgba(255,220,80,.22)';ctx.strokeStyle='#ffd84d';ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(nx,ny);ctx.lineTo(ex,ey);ctx.lineTo(sx2,sy2);ctx.lineTo(wx,wy);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold '+(12*zoom+5)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🔒 '+zoneCost(),cx,cy);ctx.restore();}
@@ -1495,7 +1609,7 @@ function draw(){
     const wx=isoX(z.zx+0.5,z.zy+z.n-0.5)-TW()/2,wy=isoY(z.zx+0.5,z.zy+z.n-0.5);
     const mcx=z.zx+(z.n-1)/2+0.5, mcy=z.zy+(z.n-1)/2+0.5;const cx=isoX(mcx,mcy),cy=isoY(mcx,mcy);
     if(!(cx<-60||cx>APP_W+60||cy<-60||cy>APP_H+60)){
-      ctx.save();ctx.globalAlpha=.26+.1*Math.sin(performance.now()/600);
+      ctx.save();ctx.globalAlpha=.26+.1*Math.sin(FNOW/600);
       ctx.fillStyle='rgba(120,170,90,.18)';ctx.strokeStyle='rgba(170,215,130,.75)';ctx.lineWidth=2;ctx.setLineDash([6,5]);
       ctx.beginPath();ctx.moveTo(nx,ny);ctx.lineTo(ex,ey);ctx.lineTo(sx2,sy2);ctx.lineTo(wx,wy);ctx.closePath();ctx.fill();ctx.stroke();ctx.setLineDash([]);
       ctx.globalAlpha=.95;ctx.fillStyle='#e6ffd6';ctx.font='bold '+(11*zoom+4)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -1508,14 +1622,14 @@ function draw(){
     const miny=Math.min(q[0][1],q[1][1],q[2][1],q[3][1]),maxy=Math.max(q[0][1],q[1][1],q[2][1],q[3][1]);
     if(maxx<-40||minx>APP_W+40||maxy<-40||miny>APP_H+40)continue;
     const cx=isoX(g.gx+g.gw/2,g.gy+g.gh/2),cy=isoY(g.gx+g.gw/2,g.gy+g.gh/2);
-    ctx.save();ctx.globalAlpha=.38+.18*Math.sin(performance.now()/600);
+    ctx.save();ctx.globalAlpha=.38+.18*Math.sin(FNOW/600);
     ctx.fillStyle='rgba(90,180,70,.26)';ctx.strokeStyle='#7ee06a';ctx.lineWidth=2.5;
     ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);ctx.lineTo(q[1][0],q[1][1]);ctx.lineTo(q[2][0],q[2][1]);ctx.lineTo(q[3][0],q[3][1]);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold '+(12*zoom+5)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('🪓 Défricher · '+money(g.cost),cx,cy);ctx.restore();}}
   updateParticles();drawParticles();
   // ONDE DORÉE du reveal maison : halo radial + anneau qui s'étend, par-dessus la scène
-  if(revealFX){const el=(performance.now()-revealFX.t0)/revealFX.dur;
+  if(revealFX){const el=(FNOW-revealFX.t0)/revealFX.dur;
     if(el>=1)revealFX=null;
     else{const ix=isoX(revealFX.x,revealFX.y),iy=isoY(revealFX.x,revealFX.y)-TH()*1.5;
       const R=TW()*(1.5+el*6),a=0.55*(1-el);
@@ -2092,8 +2206,10 @@ function modBuildCine(m){   // pattern buyCampBld : chantier -> reveal (l'état 
     },180);
     setTimeout(()=>{clearInterval(iv);
       placeMods();rebuildModCells();
+      m.bornT=performance.now();   // v22.5 : POP d'apparition (runtime pur, jamais sauvé)
       const ix=isoX(bx,by),iy=isoY(bx,by);
       burst(ix,iy-TH()*1.2,'#ffd84d',24);
+      setTimeout(()=>burst(ix,iy-TH()*1.2,'#6fc8ff',8),120);   // v22.5 : écho bleu (signature du domaine)
       revealFX={x:bx,y:by,t0:performance.now(),dur:900};
       const fl=document.getElementById('flash');fl.classList.remove('go');void fl.offsetWidth;fl.classList.add('go');
       toast(MODS_CFG[m.k].ico+' '+MODS_CFG[m.k].lvN[m.lv-1]+' — construit !');
@@ -2102,7 +2218,20 @@ function modBuildCine(m){   // pattern buyCampBld : chantier -> reveal (l'état 
     },1500);
   });
 }
-function pickMod(px,py){const c=tapCell(px,py);if(!c)return -1;const i=modCells[c.x+','+c.y];return i==null?-1:i;}
+function pickMod(px,py){
+  // v22.5 : 1) hit-test par RECT DE SPRITE (la tour/cuve répond, pattern fadeTg) —
+  // chevauchement : d=ax+ay max = ordre du peintre, le bâtiment VISIBLE sous le doigt gagne.
+  let best=-1,bd=-1;
+  for(let i=0;i<mods.length;i++){const m=mods[i];
+    const fp=modFp(m.k,m.lv),ax=m.x+fp-1,ay=m.y+fp-1;if(!vis(ax,ay))continue;
+    const t='mod_'+m.k+'_'+m.lv,img=IMG[t];if(!img||!img.naturalWidth)continue;
+    const w=TW()*decScale(t),h=w*img.naturalHeight/img.naturalWidth;
+    const ix=isoX(ax+.5,ay+.5),foot=isoY(ax+.5,ay+.5)+TH()*decYOff(t);
+    if(px>=ix-w*0.38&&px<=ix+w*0.38&&py>=foot-h*0.92&&py<=foot-h*0.06){
+      const d=ax+ay;if(d>bd){bd=d;best=i;}}}
+  if(best>=0)return best;
+  // 2) fallback : l'emprise au sol (comportement v22)
+  const c=tapCell(px,py);if(!c)return -1;const i=modCells[c.x+','+c.y];return i==null?-1:i;}
 function openModPanel(i){
   const m=mods[i];if(!m)return;const c=MODS_CFG[m.k];
   document.getElementById('modtitle').textContent=c.ico+' '+c.lvN[m.lv-1]+' · niv '+m.lv;
@@ -2161,7 +2290,9 @@ document.querySelectorAll('.seed').forEach(btn=>{
     if(!selCell)return;
     const v=parseInt(btn.dataset.v);
     selCell.state='growing';selCell.grow=0;selCell.variety=v;selCell.water=0;selCell.sun=0;selCell.nute=0;selCell.quality=1;
-    const _il=irLvAt(selCell);if(_il>=4)selCell.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : arrosage à la plantation
+    const _il=irLvAt(selCell);
+    if(_il>=4){selCell.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : arrosage à la plantation
+      burst(isoX(selCell.x+0.5,selCell.y+0.5),isoY(selCell.x+0.5,selCell.y+0.5)-TH()*0.2,'#6fc8ff',10);}   // v22.5 : éclaboussure
     stats.pl++;stats.vm|=1<<v;   // missions : semis + variétés découvertes
     selCell=null;showSeedbar(false);save();
   });
