@@ -20,6 +20,7 @@
 .seed.sel{border-color:#9dffb8;box-shadow:0 0 0 2px rgba(157,255,184,0.4),0 3px 8px rgba(0,0,0,0.4);}
 .seed .ico{font-size:24px;line-height:1;}
 .seed .nm{font-size:10px;color:#cfe6bd;font-weight:500;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.seed .tm{font-size:8px;color:#93a884;font-weight:600;white-space:nowrap;letter-spacing:.2px;}
 
 .stock{background:rgba(40,60,30,0.6);border:1px solid #4a6c38;border-radius:12px;padding:3px 8px;color:#cfe6bd;font-size:14px;white-space:nowrap;flex-shrink:0;}
 .stock b{color:#9dffb8;}
@@ -46,7 +47,7 @@
 @media (max-height:430px){
   .seedtitle,.caretitle{margin-bottom:5px;font-size:13px;}
   .seedbar,.carebar{padding-top:8px;}
-  .seed{padding:5px 3px;border-radius:11px;}.seed .ico{font-size:19px;}.seed .nm{font-size:9px;}
+  .seed{padding:5px 3px;border-radius:11px;}.seed .ico{font-size:19px;}.seed .nm{font-size:9px;}.seed .tm{font-size:7.5px;}
   .care{padding:6px 4px;}.care .cico{font-size:20px;}.care .cnm{font-size:9px;}
 }
 /* tres large (desktop/tablette paysage): limite la largeur des cartes centrees */
@@ -179,12 +180,12 @@
 <div id="seedbar" class="seedbar">
   <div class="seedtitle">Choisis une graine 🌱</div>
   <div class="seeds">
-    <button class="seed" data-v="0"><span class="ico">🌿</span><span class="nm">Verte</span></button>
-    <button class="seed" data-v="1"><span class="ico">🪻</span><span class="nm">Violette</span></button>
-    <button class="seed" data-v="2"><span class="ico">🫐</span><span class="nm">Bleue</span></button>
-    <button class="seed" data-v="3"><span class="ico">🍊</span><span class="nm">Orange</span></button>
-    <button class="seed" data-v="4"><span class="ico">🖤</span><span class="nm">Noire</span></button>
-    <button class="seed" data-v="5"><span class="ico">🍁</span><span class="nm">Automne</span></button>
+    <button class="seed" data-v="0"><span class="ico">🌿</span><span class="nm">Verte</span><span class="tm">1m · 6g</span></button>
+    <button class="seed" data-v="1"><span class="ico">🪻</span><span class="nm">Violette</span><span class="tm">1m40 · 11g</span></button>
+    <button class="seed" data-v="2"><span class="ico">🫐</span><span class="nm">Bleue</span><span class="tm">2m30 · 18g</span></button>
+    <button class="seed" data-v="3"><span class="ico">🍊</span><span class="nm">Orange</span><span class="tm">3m30 · 28g</span></button>
+    <button class="seed" data-v="4"><span class="ico">🖤</span><span class="nm">Noire</span><span class="tm">4m30 · 40g</span></button>
+    <button class="seed" data-v="5"><span class="ico">🍁</span><span class="nm">Automne</span><span class="tm">5m30 · 55g</span></button>
   </div>
 </div>
 <div id="carebar" class="carebar">
@@ -250,7 +251,19 @@ let boosts={water:20,sun:15,nute:10};  // stocks de soins limités
 let combo={count:0,last:0,window:1200};  // système de combo
 let lab={yield:0,speed:0,value:0};  // niveaux des améliorations labo
 let careT=Date.now(), lastTick=Date.now();            // horodatages temps-réel (careT restauré au load)
-const GROW_MS=30000;                                  // durée de pousse de base (~30s, tunable)
+// v22 LE RETUNE (GDD §11) : pousse ET rendement PAR VARIÉTÉ. La Verte reste l'onboarding vif
+// (1 min), l'Automne paie la patience (5m30, 55 g). g/min 6.0 -> 10.0 : +67% pour qui plante
+// long — et moins de récoltes/min = moins de drain de fertilité (v23). Graines GRATUITES
+// conservées, stock unique en grammes -> migration nulle. ±20% d'aléa à la récolte.
+const VAR=[
+  {n:'Verte',   t:60000, g:6 },
+  {n:'Violette',t:100000,g:11},
+  {n:'Bleue',   t:150000,g:18},
+  {n:'Orange',  t:210000,g:28},
+  {n:'Noire',   t:270000,g:40},
+  {n:'Automne', t:330000,g:55},
+];
+const varT=v=>(VAR[v]||VAR[0]).t, varG=v=>(VAR[v]||VAR[0]).g;
 const CARE_MAX={water:20,sun:15,nute:10}, CARE_REFILL_MS=60000; // soins: +1 de chaque /60s jusqu'au cap
 const SAVE_KEY='tinygrow_save_v1';
 let selCell=null;  // cellule selectionnee — DECLAREE AVANT draw() (draw() la lit ligne ~305). Sinon TDZ: le 1er draw() synchrone throw si une parcelle est visible frame 1 -> boucle rAF morte -> canvas blanc.
@@ -282,7 +295,7 @@ function rebuildCrop(){W.cropzones.forEach((z,zi)=>{if(!z.owned)return;for(let d
     gateCell.gOnField=!(W.ground[sy]&&W.ground[sy][gateCell.x]&&W.ground[sy][gateCell.x]!=='water');}
 }
 // === PARCELLES BONUS DE PALIER (extension collée au champ, débloquée aux grammes totaux récoltés) ===
-const PALIERS=[200,600,1500,3500,8000,18000,40000,90000];  // grammes totaux -> ouvre la parcelle bonus suivante
+const PALIERS=[40,120,300,700,1600,3600,8000,18000];  // grammes totaux -> ouvre la parcelle bonus suivante (v22 : ÷5, prorata du g/min du retune)
 function zoneCellsValid(zx,zy,n){
   if(zx<0||zy<0||zx+n>MW||zy+n>MH)return false;                                  // dans la map
   for(const z of W.cropzones){if(Math.abs(z.zx-zx)<n&&Math.abs(z.zy-zy)<n)return false;}  // pas de chevauchement d'une autre parcelle
@@ -464,15 +477,15 @@ tidyFields();
 const HOUSE=[
   {name:'Le Campement hérité',cost:0,      grams:0,     b:null,                    bico:'⛺',btxt:'Le point de départ de James'},
   {name:'La Cabane',          cost:500,    grams:0,     b:{offh:2},                bico:'😴',btxt:'+2h de gains hors-ligne'},
-  {name:'La Chaumière',       cost:1500,   grams:300,   b:{sell:0.08},             bico:'💰',btxt:'+8% prix de vente'},
-  {name:'La Maisonnette',     cost:4000,   grams:1000,  b:{care:5},                bico:'💧',btxt:'+5 de stock max de soins'},
-  {name:'La Ferme',           cost:10000,  grams:2500,  b:{zone:0.10},             bico:'🌱',btxt:'-10% sur le prix des parcelles'},
-  {name:'La Grande Ferme',    cost:25000,  grams:6000,  b:{offh:2},                bico:'😴',btxt:'+2h de gains hors-ligne'},
-  {name:'La Maison de Maître',cost:60000,  grams:15000, b:{sell:0.10},             bico:'💰',btxt:'+10% prix de vente'},
-  {name:'La Demeure',         cost:140000, grams:35000, b:{regen:0.30},            bico:'⚡',btxt:'+30% régénération des soins'},
-  {name:'La Villa',           cost:320000, grams:80000, b:{sell:0.12},             bico:'💰',btxt:'+12% prix de vente'},
-  {name:'Le Manoir',          cost:700000, grams:180000,b:{labd:0.20},             bico:'🧪',btxt:'-20% sur le labo'},
-  {name:'Le Domaine de Luxe', cost:1500000,grams:400000,b:{sell:0.15,offh:4},      bico:'🏆',btxt:'+15% vente · +4h hors-ligne'},
+  {name:'La Chaumière',       cost:1500,   grams:60,    b:{sell:0.08},             bico:'💰',btxt:'+8% prix de vente'},
+  {name:'La Maisonnette',     cost:4000,   grams:200,   b:{care:5},                bico:'💧',btxt:'+5 de stock max de soins'},
+  {name:'La Ferme',           cost:10000,  grams:500,   b:{zone:0.10},             bico:'🌱',btxt:'-10% sur le prix des parcelles'},
+  {name:'La Grande Ferme',    cost:25000,  grams:1200,  b:{offh:2},                bico:'😴',btxt:'+2h de gains hors-ligne'},
+  {name:'La Maison de Maître',cost:60000,  grams:3000,  b:{sell:0.10},             bico:'💰',btxt:'+10% prix de vente'},
+  {name:'La Demeure',         cost:140000, grams:7000,  b:{regen:0.30},            bico:'⚡',btxt:'+30% régénération des soins'},
+  {name:'La Villa',           cost:320000, grams:16000, b:{sell:0.12},             bico:'💰',btxt:'+12% prix de vente'},
+  {name:'Le Manoir',          cost:700000, grams:36000, b:{labd:0.20},             bico:'🧪',btxt:'-20% sur le labo'},
+  {name:'Le Domaine de Luxe', cost:1500000,grams:80000, b:{sell:0.15,offh:4},      bico:'🏆',btxt:'+15% vente · +4h hors-ligne'},
 ];
 function homeB(f){let v=0;for(let i=0;i<Math.min(houseLevel,HOUSE.length);i++){const b=HOUSE[i].b;if(b&&b[f])v+=b[f];}return v;}
 function homeSellMult(){return 1+homeB('sell');}
@@ -591,7 +604,7 @@ function spawnWorker(i){const src=(i>=6&&wkB.dorm)?{x:CAMP[0].x,y:CAMP[0].y+1}:{
 // récolte un plant ready : gains + FX + paliers + case vidée. PAS de save() (l'appelant décide).
 // c.variety est volontairement CONSERVÉ -> la replante (joueur ou ouvrier) garde la même variété.
 function harvestCell(c){
-  const q=c.quality||1, grams=Math.floor((12+Math.floor(Math.random()*10))*q*yieldMult());
+  const q=c.quality||1, grams=Math.floor(varG(c.variety)*(0.8+Math.random()*0.4)*q*yieldMult());
   stock+=grams; totalHarvest+=grams; updateStock();
   const ix=isoX(c.x+0.5,c.y+0.5), iy=isoY(c.x+0.5,c.y+0.5);
   ft(ix,iy-TH(),'+'+grams+' g 🌿');
@@ -786,9 +799,16 @@ function drawWorker(w,p,now){
 function wkOfflineGains(offMs){
   const out={grams:0,sold:0,coin:0,vName:''};
   if(workerCount<=0||offMs<=0)return out;
-  let N=0;for(const k in cropCells)if(cropCells[k].state!=='empty')N++;   // cases « en rotation »
+  // v22 : débit PAR VARIÉTÉ (formule fermée conservée). fieldRate = Σ Nv/growSv ;
+  // gBar = rendement moyen pondéré PAR LE FLUX (les récoltes arrivent au rythme de chaque
+  // variété) ; growS = pousse moyenne harmonique (le 1er cycle non compté, comme avant).
+  const Nv=[0,0,0,0,0,0];let N=0;
+  for(const k in cropCells){const c=cropCells[k];if(c.state!=='empty'){Nv[c.variety||0]++;N++;}}
   if(N<=0)return out;
-  const growS=GROW_MS*speedMult()/1000;
+  let fieldRate=0,gFlow=0;
+  for(let v=0;v<VAR.length;v++){if(!Nv[v])continue;const gs=varT(v)*speedMult()/1000;
+    fieldRate+=Nv[v]/gs;gFlow+=Nv[v]/gs*varG(v);}
+  const gBar=gFlow/fieldRate, growS=N/fieldRate;
   const effS=Math.max(0,offMs/1000-growS);
   if(effS<=0)return out;
   const eff=wkOfflineEff();
@@ -804,13 +824,13 @@ function wkOfflineGains(offMs){
   let arm=0;
   for(const h of hC){h.cyc=WK_CFG.AVG_WALK/(WK_CFG.WALK*Math.pow(1.12,wkUp.walk)*fm)
     +(WK_CFG.HARVEST_MS+WK_CFG.PLANT_MS)*Math.pow(0.92,wkUp.dex)*(1-0.05*(h.l-1))/fm/1000;arm+=1/h.cyc;}
-  const rate=Math.min(arm,N/growS);
+  const rate=Math.min(arm,fieldRate);
   const cycles=rate*effS*eff;   // cycles récolte+replante simulés
   // jardiniers offline -> qualité moyenne (couverture ~20 plants/jardinier ; facteur 0.65 = LE levier
   // d'équilibrage anti-méta : [r,r,r,g] >= 95% de [r,r,r,r] à niv 3 champ non saturé, teste-le si tu y touches)
   let capMoy=0;for(const i of gI)capMoy+=gCap(wkLvl(crew[i].xp));capMoy=gI.length?capMoy/gI.length:1;
   const qOff=1+Math.min(1,gI.length*20/N)*(capMoy-1)*0.65;
-  out.grams=Math.floor(cycles*16.5*yieldMult()*qOff);
+  out.grams=Math.floor(cycles*gBar*yieldMult()*qOff);
   // vendeur offline — fermé sur la sinusoïde du marché : F = fraction du temps au-dessus du seuil,
   // P = prix moyen au-dessus du seuil. Garde F>0 (si minP dépassait l'amplitude, la division exploserait).
   if(vBest>=0&&wkVs.on&&out.grams>0){
@@ -861,22 +881,22 @@ const MCH=[[0,"I — Le lopin hérité"],[7,"II — L'artisan"],[13,"III — La 
 const MISSIONS=[
   {ico:'🌱',n:'Plante 3 graines',t:3,p:()=>Math.max(stats.pl,totalHarvest>0?3:0),r:50,d:"« Trois graines et un lopin. Papa disait : tout empire commence par une graine. »"},
   {ico:'💧',n:'Soigne 5 fois',t:5,p:()=>stats.ca,r:75,rb:{water:5},d:"« Une plante, ça s'écoute, ça se chouchoute. Ça se parle aussi — mais pas trop fort. »"},
-  {ico:'✂️',n:'Récolte 3 plants',t:3,p:()=>Math.max(stats.ha,totalHarvest>=45?3:0),r:75,d:"« Ça sent la sève et la victoire. Ma première récolte, à la main, comme un artisan. »"},
-  {ico:'💰',n:'Vends ta récolte',t:1,p:()=>Math.max(stats.se,totalHarvest>=200?1:0),r:100,d:"« Le marché fluctue, qu'ils disent. Moi je fluctue vers l'avant. »"},
+  {ico:'✂️',n:'Récolte 3 plants',t:3,p:()=>Math.max(stats.ha,totalHarvest>=18?3:0),r:75,d:"« Ça sent la sève et la victoire. Ma première récolte, à la main, comme un artisan. »"},
+  {ico:'💰',n:'Vends ta récolte',t:1,p:()=>Math.max(stats.se,totalHarvest>=40?1:0),r:100,d:"« Le marché fluctue, qu'ils disent. Moi je fluctue vers l'avant. »"},
   {ico:'⚡',n:'Fais un combo x5',t:5,p:()=>stats.cb,r:125,rb:{nute:3},d:"« Enchaîne les soins sans respirer — la vallée aime le rythme. »"},
-  {ico:'🌿',n:'Récolte 200 g au total',t:200,p:()=>totalHarvest,r:150,d:"« Les anciens parlaient d'un palier à 200 grammes… La terre récompense les patients. »"},
+  {ico:'🌿',n:'Récolte 40 g au total',t:40,p:()=>totalHarvest,r:150,d:"« Les anciens parlaient d'un palier à 40 grammes… La terre récompense les patients. »"},
   {ico:'🗺️',n:'Achète 1 parcelle',t:2,p:()=>zonesOwned(),r:200,d:"« La parcelle d'à côté me fait de l'œil. Un champ de plus, un pas vers l'empire. »"},
   {ico:'🧪',n:'1 amélioration labo',t:1,p:()=>labSum(),r:150,d:"« Un tabouret, trois fioles, zéro diplôme. Je m'appelle moi-même docteur. »"},
   {ico:'🌈',n:'Plante 3 variétés',t:3,p:()=>bits(stats.vm),r:200,d:"« Verte, violette, bleue… la vallée est un arc-en-ciel qui pousse. »"},
   {ico:'🏠',n:'Maison niveau 2',t:2,p:()=>houseLevel,r:300,d:"« Marre de dormir sous la bâche. Une cabane, un vrai toit — et un lit qui bosse pour moi. »"},
   {ico:'👷',n:'Embauche 1 ouvrier',t:1,p:()=>workerCount,r:350,d:"« Premier employé de l'empire Lucky. Je fournis les graines, il fournit les bras. »"},
   {ico:'🗺️',n:'3 parcelles',t:3,p:()=>zonesOwned(),r:400,d:"« Trois champs. De là-haut, ça commence à ressembler à quelque chose. »"},
-  {ico:'🌿',n:'Récolte 1,5 kg au total',t:1500,p:()=>totalHarvest,r:500,d:"« Un kilo et demi. Maman n'y aurait jamais cru. Moi non plus, pour être honnête. »"},
+  {ico:'🌿',n:'Récolte 300 g au total',t:300,p:()=>totalHarvest,r:500,d:"« 300 grammes. Maman n'y aurait jamais cru. Moi non plus, pour être honnête. »"},
   {ico:'🏠',n:'Maison niveau 3',t:3,p:()=>houseLevel,r:600,d:"« Une chaumière avec des murs en dur. Les murs, c'est comme les plants : ça se mérite. »"},
   {ico:'👷',n:'2 ouvriers',t:2,p:()=>workerCount,r:800,d:"« Deux paires de bras. On ne dit plus \"moi\", on dit \"l'équipe\". »"},
   {ico:'🧪',n:'5 améliorations labo',t:5,p:()=>labSum(),r:900,d:"« La science verte, c'est 10 % de génie et 90 % de terreau sous les ongles. »"},
   {ico:'💰',n:'Vends 10 fois',t:10,p:()=>stats.se,r:700,rb:{sun:5},d:"« Le marché me connaît par mon prénom maintenant. Et il tremble un peu. »"},
-  {ico:'🌿',n:'Récolte 3,5 kg au total',t:3500,p:()=>totalHarvest,r:1000,d:"« 3 kilos et demi. La vallée murmure mon nom dans le vent. »"},
+  {ico:'🌿',n:'Récolte 700 g au total',t:700,p:()=>totalHarvest,r:1000,d:"« 700 grammes. La vallée murmure mon nom dans le vent. »"},
   {ico:'🏠',n:'Maison niveau 4',t:4,p:()=>houseLevel,r:1200,d:"« Une maisonnette, des dépendances. James Lucky, propriétaire. Ça sonne bien. »"},
   {ico:'🪓',n:'Défriche 1 clairière',t:1,p:()=>landOwned(),r:1500,d:"« Cette forêt cache de la bonne terre. Pardon les arbres — c'est pour la bonne cause. »"},
   {ico:'🗺️',n:'5 parcelles',t:5,p:()=>zonesOwned(),r:1800,d:"« Cinq champs. Les corbeaux se sont mis d'accord : c'est chez moi ici. »"},
@@ -885,19 +905,19 @@ const MISSIONS=[
   {ico:'👟',n:'3 upgrades ouvriers',t:3,p:()=>wkUpSum(),r:2000,d:"« Des bottes, des gants, des lanternes. Un artisan vaut ce que valent ses outils. »"},
   {ico:'🪓',n:'3 clairières',t:3,p:()=>landOwned(),r:3500,d:"« La forêt recule, la ferme avance. C'est le sens de l'histoire. »"},
   {ico:'🏠',n:'Maison niveau 6',t:6,p:()=>houseLevel,r:5000,d:"« La Grande Ferme. On la voit depuis l'autre bout de la vallée. C'est le but. »"},
-  {ico:'🌿',n:'Récolte 18 kg au total',t:18000,p:()=>totalHarvest,r:6000,d:"« 18 kilos. Quelque part, un registre s'écrit tout seul avec mon nom dedans. »"},
+  {ico:'🌿',n:'Récolte 3,6 kg au total',t:3600,p:()=>totalHarvest,r:6000,d:"« 3 kilos et demi passés. Quelque part, un registre s'écrit tout seul avec mon nom dedans. »"},
   {ico:'🏠',n:'Maison niveau 7',t:7,p:()=>houseLevel,r:10000,d:"« Une Maison de Maître. Le maître, c'est moi — je vérifie chaque matin dans le miroir. »"},
   {ico:'💰',n:'25 000 💰 de ventes',t:25000,p:()=>stats.ea,r:8000,d:"« Le marché et moi, c'est plus du commerce, c'est de la poésie comptable. »"},
   {ico:'👷',n:'4 ouvriers',t:4,p:()=>workerCount,r:12000,d:"« Quatre ouvriers logés, nourris, équipés. Le hameau Lucky prend forme. »"},
   {ico:'🏠',n:'Maison niveau 8',t:8,p:()=>houseLevel,r:25000,d:"« La Demeure. Mes parents dormaient sous une bâche. Je plante leur souvenir dans la pierre. »"},
-  {ico:'🌿',n:'Récolte 90 kg au total',t:90000,p:()=>totalHarvest,r:30000,d:"« 90 kilos. Les oiseaux migrateurs font un détour pour voir mes champs. »"},
+  {ico:'🌿',n:'Récolte 18 kg au total',t:18000,p:()=>totalHarvest,r:30000,d:"« 18 kilos. Les oiseaux migrateurs font un détour pour voir mes champs. »"},
   {ico:'🪓',n:'Toutes les clairières',t:8,p:()=>landOwned(),r:20000,d:"« Huit clairières. La forêt et moi, on a signé la paix : elle me laisse la vallée. »"},
   {ico:'🏠',n:'Maison niveau 9',t:9,p:()=>houseLevel,r:50000,d:"« Une Villa. Avec des jardins qu'on soigne pour la beauté, pas pour le rendement. Le luxe. »"},
   {ico:'👷',n:'5 ouvriers',t:5,p:()=>workerCount,r:60000,d:"« Cinq ouvriers. Le soir, leurs lanternes dessinent des constellations dans mes champs. »"},
   {ico:'🗺️',n:'10 parcelles',t:10,p:()=>zonesOwned(),r:40000,d:"« Dix champs. Le carrefour du monde, c'est chez moi — les routes se croisent devant ma porte. »"},
   {ico:'🏠',n:'Maison niveau 10',t:10,p:()=>houseLevel,r:100000,d:"« Un Manoir. L'orphelin de la vallée reçoit dans de grandes ailes, maintenant. »"},
   {ico:'👷',n:'6 ouvriers',t:6,p:()=>workerCount,r:120000,d:"« L'équipe au complet. Six growers d'élite. On m'appelle patron, j'ai arrêté de corriger. »"},
-  {ico:'🌿',n:'Récolte 400 kg au total',t:400000,p:()=>totalHarvest,r:150000,d:"« 400 kilos. Les Graines de l'Oubli ? Plus personne n'oubliera jamais ce nom. »"},
+  {ico:'🌿',n:'Récolte 80 kg au total',t:80000,p:()=>totalHarvest,r:150000,d:"« 80 kilos. Les Graines de l'Oubli ? Plus personne n'oubliera jamais ce nom. »"},
   {ico:'🏆',n:'Le Domaine de Luxe',t:11,p:()=>houseLevel,r:250000,d:"« Piscine, garage, villa moderne. Parti d'une bâche et d'une graine. Je suis la légende de la vallée. »"},
   // ── Chapitre VII — Le patron (v19, APPEND STRICT : les indices 0-39 sont gravés dans les saves) ──
   {ico:'🛠️',n:'Construis l\'Atelier',t:1,p:()=>wkB.atl,r:40000,d:"« Un établi, des outils accrochés au mur. Une équipe, ça s'équipe. »"},
@@ -1882,7 +1902,7 @@ cv.addEventListener('mousedown',e=>{ds=xy(e);cs={...cam};dm=false;md=true;});cv.
 cv.addEventListener('wheel',e=>{e.preventDefault();const m=xy(e);zoomAt(zoom*(e.deltaY<0?1.1:.9),m[0],m[1]);},{passive:false});
 document.getElementById('zin').onclick=()=>zoomAt(zoom*1.2,APP_W/2,APP_H/2);document.getElementById('zout').onclick=()=>zoomAt(zoom/1.2,APP_W/2,APP_H/2);
 // ===== FONDATIONS IDLE : temps réel, sauvegarde, offline, régén des soins =====
-function growCells(ms){let became=0;for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'){c.grow+=ms/(GROW_MS*speedMult());if(c.grow>=1){c.grow=1;c.state='ready';became++;}}}return became;}
+function growCells(ms){let became=0;for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'){c.grow+=ms/(varT(c.variety)*speedMult());if(c.grow>=1){c.grow=1;c.state='ready';became++;}}}return became;}
 function regenCare(now){const iv=CARE_REFILL_MS/homeCareRegenMult();const n=Math.floor((now-careT)/iv);if(n<=0)return;for(const t in CARE_MAX)boosts[t]=Math.min(careMax(t),boosts[t]+n);careT+=n*iv;updateCareUI();}
 function save(){try{
   const crops={};for(const k in cropCells){const c=cropCells[k];if(c.state!=='empty')crops[k]={s:c.state,g:c.grow,vv:c.variety,w:c.water||0,su:c.sun||0,n:c.nute||0,q:c.quality||1};}
