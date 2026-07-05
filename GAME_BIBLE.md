@@ -314,10 +314,26 @@ pousse** (jusqu'à +15 %, +15 % constant sous le Hub Lv5) ; Sprinklers Lv4+ arro
 plantation (joueur ET ouvriers). Offline : eau à l'équilibre, formule fermée déterministe.
 Arrosoir → Pompe → Château d'eau → Sprinklers → Hub auto (800 → 600 k 💰).
 
-**À venir** (une tranche jouable par version) : 🌾 Nutriments + ⚡ Énergie + Carnet v1 (v23) ·
-★ Qualité + 📦 Logistique (v24) · 🛒 Commandes/Réputation (v25) · 🌡️ Climat + Événements (v26) ·
-👷 Employés 2.0 sprites (v27) · 📖 Carnet complet (v28) · équilibrage (v29) · 🌸 Saisons de
-l'Oubli (v30). Le document de référence : le GDD approuvé « L'Exploitation » v22→v30.
+**⚡ Énergie (v23 ✅)** : le réseau global — les modules Lv2+ consomment, les générateurs
+produisent (10→400 ⚡), badge topbar dès le Domaine 5. Pénurie → mode DÉGRADÉ affiché (portée
+÷2 + effets ×0.5 des Lv2+ ; les Lv1 artisanaux tiennent bon). **Overdrive** : +25% de vitesse
+globale 10 min (réserve 150⚡, cooldown 1h, surplus ≥150 requis) — l'Energy Core Lv5 le
+déclenche automatiquement. Modal « Le Réseau » au tap du badge.
+
+**🌾 Nutriments (v23 ✅)** : la FERTILITÉ vit par case (60-140%, base 100) — chaque récolte
+épuise (−5%), régén naturelle lente (plafond 85%), le module Nutriments régénère vers des caps
+croissants (110→140%). La fertilité multiplie les grammes ; la terre change de teinte (brun
+fatigué / vert riche). Offline 100% fermé et déterministe. La porte fert>100 → ★4+ arrive
+avec la Qualité 2.0 (v24).
+
+**📖 Carnet v1 (v23 ✅)** : James diagnostique sous le tracker — pénurie d'énergie, champs
+sans irrigation, sol fatigué — avec le remède (🏗️). Hystérésis 5 min, « ✅ Réglé » quand tu
+corriges. Missions 50-52 (chapitre VIII continue : Table d'engrais, Générateur, Overdrive).
+
+**À venir** (une tranche jouable par version) : ★ Qualité + 📦 Logistique (v24) ·
+🛒 Commandes/Réputation (v25) · 🌡️ Climat + Événements (v26) · 👷 Employés 2.0 sprites (v27) ·
+📖 Carnet complet (v28) · équilibrage (v29) · 🌸 Saisons de l'Oubli (v30). Le document de
+référence : le GDD approuvé « L'Exploitation » (03_Design/GDD_EXPLOITATION.md).
 
 Récompenses 💰 (50 → 250 000, total ≈ 908 000 ≈ 18 % des coûts endgame — coup de pouce, pas de
 triche) + quelques recharges de soins. Objectifs dérivés de l'état (`totalHarvest`, `houseLevel`,

@@ -102,6 +102,22 @@
   `irSpd` vitesse ≤ +15% +15% Lv5, Sprinklers Lv4+ à la plantation, offline à l'équilibre).
   ⚠️ La qualité reste event-driven (applyCare/wkApplyCare, clamp gCap INVIOLÉ) — la refonte ★
   arrive en v24, ne pas recomputer la qualité dans le tick eau.
+- **⚡ Réseau v23** : `enProd/enCons` recalculés par `enRecalc()` aux MÊMES 3 événements que
+  `rebuildModCells` (qui construit AUSSI `cellModsDeg`, portées ÷2 pour les Lv2+ — les Lv1
+  gratuits gardent tout). Le réseau ne MORD qu'au **Domaine ≥5** (`enOn()`) — jamais de nerf
+  rétroactif. Pénurie (`enShort()`) → couverture via `cmAt()` (carte dégradée) + effets ×0.5
+  (refill eau, frate fertilité, bonus Lv5). **Overdrive** : +25% vitesse 10 min (`ovSpd()`
+  dans growCells), RÉSERVE 150⚡ (comptée dans enShort), cooldown 1h après l'effet, surplus
+  ≥150 requis, auto si Energy Core Lv5. Sauvé `en:{e,c}` (timestamps Date.now), `stats.ov`.
+- **🌾 Fertilité v23** : `c.fert` 60-140 base 100, PAR CASE (survit à l'état empty, save
+  `fert{}` compact ≠100). Récolte −5 (harvestCell) · régén naturelle +0.5/min plafond 85 ·
+  module nu `frate` vers `fcap` (batch waterTick 5s) · grammes ×fert/100 (harvestCell ET
+  wkOfflineGains via fBar = moyenne (f0+f1)/2 de la FORME FERMÉE drain-récoltes vs régén).
+  Teinte de terre en passe SOL (brun fatigué / vert riche). `nfill` au semis ET replant.
+  ⚠️ La fertilité ne touche PAS la qualité en v23 (la porte fert>100 → ★4+ arrive en v24).
+- **📖 Carnet v1 (v23)** : `computeDiag()`/`updateDiag()` — UNE ligne `#diag` sous le tracker,
+  priorité pénurie ⚡ > ≥6 champs sans irrigation > fertilité moyenne <80, hystérésis 5 min,
+  « ✅ Réglé » à la résolution. Le Carnet complet (manque à gagner 💰/h) arrive en v28.
 - **Anim/FX v22.5** : horloge de frame `FNOW` posée UNE fois en tête de `draw()` — règle :
   code INTRA-draw → `FNOW` ; handlers/intervals/cinématiques HORS-frame → `performance.now()`
   (sinon temps périmé). Émetteurs FX modules 100% **STATELESS** (`drawModFX`, spec

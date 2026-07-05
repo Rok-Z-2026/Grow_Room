@@ -6,6 +6,10 @@
 .coin{color:#ffcf4d;font-weight:800;font-size:20px;text-shadow:0 1px 2px #000;white-space:nowrap;flex-shrink:0}.coin::before{content:"💰 "}.spacer{flex:1}
 .tag{color:#8fd96f;font-size:12px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vtag{flex-shrink:0}   /* v22.5 : le numéro de version ne se tronque JAMAIS (c'est « Mon Monde » qui cède) */
+.entag{display:none;flex-shrink:0;cursor:pointer;color:#ffd84d;font-weight:700;font-size:13px}
+.entag.short{color:#ff9880;animation:enblink 1s ease-in-out infinite}
+.entag.ov{color:#ffe87a;text-shadow:0 0 8px rgba(255,216,77,.9)}
+@keyframes enblink{0%,100%{opacity:1}50%{opacity:.45}}
 .zoombtns{position:absolute;right:10px;top:64px;display:flex;flex-direction:column;gap:6px;z-index:6}.zoombtns button{width:42px;height:42px;border-radius:11px;border:1.5px solid #6fc04d;background:rgba(20,40,15,.85);color:#eaffea;font-size:22px;font-weight:800}
 .hint{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#eaffd0;font-size:11px;font-style:italic;text-shadow:0 1px 3px #000;pointer-events:none;z-index:5}
 .float{position:absolute;color:#ffe87a;font-weight:900;font-size:22px;pointer-events:none;text-shadow:0 2px 6px #000,0 0 12px rgba(255,200,60,.6);z-index:7;opacity:1;transform:translate(-50%,0) scale(0.3);animation:floatpop 1.1s cubic-bezier(.2,1.4,.4,1) forwards;white-space:nowrap}
@@ -140,6 +144,7 @@
 /* === 🎯 MISSIONS v15 : carte-tracker (médaillon or + barre épaisse + shine + rayons au done) === */
 .mtrack{position:absolute;top:54px;left:8px;right:62px;height:48px;display:none;align-items:center;gap:8px;padding:0 10px 0 6px;background:linear-gradient(180deg,rgba(22,32,17,.93),rgba(10,16,9,.93));border:1.5px solid #4a5c38;border-radius:16px;box-shadow:0 4px 10px rgba(0,0,0,.35);z-index:6;overflow:hidden;cursor:pointer;}
 .mtrack .mmed,.mtrack .mcol,.mtrack .mchev{position:relative;z-index:1;}
+.diag{position:absolute;top:106px;left:8px;right:62px;display:none;padding:7px 12px;background:rgba(14,20,11,.9);border:1.5px solid #3a4c5c;border-radius:12px;color:#bdd8ef;font-size:11.5px;line-height:1.35;z-index:6;box-shadow:0 3px 8px rgba(0,0,0,.3)}   /* v23 Carnet v1 : le diagnostic de James */
 .mmed{width:36px;height:36px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#5a7038,#2c3a20 70%);border:2px solid #c9a227;box-shadow:0 2px 5px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);}
 .mico{font-size:19px;line-height:1;}
 .mcol{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
@@ -188,11 +193,13 @@
   .mtrack{top:50px;height:38px;border-radius:12px;gap:6px;}
   .mmed{width:26px;height:26px;border-width:1.5px;}.mico{font-size:14px;}
   .mtxt{font-size:10.5px;}.mbar{height:9px;}.mnum{font-size:8px;}.mchev{font-size:16px;}
+  .diag{top:92px;font-size:10px;padding:5px 10px;}
   .toast{top:96px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde ·</span><span class="tag vtag">🏮v22.5</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="tag entag" id="enbadge">⚡0/0</span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde ·</span><span class="tag vtag">🏮v23</span></div>
 <div id="mtrack" class="mtrack"><span class="mmed"><span class="mico" id="mico">🎯</span></span><div class="mcol"><span class="mtxt" id="mtxt"></span><div class="mbar"><i id="mtfill"></i><span class="mnum" id="mnum"></span><span class="mshine"></span></div></div><span class="mchev">›</span></div>
+<div id="diag" class="diag"></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
 <button id="homebtn" class="homebtn">🏠</button>
@@ -250,6 +257,12 @@
   <div class="modalbox">
     <div class="modalhead"><span id="modtitle">💧 Module</span><button id="modclose" class="modalx">✕</button></div>
     <div id="modbody"></div>
+  </div>
+</div>
+<div id="enmodal" class="modal">
+  <div class="modalbox">
+    <div class="modalhead"><span>⚡ Le Réseau</span><button id="enclose" class="modalx">✕</button></div>
+    <div id="enbody"></div>
   </div>
 </div>
 <div id="placebar" class="placebar">
@@ -604,8 +617,28 @@ const MODS_CFG={
         [{t:'glow',u:0.62,v:0.10,r:0.10,c:'255,214,120',a:0.30},{t:'led',u:0.33,v:0.42,c:'#7ad8ff'},{t:'shine',u:0.80,v:0.68,rw:0.08,rh:0.035},{t:'mist',u:0.25,v:0.30},{t:'drip',u:0.55,v:0.75,dv:0.07}]],
       fx:['+2 💧/min aux champs à portée (cap 60)','+4 💧/min (cap 80)','+6 💧/min (cap 100) · réserve d\'eau',
           '+8 💧/min (cap 120) · arrosage auto à la plantation','+12 💧/min (cap 140) · +15% de pousse à portée']},
-  nu:{name:'Nutriments',ico:'🌾',hr:4,av:0,fp:[2,2,2,3,3],sc:[1.7,1.9,2.2,2.6,3.1],cost:[2000,10000,50000,250000,1200000],cons:[0,10,25,50,90],lvN:['Table d\'engrais','Mixeur','Station N-P-K','Station auto','AgriLab Premium'],fx:[]},
-  en:{name:'Énergie',ico:'⚡',hr:5,av:0,fp:[1,1,2,2,2],sc:[1.2,1.4,1.6,2.1,2.4],cost:[5000,22000,90000,350000,1400000],cons:[0,0,0,0,0],lvN:['Générateur','Diesel','Éolienne','Solaire','Energy Core'],fx:[]},
+  nu:{name:'Nutriments',ico:'🌾',hr:4,av:1,fp:[2,2,2,3,3],sc:[1.7,1.9,2.2,2.6,3.1],cost:[2000,10000,50000,250000,1200000],cons:[0,10,25,50,90],
+      lvN:['Table d\'engrais','Mixeur','Station N-P-K','Station auto','AgriLab Premium'],
+      // v23 : régén de FERTILITÉ %/min + cap par niveau, remplissage nute au replant (sur 200)
+      frate:[1.5,2,2.5,3.2,4],fcap:[110,118,125,132,140],nfill:[40,55,70,85,100],
+      fx:['Le sol régénère +1.5%/min à portée (cap 110%)','+2%/min (cap 118%)','+2.5%/min (cap 125%)',
+          '+3.2%/min (cap 132%)','+4%/min (cap 140%) · analyse de sol affichée'],
+      anim:[
+        [{t:'shine',u:0.34,v:0.34,rw:0.09,rh:0.04},{t:'mist',u:0.32,v:0.24}],
+        [{t:'mist',u:0.46,v:0.26},{t:'shine',u:0.45,v:0.36,rw:0.07,rh:0.035},{t:'led',u:0.58,v:0.50,c:'#7cff9a'}],
+        [{t:'led',u:0.37,v:0.46,c:'#7cff9a'},{t:'drip',u:0.52,v:0.62,dv:0.07},{t:'mist',u:0.42,v:0.16}],
+        [{t:'led',u:0.25,v:0.49,c:'#7cff9a'},{t:'glow',u:0.50,v:0.34,r:0.08,c:'140,255,120',a:0.18},{t:'mist',u:0.56,v:0.12}],
+        [{t:'glow',u:0.51,v:0.25,r:0.13,c:'140,255,120',a:0.28},{t:'shine',u:0.50,v:0.28,rw:0.10,rh:0.05},{t:'led',u:0.30,v:0.55,c:'#7cff9a'},{t:'mist',u:0.70,v:0.20}]]},
+  en:{name:'Énergie',ico:'⚡',hr:5,av:1,fp:[1,1,2,2,2],sc:[1.2,1.4,1.6,2.1,2.4],cost:[5000,22000,90000,350000,1400000],cons:[0,0,0,0,0],
+      prod:[10,25,60,150,400],
+      lvN:['Générateur','Diesel','Éolienne','Solaire','Energy Core'],
+      fx:['Produit 10 ⚡ pour le réseau','Produit 25 ⚡','Produit 60 ⚡','Produit 150 ⚡','Produit 400 ⚡ · Overdrive AUTOMATIQUE'],
+      anim:[
+        [{t:'led',u:0.40,v:0.51,c:'#7cff9a'},{t:'mist',u:0.60,v:0.28}],
+        [{t:'led',u:0.36,v:0.46,c:'#ffd84d'},{t:'mist',u:0.55,v:0.24}],
+        [{t:'led',u:0.40,v:0.50,c:'#7ad8ff'},{t:'glow',u:0.56,v:0.44,r:0.06,c:'122,216,255',a:0.20}],
+        [{t:'shine',u:0.30,v:0.35,rw:0.11,rh:0.05},{t:'led',u:0.55,v:0.57,c:'#ffd84d'},{t:'glow',u:0.67,v:0.54,r:0.07,c:'255,214,120',a:0.22}],
+        [{t:'glow',u:0.55,v:0.56,r:0.10,c:'255,214,120',a:0.30},{t:'led',u:0.30,v:0.45,c:'#7ad8ff'},{t:'shine',u:0.70,v:0.45,rw:0.08,rh:0.04},{t:'mist',u:0.33,v:0.22}]]},
   lo:{name:'Logistique',ico:'📦',hr:6,av:0,fp:[2,2,3,3,3],sc:[2.2,2.4,2.6,2.9,3.2],cost:[8000,35000,140000,550000,2200000],cons:[0,10,25,50,90],lvN:['Atelier','Dépôt','Garage','Centre logistique','Hub auto'],fx:[]},
   ce:{name:'Centre des employés',ico:'👷',hr:7,av:0,fp:[2,2,3,3,3],sc:[2.2,2.4,2.7,3.1,3.6],cost:[15000,65000,260000,1100000,4000000],cons:[0,10,25,50,90],lvN:['Poste','Bureau','Supervision','Opérations','AgriHQ'],fx:[]},
   cl:{name:'Climat',ico:'🌡️',hr:8,av:0,fp:[1,1,2,2,2],sc:[1.3,1.5,1.7,1.6,1.8],cost:[12000,50000,220000,900000,3500000],cons:[0,10,25,50,90],lvN:['Ventilateur','Station météo','Tour capteurs','Tour climatique','AI Climate Core'],fx:[]},
@@ -645,17 +678,47 @@ function placeMods(){   // idempotent (pattern placeCamp) : sol gravier + décor
     if(W.decor[ay])W.decor[ay][ax]=['mod_'+m.k+'_'+m.lv];}
 }
 function rebuildModCells(){
-  modCells={};cellMods={};
+  modCells={};cellMods={};cellModsDeg={};
   mods.forEach((m,i)=>{const fp=modFp(m.k,m.lv),R=MOD_RANGE[m.lv-1];
     for(let dy=0;dy<fp;dy++)for(let dx=0;dx<fp;dx++)modCells[(m.x+dx)+','+(m.y+dy)]=i;
+    // v23 : DEUX cartes de couverture — pleine, et DÉGRADÉE (pénurie ⚡ : portée ÷2 pour les
+    // niveaux 2+ qui consomment ; les Lv1 artisanaux, gratuits en énergie, gardent tout).
+    const Rd=(m.lv>=2)?Math.max(1,Math.ceil(R/2)):R;
     for(let y=m.y-R;y<m.y+fp+R;y++)for(let x=m.x-R;x<m.x+fp+R;x++){
       if(x<0||y<0||x>=MW||y>=MH)continue;
-      const ddx=Math.max(m.x-x,x-(m.x+fp-1),0),ddy=Math.max(m.y-y,y-(m.y+fp-1),0);
-      if(ddx+ddy>R)continue;                       // Manhattan à la case d'emprise la plus proche
+      const dd=Math.max(m.x-x,x-(m.x+fp-1),0)+Math.max(m.y-y,y-(m.y+fp-1),0);
+      if(dd>R)continue;                            // Manhattan à la case d'emprise la plus proche
       const key=x+','+y,e=cellMods[key]||(cellMods[key]={});
       if(!e[m.k]||e[m.k]<m.lv)e[m.k]=m.lv;         // deux modules identiques : seul le MEILLEUR compte
+      if(dd<=Rd){const ed=cellModsDeg[key]||(cellModsDeg[key]={});
+        if(!ed[m.k]||ed[m.k]<m.lv)ed[m.k]=m.lv;}
     }});
+  enRecalc();   // le réseau change EXACTEMENT aux mêmes 3 événements (pose/upgrade/load)
 }
+// ═══ v23 ⚡ LE RÉSEAU : prod/conso GLOBALES (jamais par frame), pénurie -> mode dégradé
+// (portée ÷2 via cellModsDeg + effets ×0.5 pour les Lv2+), Overdrive +25% vitesse 10 min
+// (réserve 150⚡, cooldown 1h). Le réseau ne MORD qu'à partir du Domaine 5 (le besoin émerge
+// avec l'outil pour y répondre — jamais de nerf rétroactif). ═══
+var cellModsDeg={};                  // couverture en PÉNURIE (runtime, jamais sauvée)
+var enProd=0,enCons=0;               // recalculés par enRecalc()
+var enOv={e:0,c:0};                  // Overdrive : fin d'EFFET / fin de COOLDOWN (Date.now, sauvé additif)
+function enOn(){return houseLevel>=5;}
+function enRecalc(){enProd=0;enCons=0;
+  for(const m of mods){const c=MODS_CFG[m.k];
+    if(m.k==='en')enProd+=(c.prod||[])[m.lv-1]||0;
+    else enCons+=(c.cons||[])[m.lv-1]||0;}
+  if(typeof updateEnBadge==='function')updateEnBadge();}
+function enOvOn(){return Date.now()<enOv.e;}
+function enShort(){return enOn()&&enCons>enProd-(enOvOn()?150:0);}   // l'Overdrive RÉSERVE 150⚡
+function ovSpd(){return enOvOn()?1.25:1;}
+function ovReady(){return enOn()&&!enOvOn()&&Date.now()>=enOv.c&&(enProd-enCons)>=150;}
+function fireOverdrive(auto){
+  if(!ovReady())return false;
+  enOv.e=Date.now()+600000;enOv.c=Date.now()+4200000;   // 10 min d'effet, cooldown 1h APRÈS l'effet
+  stats.ov=(stats.ov||0)+1;save();updateEnBadge();
+  toast((auto?'🔋 Energy Core : OVERDRIVE automatique !':'🔋 OVERDRIVE ! +25% de vitesse')+' (10 min)');
+  const fl=document.getElementById('flash');if(fl){fl.classList.remove('go');void fl.offsetWidth;fl.classList.add('go');}
+  return true;}
 function modRangeKeys(k,lv,x0,y0){   // les cases couvertes d'UN module (vue des portées / ghost)
   const fp=modFp(k,lv),R=MOD_RANGE[lv-1],ks=new Set();
   for(let y=y0-R;y<y0+fp+R;y++)for(let x=x0-R;x<x0+fp+R;x++){
@@ -665,8 +728,11 @@ function modRangeKeys(k,lv,x0,y0){   // les cases couvertes d'UN module (vue des
   return ks;
 }
 // — Irrigation (v22) : l'eau accélère la pousse (+15% à jauge pleine, +15% constant sous Hub Lv5) —
-function irLvAt(c){const e=cellMods[c.x+','+c.y];return (e&&e.ir)||0;}
-function irSpd(c){return 1+0.15*Math.min(200,c.water||0)/200+(irLvAt(c)===5?0.15:0);}
+function cmAt(x,y){return (enShort()?cellModsDeg:cellMods)[x+','+y];}   // v23 : la couverture ACTIVE (pénurie -> carte dégradée)
+function irLvAt(c){const e=cmAt(c.x,c.y);return (e&&e.ir)||0;}
+function nuLvAt(c){const e=cmAt(c.x,c.y);return (e&&e.nu)||0;}
+function irSpd(c){const l5=irLvAt(c)===5?0.15*(enShort()?0.5:1):0;   // le bonus MODULE se dégrade, l'eau du sol reste l'eau
+  return 1+0.15*Math.min(200,c.water||0)/200+l5;}
 // Répliques (bulles de dialogue) : par métier au travail, par personnalité en pause. Le random
 // runtime est OK (l'interdit déterministe ne porte que sur le load/offline).
 const WK_LINES={
@@ -735,13 +801,15 @@ function spawnWorker(i){const src=(i>=6&&wkB.dorm)?{x:CAMP[0].x,y:CAMP[0].y+1}:{
 // récolte un plant ready : gains + FX + paliers + case vidée. PAS de save() (l'appelant décide).
 // c.variety est volontairement CONSERVÉ -> la replante (joueur ou ouvrier) garde la même variété.
 function harvestCell(c){
-  const q=c.quality||1, grams=Math.floor(varG(c.variety)*(0.8+Math.random()*0.4)*q*yieldMult());
+  const q=c.quality||1, fm=(c.fert==null?100:c.fert)/100;   // v23 : la fertilité multiplie les grammes
+  const grams=Math.floor(varG(c.variety)*(0.8+Math.random()*0.4)*q*yieldMult()*fm);
   stock+=grams; totalHarvest+=grams; updateStock();
   const ix=isoX(c.x+0.5,c.y+0.5), iy=isoY(c.x+0.5,c.y+0.5);
   ft(ix,iy-TH(),'+'+grams+' g 🌿');
   checkPaliers(ix,iy);
   burst(ix,iy,(['#8bd450','#b86bff','#5a9bff','#ff9d3c','#9b8fb5','#e0913c'][c.variety]||'#8bd450'),18);
   c.state='empty'; c.grow=0;
+  c.fert=Math.max(60,(c.fert==null?100:c.fert)-5);   // v23 : chaque récolte épuise le sol (−5%, plancher 60)
   return grams;
 }
 const WK_MOVE={walk:1,vwalk:1,bwalk:1,patrol:1};   // états où l'ouvrier se déplace (interpolation + bob)
@@ -868,6 +936,8 @@ function updateWorkers(now){   // LOGIQUE au tick 200ms — timers absolus => ro
           const _il=irLvAt(c);
           if(_il>=4){c.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : le replant ouvrier aussi
             if(vis(c.x,c.y))burst(isoX(c.x+0.5,c.y+0.5),isoY(c.x+0.5,c.y+0.5)-TH()*0.2,'#6fc8ff',6);}   // v22.5 : petite éclaboussure (visible only)
+          const _nl=nuLvAt(c);
+          if(_nl)c.nute=Math.max(c.nute||0,MODS_CFG.nu.nfill[_nl-1]);   // v23 : engrais au replant
           burst(isoX(c.x+.5,c.y+.5),isoY(c.x+.5,c.y+.5),'#9dffb8',6);}
         w.cyc++;wkGainXp(w.id,2);   // le cycle complet paie l'expérience
         if(_fm>1&&w.job!=='f'){_fmCyc++;if(_fmCyc%5===0){const fi=crew.findIndex(x=>x.j==='f');if(fi>=0)wkGainXp(fi,1);}}
@@ -939,7 +1009,7 @@ function wkOfflineGains(offMs){
   // compté, comme avant). Eau à l'équilibre : refill min 2/min > drain 1/min -> cap.
   let N=0,fieldRate=0,gFlow=0;
   for(const k in cropCells){const c=cropCells[k];if(c.state==='empty')continue;N++;
-    const l=irLvAt(c), spd=1+0.15*(l?MODS_CFG.ir.wcap[l-1]:0)/200+(l===5?0.15:0);
+    const l=irLvAt(c), spd=1+0.15*(l?MODS_CFG.ir.wcap[l-1]:0)/200+(l===5?0.15*(enShort()?0.5:1):0);   // v23 : bonus Lv5 dégradé en pénurie (couverture déjà via cmAt)
     const gs=varT(c.variety)*speedMult()/1000/spd;
     fieldRate+=1/gs;gFlow+=varG(c.variety)/gs;}
   if(N<=0)return out;
@@ -961,11 +1031,27 @@ function wkOfflineGains(offMs){
     +(WK_CFG.HARVEST_MS+WK_CFG.PLANT_MS)*Math.pow(0.92,wkUp.dex)*(1-0.05*(h.l-1))/fm/1000;arm+=1/h.cyc;}
   const rate=Math.min(arm,fieldRate);
   const cycles=rate*effS*eff;   // cycles récolte+replante simulés
+  // v23 FERTILITÉ offline en FORME FERMÉE (point fixe drain vs régén, zéro simulation) :
+  // drain par case = 5% × récoltes/min/case ; régén = module (×0.5 pénurie Lv2+) ou naturelle
+  // 0.5/min sous 85. Les grammes utilisent la fertilité MOYENNE (f0+f1)/2 de la traversée.
+  const offMin=effS/60, deg=enShort();
+  const harvPerCellMin=N>0&&offMin>0?(cycles/N)/offMin:0, fDrain=5*harvPerCellMin;
+  let fSum=0,fN=0;
+  for(const k in cropCells){const c=cropCells[k];
+    let f0=(c.fert==null?100:c.fert), fr=0, fcap=85;
+    const nl=nuLvAt(c);
+    if(nl){fr=MODS_CFG.nu.frate[nl-1];if(nl>=2&&deg)fr*=0.5;fcap=MODS_CFG.nu.fcap[nl-1];}
+    else if(f0<85)fr=0.5;
+    const dr=c.state==='empty'?0:fDrain;   // seules les cases en rotation s'épuisent
+    const f1=clamp(f0+(fr-dr)*offMin,60,Math.max(fcap,f0));
+    if(c.state!=='empty'){fSum+=(f0+f1)/2;fN++;}
+    c.fert=Math.round(f1*10)/10;}
+  const fBar=fN>0?fSum/fN/100:1;
   // jardiniers offline -> qualité moyenne (couverture ~20 plants/jardinier ; facteur 0.65 = LE levier
   // d'équilibrage anti-méta : [r,r,r,g] >= 95% de [r,r,r,r] à niv 3 champ non saturé, teste-le si tu y touches)
   let capMoy=0;for(const i of gI)capMoy+=gCap(wkLvl(crew[i].xp));capMoy=gI.length?capMoy/gI.length:1;
   const qOff=1+Math.min(1,gI.length*20/N)*(capMoy-1)*0.65;
-  out.grams=Math.floor(cycles*gBar*yieldMult()*qOff);
+  out.grams=Math.floor(cycles*gBar*yieldMult()*qOff*fBar);   // v23 : × fertilité moyenne (fermé)
   // vendeur offline — fermé sur la sinusoïde du marché : F = fraction du temps au-dessus du seuil,
   // P = prix moyen au-dessus du seuil. Garde F>0 (si minP dépassait l'amplitude, la division exploserait).
   if(vBest>=0&&wkVs.on&&out.grams>0){
@@ -1001,7 +1087,7 @@ function wkOfflineGains(offMs){
 // === 🎯 MISSIONS : la chaîne d'objectifs qui raconte l'ascension de James (40 missions, 6 chapitres).
 // UNE mission active à la fois (mi). p() = progression courante lue dans l'état global -> tout ce qui
 // est dérivable est rétroactif gratuitement. Les gestes (stats) sont comptés dans les fonctions du jeu.
-var stats={pl:0,ha:0,ca:0,se:0,ea:0,cb:0,vm:0};   // gestes persistés : plant, harvest main, care, sells, earned, best combo, bitmask variétés
+var stats={pl:0,ha:0,ca:0,se:0,ea:0,cb:0,vm:0,ov:0};   // gestes persistés : plant, harvest main, care, sells, earned, best combo, bitmask variétés, overdrives (v23)
 let mi=0;                                          // index de la mission active (persisté)
 function bits(n){let c=0;while(n){c+=n&1;n>>=1;}return c;}
 function zonesOwned(){return W.cropzones.filter(z=>z.owned).length;}
@@ -1066,6 +1152,10 @@ const MISSIONS=[
   {ico:'🏗️',n:'Construis un module d\'Irrigation',t:1,p:()=>mods.length,r:2000,d:"« Un Arrosoir en fonte, une idée folle : et si la vallée s'arrosait toute seule ? L'ingénieur, c'est moi. »"},
   {ico:'💧',n:'Couvre 8 champs d\'eau',t:8,p:()=>{let n=0;for(const k in cropCells)if(irLvAt(cropCells[k]))n++;return n;},r:3000,d:"« Huit champs sous mes tuyaux. Brume parle aux plants — moi, je parle à la fonte. »"},
   {ico:'⬆️',n:'Un module au niveau 2',t:2,p:()=>mods.reduce((mx,m)=>Math.max(mx,m.lv),0),r:5000,d:"« La Pompe ronronne comme un chat de ferme. Chaque écrou serré, c'est une heure de sommeil gagnée. »"},
+  // ── v23 (append strict) : le sol et le réseau ──
+  {ico:'🌾',n:'Construis une Table d\'engrais',t:1,p:()=>mods.filter(m=>m.k==='nu').length,r:6000,d:"« Le sol m'a nourri toute ma vie. À mon tour de le nourrir — la recette de Papa, en version usine. »"},
+  {ico:'⚡',n:'Allume un Générateur',t:1,p:()=>mods.filter(m=>m.k==='en').length,r:8000,d:"« Ça vrombit, ça sent l'essence et l'avenir. La vallée a un pouls électrique, maintenant. »"},
+  {ico:'🔋',n:'Déclenche un Overdrive',t:1,p:()=>stats.ov||0,r:12000,d:"« Tout le réseau à fond pendant dix minutes. Les plants dansent. Moi aussi, un peu. »"},
 ];
 // Cibles du guidage « 📍 Montre-moi » (index -> type). Les 3 missions de vente (3,16,28) n'en ont pas.
 const MGO={0:'field',1:'field',2:'field',4:'field',5:'field',8:'field',12:'field',17:'field',26:'field',31:'field',38:'field',
@@ -1353,6 +1443,14 @@ function draw(){
       const pimg=IMG[pk];
       if(pimg&&pimg.complete&&pimg.naturalWidth){const dw=TW()*1.04,dh=TH()*1.04;
         ctx.drawImage(pimg,fx-dw/2,fy-dh/2,dw,dh);}
+      // v23 FERTILITÉ : la terre change de teinte (fatiguée -> brun, riche -> vert tendre).
+      // Feedback pur, losange clippé comme le wet overlay — jamais de chiffre imposé.
+      const f0=fc.fert==null?100:fc.fert;
+      if(f0<97||f0>103){const w2f=TW()/2,h2f=TH()/2;
+        ctx.save();ctx.beginPath();ctx.moveTo(fx,fy-h2f);ctx.lineTo(fx+w2f,fy);ctx.lineTo(fx,fy+h2f);ctx.lineTo(fx-w2f,fy);ctx.closePath();
+        ctx.fillStyle=f0<100?'rgba(88,52,28,'+(0.32*(100-f0)/40).toFixed(3)+')'
+                            :'rgba(140,255,120,'+(0.16*(f0-100)/40).toFixed(3)+')';
+        ctx.fill();ctx.restore();}
       // MURET (v21) : l'anneau field_border, clippé aux seules ARÊTES EXTÉRIEURES du champ
       // (triangles centre->arête ; pentagones à l'arrière : les tops des blocs montent de ~hw).
       // Boîte calée sur la BASE mesurée de l'anneau (300x220, base 296x196, centre (150,121)).
@@ -2143,6 +2241,55 @@ function tapCell(px,py){   // écran -> case : inverse iso plat + raffinage loca
     if(d<bd){bd=d;best={x,y};}}
   return best;
 }
+// v23 📖 CARNET v1 : UNE ligne de diagnostic contextuel sous le tracker (pénurie ⚡ >
+// champs sans eau > sol fatigué). Hystérésis 5 min (le conseil s'installe, ne clignote
+// jamais), « ✅ Réglé » quand le joueur corrige. Le Carnet complet arrive en v28.
+var diagCur=null,diagT=0,diagHold=0;
+function computeDiag(){
+  if(enShort())return{id:'en',txt:'📖 James : « 🔋 Pénurie d\'énergie — mes modules tournent à 50%. Il me faut un générateur (🏗️). »'};
+  if(houseLevel>=3){let dry=0;for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'&&!irLvAt(c))dry++;}
+    if(dry>=6)return{id:'ir',txt:'📖 James : « 💧 '+dry+' champs sans irrigation… un Arrosoir les ferait pousser plus vite (🏗️). »'};}
+  if(houseLevel>=4){let s=0,n=0;for(const k in cropCells){const c=cropCells[k];if(c.state!=='empty'){s+=(c.fert==null?100:c.fert);n++;}}
+    if(n>=6&&s/n<80)return{id:'nu',txt:'📖 James : « 🌾 Mon sol fatigue ('+Math.round(s/n)+'%) — une Table d\'engrais le régénérerait (🏗️). »'};}
+  return null;}
+function updateDiag(){const now=performance.now();if(now<diagT)return;diagT=now+5000;
+  const el=document.getElementById('diag');if(!el)return;
+  const d=computeDiag();
+  if(d){
+    if(diagCur&&diagCur.id!==d.id&&now<diagHold)return;   // hystérésis : pas de flip-flop entre conseils
+    if(!diagCur||diagCur.id!==d.id)diagHold=now+300000;
+    diagCur=d;el.textContent=d.txt;el.style.display='block';
+  }else if(diagCur){
+    diagCur=null;el.textContent='📖 James : « ✅ Réglé — belle gestion ! »';
+    setTimeout(()=>{if(!diagCur)el.style.display='none';},2600);
+  }
+}
+// v23 ⚡ UI du réseau : badge topbar (Domaine 5+) + modal Overdrive
+function updateEnBadge(){const el=document.getElementById('enbadge');if(!el)return;
+  if(!enOn()){el.style.display='none';return;}
+  el.style.display='inline';
+  el.textContent='⚡'+enCons+'/'+enProd+(enOvOn()?' 🔥':'');
+  el.classList.toggle('short',enShort());el.classList.toggle('ov',enOvOn());}
+function renderEn(){
+  const b=document.getElementById('enbody');if(!b)return;
+  const sur=enProd-enCons;
+  let st=enShort()
+    ?'<span style="color:#ff9880">🔋 PÉNURIE — les modules Lv2+ tournent à 50% (portée ÷2). Remède : un générateur de plus.</span>'
+    :'<span style="color:#9dffb8">✅ Réseau stable — tous les modules à pleine puissance.</span>';
+  if(enOvOn())st='<span style="color:#ffe87a">🔥 OVERDRIVE : +25% de vitesse partout ('+Math.ceil((enOv.e-Date.now())/60000)+' min restantes)</span>';
+  let ov;
+  if(enOvOn())ov='<button class="bldbtn" disabled>🔋 Overdrive en cours…</button>';
+  else if(Date.now()<enOv.c)ov='<button class="bldbtn" disabled>🔋 Recharge : '+Math.ceil((enOv.c-Date.now())/60000)+' min</button>';
+  else if(sur<150)ov='<button class="bldbtn" disabled>🔋 Surplus ≥ 150⚡ requis ('+sur+'⚡)</button>';
+  else ov='<button class="bldbtn" id="ovbtn">🔋 OVERDRIVE — +25% pendant 10 min</button>';
+  b.innerHTML='<div class="modstat">Production <b style="color:#ffd84d">'+enProd+'⚡</b> · Consommation <b>'+enCons+'⚡</b> · Surplus <b>'+sur+'⚡</b></div>'
+    +'<div class="modfx">'+st+'</div>'
+    +'<div class="modnext">💡 L\'Overdrive RÉSERVE 150⚡ pendant ses 10 min : garde du surplus, ou le réseau passe en dégradé. (L\'Energy Core le déclenche tout seul.)</div>'
+    +'<div class="modbtns">'+ov+'</div>';
+  const ob=document.getElementById('ovbtn');if(ob)ob.onclick=()=>{if(fireOverdrive(false))renderEn();};}
+function openEn(){renderEn();document.getElementById('enmodal').classList.add('show');}
+document.getElementById('enbadge').onclick=openEn;
+document.getElementById('enclose').onclick=()=>document.getElementById('enmodal').classList.remove('show');
 function updateModBtn(){const b=document.getElementById('modbtn');if(!b)return;
   const show=houseLevel>=3;b.style.display=show?'block':'none';
   if(show&&!mods.length&&!window._modHint){window._modHint=1;   // découverte : 1 rappel doux par session tant qu'aucun module
@@ -2235,7 +2382,11 @@ function pickMod(px,py){
 function openModPanel(i){
   const m=mods[i];if(!m)return;const c=MODS_CFG[m.k];
   document.getElementById('modtitle').textContent=c.ico+' '+c.lvN[m.lv-1]+' · niv '+m.lv;
-  let h='<div class="modstat">'+c.name+' · portée '+MOD_RANGE[m.lv-1]+' cases · ⚡ '+c.cons[m.lv-1]+' (réseau : bientôt)</div>';
+  let en='';   // v23 : le réseau est VIVANT
+  if(m.k==='en')en=' · <b style="color:#ffd84d">+'+(c.prod[m.lv-1])+'⚡ au réseau</b>';
+  else if(c.cons[m.lv-1]>0)en=' · ⚡ '+c.cons[m.lv-1]+(enShort()?' <b style="color:#ff9880">🔋 PÉNURIE −50%</b>':'');
+  else en=' · ⚡ 0 (artisanal)';
+  let h='<div class="modstat">'+c.name+' · portée '+MOD_RANGE[m.lv-1]+' cases'+en+'</div>';
   h+='<div class="modfx">✅ '+c.fx[m.lv-1]+'</div>';
   const rangeBtn='<button class="bldbtn" id="modrange" style="background:linear-gradient(180deg,#4a7ec0,#2c5a94);border-color:#70a8e0">📡 Portée</button>';
   if(m.lv<5){
@@ -2293,6 +2444,8 @@ document.querySelectorAll('.seed').forEach(btn=>{
     const _il=irLvAt(selCell);
     if(_il>=4){selCell.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : arrosage à la plantation
       burst(isoX(selCell.x+0.5,selCell.y+0.5),isoY(selCell.x+0.5,selCell.y+0.5)-TH()*0.2,'#6fc8ff',10);}   // v22.5 : éclaboussure
+    const _nl=nuLvAt(selCell);
+    if(_nl)selCell.nute=Math.max(selCell.nute||0,MODS_CFG.nu.nfill[_nl-1]);   // v23 : engrais au semis (plafonné §4)
     stats.pl++;stats.vm|=1<<v;   // missions : semis + variétés découvertes
     selCell=null;showSeedbar(false);save();
   });
@@ -2323,15 +2476,26 @@ cv.addEventListener('mousedown',e=>{ds=xy(e);cs={...cam};dm=false;md=true;});cv.
 cv.addEventListener('wheel',e=>{e.preventDefault();const m=xy(e);zoomAt(zoom*(e.deltaY<0?1.1:.9),m[0],m[1]);},{passive:false});
 document.getElementById('zin').onclick=()=>zoomAt(zoom*1.2,APP_W/2,APP_H/2);document.getElementById('zout').onclick=()=>zoomAt(zoom/1.2,APP_W/2,APP_H/2);
 // ===== FONDATIONS IDLE : temps réel, sauvegarde, offline, régén des soins =====
-function growCells(ms){let became=0;for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'){c.grow+=ms*irSpd(c)/(varT(c.variety)*speedMult());if(c.grow>=1){c.grow=1;c.state='ready';became++;}}}return became;}
+function growCells(ms){let became=0;const ov=ovSpd();for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'){c.grow+=ms*irSpd(c)*ov/(varT(c.variety)*speedMult());if(c.grow>=1){c.grow=1;c.state='ready';became++;}}}return became;}
 // v22 IRRIGATION : drain -1/min, remplissage par module vers son cap (batch 5s — perf).
 // L'eau est un levier de VITESSE (irSpd) + synergie soins ; la refonte qualité arrive en v24.
 var wtrAcc=0;
 function waterTick(ms){wtrAcc+=ms;if(wtrAcc<5000)return;const mn=wtrAcc/60000;wtrAcc=0;
-  for(const k in cropCells){const c=cropCells[k];if(c.state!=='growing')continue;
+  const deg=enShort();
+  for(const k in cropCells){const c=cropCells[k];
+    // v23 FERTILITÉ (le sol vit même sur case vide) : régén naturelle +1%/2min plafond 85,
+    // ou régén MODULE vers son cap (×0.5 en pénurie pour les Lv2+ — le Lv1 gratuit tient bon).
+    let f=(c.fert==null?100:c.fert);
+    const nl=nuLvAt(c);
+    if(nl){let fr=MODS_CFG.nu.frate[nl-1];if(nl>=2&&deg)fr*=0.5;
+      const fcap=MODS_CFG.nu.fcap[nl-1];if(f<fcap)f=Math.min(fcap,f+fr*mn);}
+    else if(f<85)f=Math.min(85,f+0.5*mn);
+    c.fert=clamp(f,60,140);
+    if(c.state!=='growing')continue;
     let w=(c.water||0)-1*mn;                       // drain -1/min (×3 en sécheresse : v26)
     const l=irLvAt(c);
-    if(l){const cap=MODS_CFG.ir.wcap[l-1];if(w<cap)w=Math.min(cap,w+MODS_CFG.ir.rate[l-1]*mn);}
+    if(l){let rate=MODS_CFG.ir.rate[l-1];if(l>=2&&deg)rate*=0.5;
+      const cap=MODS_CFG.ir.wcap[l-1];if(w<cap)w=Math.min(cap,w+rate*mn);}
     c.water=clamp(w,0,200);}}
 function waterSettle(offMs){   // OFFLINE analytique : l'eau saute à son ÉQUILIBRE (refill min 2/min > drain 1/min) — déterministe
   for(const k in cropCells){const c=cropCells[k];if(c.state==='empty')continue;
@@ -2343,9 +2507,10 @@ function save(){try{
   const crops={};for(const k in cropCells){const c=cropCells[k];if(c.state!=='empty')crops[k]={s:c.state,g:c.grow,vv:c.variety,w:c.water||0,su:c.sun||0,n:c.nute||0,q:c.quality||1};}
   const zones=[];W.cropzones.forEach((z,i)=>{if(z.owned)zones.push(i);});
   const land=[];(W.landgroups||[]).forEach((g,i)=>{if(g.owned)land.push(i);});
+  const fert={};for(const k in cropCells){const f=cropCells[k].fert;if(f!=null&&Math.round(f)!==100)fert[k]=Math.round(f*10)/10;}   // v23 : compact (≠100 only)
   localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,t:Date.now(),coin,stock,marketPrice,totalHarvest,houseLevel,boosts,careT,lab,
     wk:{n:workerCount,up:wkUp,crew:crew.map(c=>[c.j,c.xp]),b:wkB,u2:wkU2,vs:wkVs},mt:mktT,mi,st:stats,zones,land,crops,
-    mods:mods.map(m=>[m.k,m.lv,m.x,m.y,m.ci||0,m.inv||0])}));   // wk étendu v19 + mods v22 (additifs) + horodatage marché
+    mods:mods.map(m=>[m.k,m.lv,m.x,m.y,m.ci||0,m.inv||0]),fert,en:{e:enOv.e,c:enOv.c}}));   // v19+v22+v23, tout additif
 }catch(e){}}
 function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){s=null;}
   if(!s||s.v!==1)return;
@@ -2375,6 +2540,8 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   unlockedShown=W.cropzones.filter(z=>z.bonus&&totalHarvest>=z.palier).length;   // ne pas re-toaster au retour
   rebuildCrop();
   if(s.crops)for(const k in s.crops){const c=cropCells[k];if(c){const d=s.crops[k];c.state=d.s;c.grow=d.g;c.variety=d.vv;c.water=d.w;c.sun=d.su;c.nute=d.n;c.quality=d.q;}}
+  if(s.fert)for(const k in s.fert){const c=cropCells[k];if(c)c.fert=clamp(+s.fert[k]||100,60,140);}   // v23 : fertilité (lecture défensive)
+  if(s.en){enOv.e=+s.en.e||0;enOv.c=+s.en.c||0;}   // v23 : Overdrive (timestamps Date.now — déterministe)
   const off=Math.min(Math.max(0,Date.now()-(s.t||Date.now())),homeOfflineH()*3600*1000);   // OFFLINE (capé : 8h base + lits de la maison ; horloge reculée -> 0)
   if(off>0){waterSettle(off);growCells(off);}   // v22 : l'eau saute à l'équilibre AVANT la pousse (déterministe)
   const _g0=performance.now()+8000;   // anti-exploit reload : le F5 ne ré-arme PAS un burst de soins jardinier gratuits
@@ -2393,7 +2560,9 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   if(m0&&missionDone(m0)){_mNotif=true;setTimeout(()=>banner('🎯 Mission accomplie — réclame ta récompense !',true),4400);}
 }
 load(); updateMissionUI(); lastTick=Date.now();
-setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;growCells(dt);waterTick(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateMissionUI();if(rangeView&&performance.now()>rangeView.t1)rangeView=null;},200);
+setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;growCells(dt);waterTick(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateMissionUI();if(rangeView&&performance.now()>rangeView.t1)rangeView=null;
+  if(mods.some(m=>m.k==='en'&&m.lv===5)&&ovReady())fireOverdrive(true);   // v23 : Energy Core = Overdrive AUTO
+  if(enOn())updateEnBadge();updateDiag();},200);
 setInterval(save,10000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
 window.addEventListener('pagehide',save);
