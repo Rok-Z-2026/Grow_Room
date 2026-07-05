@@ -190,7 +190,7 @@
   .toast{top:96px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v21</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v22</span></div>
 <div id="mtrack" class="mtrack"><span class="mmed"><span class="mico" id="mico">🎯</span></span><div class="mcol"><span class="mtxt" id="mtxt"></span><div class="mbar"><i id="mtfill"></i><span class="mnum" id="mnum"></span><span class="mshine"></span></div></div><span class="mchev">›</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
@@ -998,7 +998,7 @@ function labSum(){return lab.yield+lab.speed+lab.value;}
 function wkUpSum(){return wkUp.walk+wkUp.dex+wkUp.night;}
 const MCH=[[0,"I — Le lopin hérité"],[7,"II — L'artisan"],[13,"III — La ferme"],
            [20,"IV — Le domaine"],[26,"V — Le baron"],[32,"VI — La légende"],
-           [40,"VII — Le patron"]];
+           [40,"VII — Le patron"],[47,"VIII — L'Ingénieur"]];
 // Vieux saves : les gestes prouvables par l'état intègrent la preuve dans p() (max(stats, preuve)) ;
 // les autres (soins/combo/variétés/ventes) restent demandés mais minuscules -> tuto rejouable, jamais punitif.
 const MISSIONS=[
@@ -1050,6 +1050,10 @@ const MISSIONS=[
   {ico:'👷',n:'7 ouvriers',t:7,p:()=>workerCount,r:150000,d:"« Sept. Le dortoir affiche complet et la vallée bourdonne comme une ruche. »"},
   {ico:'⭐',n:'Un ouvrier niveau 5',t:5,p:()=>crew.reduce((m,c)=>Math.max(m,wkLvl(c.xp)),0),r:200000,d:"« Un maître dans mon équipe. Je lui ai tout appris — enfin, presque tout. »"},
   {ico:'👑',n:'8 ouvriers',t:8,p:()=>workerCount,r:400000,d:"« Huit growers d'élite, un atelier, un dortoir. Le hameau Lucky a des prénoms, une âme, une légende. »"},
+  // ── Chapitre VIII — L'Ingénieur (v22, APPEND STRICT : les indices 0-46 sont gravés dans les saves) ──
+  {ico:'🏗️',n:'Construis un module d\'Irrigation',t:1,p:()=>mods.length,r:2000,d:"« Un Arrosoir en fonte, une idée folle : et si la vallée s'arrosait toute seule ? L'ingénieur, c'est moi. »"},
+  {ico:'💧',n:'Couvre 8 champs d\'eau',t:8,p:()=>{let n=0;for(const k in cropCells)if(irLvAt(cropCells[k]))n++;return n;},r:3000,d:"« Huit champs sous mes tuyaux. Brume parle aux plants — moi, je parle à la fonte. »"},
+  {ico:'⬆️',n:'Un module au niveau 2',t:2,p:()=>mods.reduce((mx,m)=>Math.max(mx,m.lv),0),r:5000,d:"« La Pompe ronronne comme un chat de ferme. Chaque écrou serré, c'est une heure de sommeil gagnée. »"},
 ];
 // Cibles du guidage « 📍 Montre-moi » (index -> type). Les 3 missions de vente (3,16,28) n'en ont pas.
 const MGO={0:'field',1:'field',2:'field',4:'field',5:'field',8:'field',12:'field',17:'field',26:'field',31:'field',38:'field',
@@ -2025,7 +2029,10 @@ function tapCell(px,py){   // écran -> case : inverse iso plat + raffinage loca
     if(d<bd){bd=d;best={x,y};}}
   return best;
 }
-function updateModBtn(){const b=document.getElementById('modbtn');if(b)b.style.display=houseLevel>=3?'block':'none';}
+function updateModBtn(){const b=document.getElementById('modbtn');if(!b)return;
+  const show=houseLevel>=3;b.style.display=show?'block':'none';
+  if(show&&!mods.length&&!window._modHint){window._modHint=1;   // découverte : 1 rappel doux par session tant qu'aucun module
+    setTimeout(()=>toast('🏗️ Nouveau : les MODULES ! Construis ton premier Arrosoir'),1600);}}
 function openBld(){
   const el=document.getElementById('bldlist');let h='';
   for(const k of MOD_ORDER){const c=MODS_CFG[k];

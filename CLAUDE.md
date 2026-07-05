@@ -28,11 +28,12 @@
 
 - Le **moteur** est dans le HTML (le **dernier `<script>`**). Les **assets sont externes**.
 - **PACK** = **tableau de clés** (`const PACK = ["plant_v_8", ...]`) + `const ASSET_BASE =
-  "../02_Asset/runtime/"`. **185 assets**, chacun un PNG dans `02_Asset/runtime/<clé>.png`
-  (dont `home_1..home_11` : les 11 niveaux du domaine de James, dioramas complets).
+  "../02_Asset/runtime/"`. **215 assets**, chacun un PNG dans `02_Asset/runtime/<clé>.png`
+  (dont `home_1..home_11` : les 11 niveaux du domaine de James, dioramas complets ; et
+  `mod_<ir|nu|cl|en|lo|ce>_<1..5>` : les 30 bâtiments modules v22, calés 1 tuile = 140 px).
 - `IMG{}` est rempli en bouclant sur `PACK` : `im.src = ASSET_BASE + k + ".png"`.
   Clés des sols via `groundKey()`.
-- **Manifest** : `02_Asset/runtime/manifest.json` liste les 185 clés (source de vérité).
+- **Manifest** : `02_Asset/runtime/manifest.json` liste les 215 clés (source de vérité).
 - **Histoire/monde** : pipeline de boot — `relocateStarter()` (lopin au centre) →
   `relocateObstacles()` (clairières éloignées du domaine) → `initBonusZones()` →
   `clearWorldToNature()` (zéro bâti humain, sable/pavé→prairie) → `buildRoads()` (3 routes de terre
@@ -86,7 +87,21 @@
   calée sur la BASE mesurée de l'anneau (bw 1.014·TW, bh 1.122·TH, ancre 0.55). Portail `fence2`
   unique sur la case SUD de `gateCell` (max x+y, recalculé par rebuildCrop, fallback case champ
   si eau/hors-map) ✓
-- **Plantes** : 4 variétés (`v` / `p` / `b` / `o`) × 8 stades → `plant_X_1` à `plant_X_8`
+- **Plantes** : **6 variétés** (`v`/`p`/`b`/`o`/`n`/`a`) × 8 stades → `plant_X_1` à `plant_X_8`.
+  **Retune v22** : durée ET rendement PAR VARIÉTÉ (`const VAR`, Verte 60s/6g → Automne
+  330s/55g, ±20% d'aléa) — `growCells`/`harvestCell`/`wkOfflineGains` lisent `varT/varG` via
+  `c.variety`. Portes en grammes ÷5 (PALIERS, HOUSE.grams, missions 2/3/5/12/17/26/31/38).
+  ⚠️ Plus jamais de `GROW_MS`/« 16.5 g » uniques.
+- **Modules v22** (GDD « L'Exploitation ») : `mods[{k,lv,x,y,ci,inv}]` sauvé additif,
+  `modCells`/`cellMods` runtime recalculés aux 3 événements pose/upgrade/load (JAMAIS par
+  frame). Placement libre validé (`modCanPlace`), portées Manhattan 3/4/4/5/6 depuis toute
+  case d'emprise, meilleur niveau par case (pas d'empilement), copies ×1.5^ci cap
+  2+⌊Domaine/3⌋, portes transitoires en grammes MOD_GATE (Lv3 1600 / Lv4 8000 / Lv5 25000).
+  Rendu : ancre au coin SUD de l'emprise, `decScale`/`decYOff` parsent `mod_*`, OcclusionFade
+  = candidats ET cibles. 💧 Irrigation active (drain −1/min, refill vers cap par niveau,
+  `irSpd` vitesse ≤ +15% +15% Lv5, Sprinklers Lv4+ à la plantation, offline à l'équilibre).
+  ⚠️ La qualité reste event-driven (applyCare/wkApplyCare, clamp gCap INVIOLÉ) — la refonte ★
+  arrive en v24, ne pas recomputer la qualité dans le tick eau.
 - **Décor** : trees, bushes, flowers, rocks, stumps, bâtiments, rampes, plans d'eau
 - **Mon Domaine** : galerie 11 niveaux (`HOUSE`), bonus cumulatifs, cinématique `glideCam` ✓
 - **Jardins du Domaine** : mobilier par tier dans `placeHome()` (T1 camp fleuri / T2 cour de

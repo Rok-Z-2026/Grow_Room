@@ -143,17 +143,21 @@ Un bon joueur jongle entre les trois selon le moment.
 
 Chaque couleur de plante est une **souche unique**, avec son **nom, sa valeur et sa rareté**.
 
-| Couleur | Rôle (à finaliser) | Rareté |
-|---|---|---|
-| 🟢 Verte | Souche de base, commune | Commune |
-| 🔵 Bleue | Intermédiaire | Peu commune |
-| 🟠 Orange | Intermédiaire+ | Rare |
-| 🟣 Violette | Premium | Rare |
-| ⚫ Noire | Premium, haute valeur | Très rare |
-| ✨ (6e variété) | À définir | Légendaire ? |
+**Retune v22 ✅** — les 6 variétés sont cultivées, chacune avec sa durée et son rendement
+(le choix devient un vrai arbitrage temps/valeur, affiché sur la barre de graines) :
 
-> Le nouvel atlas `Glow_Plante.png` fournit **6 variétés × 8 stades** de croissance (graine → bourgeon mûr).
-> *(Le moteur câble actuellement 4 variétés — un TODO d'intégration consiste à passer de 4 à 6.)*
+| Couleur | Durée | Rendement | g/min |
+|---|---|---|---|
+| 🟢 Verte | 1 min | 6 g | 6.0 — l'onboarding vif |
+| 🪻 Violette | 1 m 40 | 11 g | 6.6 |
+| 🫐 Bleue | 2 m 30 | 18 g | 7.2 |
+| 🍊 Orange | 3 m 30 | 28 g | 8.0 |
+| 🖤 Noire | 4 m 30 | 40 g | 8.9 |
+| 🍁 Automne | 5 m 30 | 55 g | 10.0 — la patience paie (+67 %) |
+
+> ±20 % d'aléa à la récolte. Moins de récoltes/min = moins de drain de fertilité (v23).
+> La variété **légendaire** sera une **7e** variété (Saisons de l'Oubli, v30) — les 6
+> existantes sont déjà toutes plantables, les verrouiller rétroactivement casserait les saves.
 
 ### Croisement (Labo)
 Système à **deux niveaux** :
@@ -275,7 +279,7 @@ passage de la vague). Toasts au retour : récolte 👷 puis vente 🤠 séquenc�
 
 ## 7ter. 🎯 Missions & Objectifs ✅ *(implémenté)*
 
-Le **fil rouge de James** : une chaîne séquentielle de **47 missions en 7 chapitres** qui raconte
+Le **fil rouge de James** : une chaîne séquentielle de **50 missions en 8 chapitres** qui raconte
 son ascension et guide le joueur vers chaque système dans l'ordre naturel. **Une seule mission
 active à la fois** : carte-tracker permanente sous la topbar *(v15 : médaillon doré, barre
 épaisse avec reflet animé, fraction ; accomplie → fond or, rayons tournants, 🎁 qui bounce)*,
@@ -287,9 +291,33 @@ d'événement « Mission accomplie ! » / « Nouvelle mission ». Récompense cr
 Chapitres : **I — Le lopin hérité** (tuto gestes : planter, soigner, récolter, vendre, combo) ·
 **II — L'artisan** (labo, variétés, Cabane, 1er ouvrier) · **III — La ferme** (montée maison/
 ouvriers/labo, 1re clairière) · **IV — Le domaine** (expansion) · **V — Le baron** (gros caps) ·
-**VI — La légende** (toute la vallée, 6 ouvriers, 400 kg, Domaine de Luxe 🏆) ·
+**VI — La légende** (toute la vallée, 6 ouvriers, 80 kg, Domaine de Luxe 🏆) ·
 **VII — Le patron** *(v19 : Atelier, jardinier, vendeur, Dortoir, 7-8 ouvriers, un maître
-niv 5 — append strict : les indices 0-39 sont gravés dans les saves)*.
+niv 5)* · **VIII — L'Ingénieur** *(v22 : 1er module d'Irrigation, 8 champs couverts d'eau,
+un module niv 2 — append strict : les indices existants sont gravés dans les saves)*.
+
+---
+
+## 7quater. 🏗️ Les Modules ✅ *(v22 — 1re tranche du GDD « L'Exploitation »)*
+
+La vallée devient un **plan d'usine** : 6 familles de bâtiments de gestion à **placement
+LIBRE** (30 assets, 5 niveaux chacun), portée en losange Manhattan (3/4/4/5/6), **pas
+d'empilement** (deux modules identiques : seul le meilleur niveau compte par case), copies
+multiples (prix ×1.5^copie, cap 2+⌊Domaine/3⌋). Menu 🏗️ dès le Domaine 3, ghost de pose avec
+halo de couverture, cinématique de chantier, panneau au tap (effet actuel → suivant chiffré,
+vue des portées 📡). Portes des niveaux 3/4/5 : **grammes de carrière** (1 600 / 8 000 /
+25 000 — transitoire v22-v24, la réputation arrive en v25 avec GRANDFATHERING).
+
+**💧 Irrigation (active)** : chaque champ a une jauge d'eau vivante (drain −1/min) ; le module
+la remplit à portée (+2/+4/+6/+8/+12 par min, caps 60/80/100/120/140) ; **l'eau accélère la
+pousse** (jusqu'à +15 %, +15 % constant sous le Hub Lv5) ; Sprinklers Lv4+ arrosent à la
+plantation (joueur ET ouvriers). Offline : eau à l'équilibre, formule fermée déterministe.
+Arrosoir → Pompe → Château d'eau → Sprinklers → Hub auto (800 → 600 k 💰).
+
+**À venir** (une tranche jouable par version) : 🌾 Nutriments + ⚡ Énergie + Carnet v1 (v23) ·
+★ Qualité + 📦 Logistique (v24) · 🛒 Commandes/Réputation (v25) · 🌡️ Climat + Événements (v26) ·
+👷 Employés 2.0 sprites (v27) · 📖 Carnet complet (v28) · équilibrage (v29) · 🌸 Saisons de
+l'Oubli (v30). Le document de référence : le GDD approuvé « L'Exploitation » v22→v30.
 
 Récompenses 💰 (50 → 250 000, total ≈ 908 000 ≈ 18 % des coûts endgame — coup de pouce, pas de
 triche) + quelques recharges de soins. Objectifs dérivés de l'état (`totalHarvest`, `houseLevel`,
