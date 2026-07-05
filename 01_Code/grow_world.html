@@ -362,7 +362,7 @@ var SND_TAB={
   sfx_palier_new:{l:'sfx',t:500},
   // É4 — UI & missions
   ui_panel_open:{l:'ui',t:150},
-  ui_panel_close:{l:'ui',t:150},
+  ui_panel_close:{l:'ui',t:150,skipAny:120},    // muet quand une ACTION vient de sonner (upgrade, guide…)
   ui_btn:{l:'ui',v:0.8,t:80},
   ui_seedbar_show:{l:'ui',v:0.9,t:150},
   ui_toast:{l:'ui',v:0.8,t:250,skipStg:1000,skipAny:150},   // se tait si un son vient de partir (anti-doublon)
@@ -370,6 +370,19 @@ var SND_TAB={
   sfx_guide_ping:{l:'ui',t:500},
   stg_mission_done:{l:'stg',stg:1},             // exclusivité + ducking automatiques
   stg_mission_claim:{l:'stg',stg:1},
+  // É5 — chantiers & moments
+  sfx_hammer:{n:4,l:'sfx',v:0.8,p:0.06,t:250},  // 1 coup sur 2 dans les cinés 180 ms
+  sfx_build_dust:{n:3,l:'sfx',v:0.6,t:250},     // la couche de poussière, en alternance
+  stg_reveal_gold:{l:'stg',stg:1},              // 2.30 s — ducking auto
+  stg_house_up:{l:'stg',stg:1},                 // chaîné à +2400 ms après le reveal
+  sfx_mod_place:{l:'sfx'},
+  sfx_mod_upgrade:{l:'sfx'},
+  ui_place_invalid:{l:'ui',t:200},
+  sfx_clearing:{l:'sfx'},
+  sfx_cam_glide:{l:'ui',v:0.6,t:800},
+  stg_worker_hired:{l:'stg',stg:1},
+  sfx_job_change:{l:'sfx'},
+  stg_dorm_bed:{n:4,l:'stg',stg:1},             // décalé APRÈS le reveal (sinon il volerait la fanfare)
   // É3 — ambiances & musique (boucles — personne n'appelle S() dessus, gérées par sndAmbTick)
   amb_valley_day:{n:2,l:'amb'},                 // cyclées à la main avec crossfade (sndAmbCycle), PAS loop=true
   amb_river:{l:'amb',loop:1},                   // gain ∝ distance caméra↔eau (sndAmbTick)
@@ -2069,6 +2082,7 @@ function wkAssign(i,j){
   crew[i].j=j;
   const w=workers[i];if(w){wkRelease(w);w.job=j;w.zone=null;}   // il lâche sa tâche et change de casquette
   fmRecalc();save();
+  S('sfx_job_change');
   toast(JOB_EMO[j]+' '+(WK_ID[i]||{}).n+' devient '+JOB_NAME[j]+' !');
   renderWk();
 }
@@ -2080,7 +2094,7 @@ function buyWorker(){
   if(houseLevel<wkHouseReq()){S('ui_denied');toast('🏠 Améliore ta maison (niv '+wkHouseReq()+') !');return;}
   const cost=wkHireCost();if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
   setCoin(coin-cost);crew.push({j:'r',xp:0});workerCount=crew.length;spawnWorker(workerCount-1);save();   // débit + état + save ATOMIQUES
-  coinPulse();toast('👷 '+(WK_ID[workerCount-1]||{}).n+' rejoint l\'équipe !');renderWk();updateWkBtn();
+  S('stg_worker_hired');coinPulse();toast('👷 '+(WK_ID[workerCount-1]||{}).n+' rejoint l\'équipe !');renderWk();updateWkBtn();
   const w=workers[workers.length-1];burst(isoX(w.x+.5,w.y+.5),isoY(w.x+.5,w.y+.5),'#ffd84d',14);
 }
 function buyWkUp(k){const u=WK_UP.find(x=>x.key===k),l=wkUp[k];if(l>=u.max||workerCount===0)return;
@@ -2107,18 +2121,18 @@ function buyCampBld(k){
       const ix=isoX(bx,by),iy=isoY(bx,by);
       const ox=(Math.random()-0.5)*TW()*1.8,oy=(Math.random()-0.5)*TH()*1.8-TH();
       burst(ix+ox,iy+oy,hits%2?'#c9b28a':'#8a6f4d',10);
-      if(hits%2===0)ft(ix+ox,iy+oy-10,'🔨');
+      if(hits%2===0){S('sfx_hammer');ft(ix+ox,iy+oy-10,'🔨');}else S('sfx_build_dust');
       hits++;
     },180);
     setTimeout(()=>{clearInterval(iv);
       placeCamp();   // REVEAL : le bâtiment apparaît
       const ix=isoX(bx,by),iy=isoY(bx,by);
       burst(ix,iy-TH()*1.5,'#ffd84d',24);
-      revealFX={x:bx,y:by,t0:performance.now(),dur:900};
+      S('stg_reveal_gold');revealFX={x:bx,y:by,t0:performance.now(),dur:900};
       const fl=document.getElementById('flash');fl.classList.remove('go');void fl.offsetWidth;fl.classList.add('go');
       setTimeout(()=>{
         toast(b.ico+' '+b.name+(b.lv.length>1?' · niveau '+wkB[k]:'')+' — construit !');
-        if(k==='dorm'&&wkB.dorm===1)setTimeout(()=>toast('👷 '+(WK_ID[0]||{}).n+' a enfin un vrai lit !'),2200);
+        if(k==='dorm'&&wkB.dorm===1)setTimeout(()=>{S('stg_dorm_bed');toast('👷 '+(WK_ID[0]||{}).n+' a enfin un vrai lit !');},5400);   // 🔊 APRÈS la fanfare du reveal (sinon elle serait volée)
         updateWkBtn();save();
         document.getElementById('cineblock').classList.remove('show');cine=false;
       },900);
@@ -2275,7 +2289,7 @@ function homeCenterCard(idx,smooth){const car=document.getElementById('homecar')
 function openHome(){S('ui_panel_open');document.getElementById('homemodal').classList.add('show');renderHome();homeCenterCard(houseLevel-1,false);}
 function closeHome(){const el=document.getElementById('homemodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
 // caméra interpolée : glisse le CENTRE écran vers la case (tx,ty) au zoom tz en ms — réutilisable pour d'autres cinématiques
-function glideCam(tx,ty,tz,ms,done){
+function glideCam(tx,ty,tz,ms,done){S('sfx_cam_glide');   // 🔊 v24 (throttle 800 ms)
   const z0=zoom, s0=-cam.x/(TW()/2), a0=(APP_H*0.5-APP_H*0.28-cam.y)/(TH()/2);   // (c-r) et (c+r) du point monde au centre écran
   const c0=(a0+s0)/2, r0=(a0-s0)/2, t0=performance.now();
   (function step(){
@@ -2301,18 +2315,19 @@ function buyHouse(){
       const ix=isoX(hx,hy),iy=isoY(hx,hy);
       const ox=(Math.random()-0.5)*TW()*2.2,oy=(Math.random()-0.5)*TH()*2.2-TH();
       burst(ix+ox,iy+oy,hits%2?'#c9b28a':'#8a6f4d',12);
-      if(hits%2===0)ft(ix+ox,iy+oy-10,'🔨');else if(hits%3===0)ft(ix-ox,iy+oy,'✨','#ffe87a');
+      if(hits%2===0){S('sfx_hammer');ft(ix+ox,iy+oy-10,'🔨');}else{S('sfx_build_dust');if(hits%3===0)ft(ix-ox,iy+oy,'✨','#ffe87a');}
       hits++;
     },180);
     setTimeout(()=>{clearInterval(iv);
       homeShownLevel=null;placeHome();updateHomeBadge();   // REVEAL : swap du diorama (purement visuel)
       const ix=isoX(hx,hy),iy=isoY(hx,hy);
       burst(ix,iy-TH()*2,'#ffd84d',30);burst(ix,iy-TH(),'#ffe87a',24);   // onde dorée, 1re vague
-      revealFX={x:hx,y:hy,t0:performance.now(),dur:1000};
+      S('stg_reveal_gold');revealFX={x:hx,y:hy,t0:performance.now(),dur:1000};
       const fl=document.getElementById('flash');fl.classList.remove('go');void fl.offsetWidth;fl.classList.add('go');
       setTimeout(()=>{burst(isoX(hx,hy),isoY(hx,hy)-TH()*1.5,'#ffd84d',26);},250);   // 2e vague
       setTimeout(()=>{
         toast('🏠 Niveau '+houseLevel+' — '+HOUSE[houseLevel-1].name+' !');coinPulse();
+        setTimeout(()=>S('stg_house_up'),2400);   // 🔊 fanfare de maison APRÈS le reveal (2.30 s)
         updateStock();save();   // le prix estimé de la sellbar reflète le nouveau bonus de vente
         updateWkBtn();
         if(houseLevel===2)setTimeout(()=>toast('👷 Tu peux maintenant embaucher des ouvriers !'),2200);
@@ -2404,7 +2419,7 @@ function buyLandGroup(g,px,py){
   for(let y=g.gy;y<g.gy+g.gh;y++)for(let x=g.gx;x<g.gx+g.gw;x++){   // FX de coupe (avant retrait)
     if(x<0||y<0||x>=MW||y>=MH)continue;const d=W.decor[y][x];
     if(d&&CUT.includes(d[0]))burst(isoX(x+0.5,y+0.5),isoY(x+0.5,y+0.5)-TH()*0.5,'#7cae4a',6);}
-  applyClearing(gi);
+  S('sfx_clearing');applyClearing(gi);
   toast('Forêt défrichée ! 🪓');save();
 }
 // selCell est déclarée plus haut (avant draw) pour éviter le TDZ
@@ -2503,6 +2518,7 @@ function tryPlaceAt(x,y){
   const fp=modFp(p.k,1);
   p.x0=x-Math.floor((fp-1)/2);p.y0=y-Math.floor((fp-1)/2);
   p.ok=modCanPlace(p.k,1,p.x0,p.y0);p.has=true;
+  if(!p.ok)S('ui_place_invalid');
   p.keys=modRangeKeys(p.k,1,p.x0,p.y0);
   const cost=modCost1(p.k);
   document.getElementById('placetxt').textContent=p.ok
@@ -2514,7 +2530,7 @@ function confirmPlace(){
   const p=placingMod;if(!p||!p.has||!p.ok||cine)return;
   const cost=modCost1(p.k);
   if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
-  setCoin(coin-cost);
+  S('sfx_mod_place');setCoin(coin-cost);
   const m={k:p.k,lv:1,x:p.x0,y:p.y0,ci:modCopies(p.k),inv:cost};
   mods.push(m);stopPlacing();save();   // état commité ATOMIQUEMENT au débit (règle buyCampBld)
   modBuildCine(m);
@@ -2528,7 +2544,7 @@ function modBuildCine(m){   // pattern buyCampBld : chantier -> reveal (l'état 
       const ix=isoX(bx,by),iy=isoY(bx,by);
       const ox=(Math.random()-0.5)*TW()*1.6,oy2=(Math.random()-0.5)*TH()*1.6-TH();
       burst(ix+ox,iy+oy2,hits%2?'#c9b28a':'#8a6f4d',10);
-      if(hits%2===0)ft(ix+ox,iy+oy2-10,'🔨');
+      if(hits%2===0){S('sfx_hammer');ft(ix+ox,iy+oy2-10,'🔨');}else S('sfx_build_dust');
       hits++;
     },180);
     setTimeout(()=>{clearInterval(iv);
@@ -2537,7 +2553,7 @@ function modBuildCine(m){   // pattern buyCampBld : chantier -> reveal (l'état 
       const ix=isoX(bx,by),iy=isoY(bx,by);
       burst(ix,iy-TH()*1.2,'#ffd84d',24);
       setTimeout(()=>burst(ix,iy-TH()*1.2,'#6fc8ff',8),120);   // v22.5 : écho bleu (signature du domaine)
-      revealFX={x:bx,y:by,t0:performance.now(),dur:900};
+      S('stg_reveal_gold');revealFX={x:bx,y:by,t0:performance.now(),dur:900};
       const fl=document.getElementById('flash');fl.classList.remove('go');void fl.offsetWidth;fl.classList.add('go');
       toast(MODS_CFG[m.k].ico+' '+MODS_CFG[m.k].lvN[m.lv-1]+' — construit !');
       save();
@@ -2595,7 +2611,7 @@ function upgradeMod(i){
   if(!modCanPlace(m.k,m.lv+1,m.x,m.y,i)){S('ui_denied');toast('Pas la place pour agrandir — libère les cases autour !');return;}
   const cost=modUpCost(m);
   if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
-  setCoin(coin-cost);m.lv++;m.inv=(m.inv||0)+cost;closeModPanel();save();
+  S('sfx_mod_upgrade');setCoin(coin-cost);m.lv++;m.inv=(m.inv||0)+cost;closeModPanel();save();
   modBuildCine(m);
 }
 document.getElementById('modbtn').onclick=openBld;
