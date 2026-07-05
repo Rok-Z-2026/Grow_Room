@@ -80,11 +80,19 @@
   ferme / T3 esplanade prestige). ⚠️ Slots **safe uniquement** — le diorama fait 4.6 tuiles de
   large : jamais de décor aux diagonales proches (`(2,1)`, `(1,2)`, `(-1,-2)`, `(-2,-1)`…),
   jamais sur les allées E/SW/N ni dans une parcelle (même bonus non achetée) ✓
-- **Ouvriers** : `WK_CFG`/`workers`, machine à états (idle/walk/harvest/plant) au tick 200ms,
-  rendu emoji 👷 (fallback — sprites `worker_1..3` chargés auto s'ils entrent au PACK),
-  offline analytique `wkOfflineGains()` ✓
-- **Missions** : chaîne `MISSIONS[40]` + compteurs `stats{}`, tracker `.mtrack` + modal `#mmodal`,
-  claim atomique, save `{mi,st}` additif ✓
+- **Ouvriers v19** : `WK_CFG`/`workers`/`crew` (persisté `wk:{n,up,crew,b,u2,vs}` additif),
+  4 métiers ('r'/'g'/'v'/'f') + XP/niveaux (`wkLvl`, max 5), machine à états au tick 200ms
+  (idle/walk/harvest/plant/care/vwalk/sell/patrol/cheer/bwalk/break), identités fixes `WK_ID[8]`
+  + pauses hobby, Camp (`CAMP`/`placeCamp()` — Dortoir (48,45) `wkMax()=6+dorm`, Atelier (48,40)
+  upgrades `WK_UP2`), marché sinusoïdal `mktDrift()` (cible 9.5±4.5, filtre 0.15/60s, `mt` persisté),
+  rendu emoji par métier `JOB_EMO` + bulles `WK_LINES`, offline par métier `wkOfflineGains()`
+  (déterministe, vendeur en formule fermée F/P, XP prorata cap 300).
+  ⚠️ Jardinier : ne touche JAMAIS `boosts{}` (soin gratuit plafonné `gCap`, cooldown `c.gcd`
+  ré-armé au load). ⚠️ Vendeur : jamais `stats.se/ea`. ⚠️ Le facteur 0.65 de `qOff` = levier
+  d'équilibrage anti-méta (teste `[r,r,r,g]>=95%` si tu y touches) ✓
+- **Missions** : chaîne `MISSIONS[47]` (7 chapitres — **append strict**, indices 0-39 gravés
+  dans les saves) + compteurs `stats{}`, tracker `.mtrack` + modal `#mmodal`, claim atomique,
+  save `{mi,st}` additif ✓
 
 ---
 

@@ -76,6 +76,14 @@
 .wkbtn{position:absolute;right:14px;top:calc(min(340px,46vh) + 148px);width:64px;height:64px;border-radius:18px;background:linear-gradient(180deg,#2e3c4a,#1e2a34);border:2px solid #5a7488;font-size:30px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.4);z-index:20;display:none;}
 .wkbtn.show{display:block;}
 .wkbtn:active{transform:scale(0.94);}
+.wkcount{position:absolute;right:-6px;bottom:-6px;font-size:11px;font-weight:700;background:#22301a;border:1px solid #8fd96f;border-radius:9px;padding:1px 5px;color:#cfe8b8;pointer-events:none;}
+.wsec{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#9fb98a;opacity:.85;margin:6px 2px 0;}
+.wxp{height:6px;background:rgba(255,255,255,.10);border-radius:4px;overflow:hidden;margin:5px 0 2px;}
+.wxp i{display:block;height:100%;background:linear-gradient(90deg,#8fd96f,#ffd84d);width:0;transition:width .4s;}
+.wjobs{display:flex;gap:6px;margin-top:5px;}
+.wjob{flex:1;padding:5px 0;font-size:16px;text-align:center;border-radius:9px;border:1px solid #46543a;background:rgba(28,38,22,.6);cursor:pointer;line-height:1.2;}
+.wjob.on{border-color:#ffd84d;background:rgba(96,74,22,.55);box-shadow:0 0 6px rgba(255,216,77,.35);}
+.wjob:active{transform:scale(0.92);}
 .homebadge{background:rgba(60,45,20,0.6);border:1px solid #8a7038;border-radius:12px;padding:3px 8px;color:#ffe0a0;font-size:14px;cursor:pointer;pointer-events:auto;white-space:nowrap;flex-shrink:0;}
 .homebadge b{color:#ffd84d;}
 .homefull{position:absolute;inset:0;background:radial-gradient(120% 85% at 50% 0%,#243218,rgba(5,8,5,0.98) 62%);display:none;flex-direction:column;z-index:50;}
@@ -161,7 +169,7 @@
   .toast{top:96px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v18</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v19</span></div>
 <div id="mtrack" class="mtrack"><span class="mmed"><span class="mico" id="mico">🎯</span></span><div class="mcol"><span class="mtxt" id="mtxt"></span><div class="mbar"><i id="mtfill"></i><span class="mnum" id="mnum"></span><span class="mshine"></span></div></div><span class="mchev">›</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
@@ -403,6 +411,18 @@ function placeHome(){
     if(gOK(x,y)&&!inCrop(x,y))W.decor[y][x]=d;}
   // 4) la maison, toujours en dernier
   if(inb(cx,cy))W.decor[cy][cx]=['home_'+lvl];
+  placeCamp();   // 5) le camp d'équipe (Dortoir/Atelier) survit à la purge et au reveal
+}
+// Le CAMP : posé en absolu -> idempotent, rejoué au boot/load/reveal. Au premier boot wkB est
+// encore undefined (var hoistée, ce bloc est déclaré plus bas) -> garde, le load rappellera.
+function placeCamp(){
+  if(!wkB)return;
+  for(const b of CAMP){ if(!wkB[b.k])continue;
+    if(!W.decor[b.y]||!W.ground[b.y])continue;
+    const g=W.ground[b.y][b.x];
+    if(g!=='water'&&g!=='soil')W.ground[b.y][b.x]='gravel';   // petit socle de gravier
+    W.decor[b.y][b.x]=[b.spr];
+  }
 }
 placeHome();
 // === MON DOMAINE : 11 niveaux de maison. Passer au niveau i+1 demande HOUSE[i].cost 💰 ET
@@ -434,9 +454,9 @@ function careMax(t){return CARE_MAX[t]+homeCareBonus();}  // cap effectif des so
 // === 👷 OUVRIERS : James embauche — récoltent les plants mûrs et replantent la MÊME variété.
 // Règle : « tu sèmes, ils entretiennent » — jamais de semis d'une case vide, jamais de vente.
 // Déclaré AVANT draw() (TDZ, leçon selCell) ; workers/wkClaims en var globaux (règle particles).
-const WK_CFG={ MAX:6,
-  HIRE:[800,4000,20000,90000,350000,1200000],   // coût des slots 1..6 (calés entre les paliers HOUSE)
-  HOUSE_REQ:[2,3,5,7,9,10],                     // niveau de maison requis par slot (« il faut les loger »)
+const WK_CFG={ MAX:6,   // plafond de BASE — le Dortoir ajoute des lits : wkMax()=6+wkB.dorm
+  HIRE:[800,4000,20000,90000,350000,1200000,3500000,9000000],   // coût des slots 1..8 (7-8 = fin de partie, gated Dortoir)
+  HOUSE_REQ:[2,3,5,7,9,10,10,11],               // niveau de maison requis par slot (« il faut les loger »)
   WALK:1.2, HARVEST_MS:1500, PLANT_MS:1000,     // cadences de base -> cycle ~5s/plant
   TROT:1.8, TROT_DIST:6,                        // trajet lointain : il presse le pas (x1.8 au-delà de 6 cases)
   AVG_WALK:3, OFF_EFF:0.35 };                   // paramètres de la simulation hors-ligne
@@ -444,16 +464,98 @@ const WK_UP=[   // upgrades, pattern LAB (base*mul^lvl)
   {key:'walk', name:'Bonnes bottes', emo:'👟', base:600,  mul:1.75, max:10, desc:'+12% vitesse de marche'},
   {key:'dex',  name:'Gants experts', emo:'🧤', base:900,  mul:1.75, max:10, desc:'-8% temps de récolte/replante'},
   {key:'night',name:'Lanternes',     emo:'🏮', base:2500, mul:2.1,  max:5,  desc:'+5% efficacité hors-ligne'}];
-let workerCount=0, wkUp={walk:0,dex:0,night:0};   // PERSISTANT (save/load)
+const WK_UP2=[   // upgrades TIER 2 — débloquées par l'Atelier (wkB.atl>=1), même pattern
+  {key:'ferti',name:'Fertilisant maison', emo:'🌾', base:30000, mul:1.8, max:5, desc:'+8% apport de soin des jardiniers'},
+  {key:'etal', name:'Étal couvert',       emo:'🧺', base:50000, mul:1.9, max:5, desc:'+3% au prix de vente des vendeurs'},
+  {key:'sif',  name:'Sifflet en laiton',  emo:'📯', base:80000, mul:2.0, max:5, desc:'+3% à l\'aura du contremaître'},
+  {key:'man',  name:'Manuel de l\'ouvrier',emo:'📖', base:40000, mul:1.8, max:5, desc:'+15% de gain d\'XP'}];
+// Les 4 MÉTIERS : 'r' récolteur (la base v18), 'g' jardinier (soigne GRATUITEMENT, plafonné),
+// 'v' vendeur (vend au bon prix — « il achète ton temps, pas des grammes »), 'f' contremaître (aura).
+const JOB_EMO={r:'👷',g:'🧑‍🌾',v:'🤠',f:'👨‍💼'};
+const JOB_NAME={r:'Récolteur',g:'Jardinier',v:'Vendeur',f:'Contremaître'};
+// Identités FIXES par slot d'embauche (déterministe : zéro random au load, 2 reloads = même équipe).
+// bd = destination de pause (offset HOME_POS) : chacun son coin de vallée — Raymond va PÊCHER.
+const WK_ID=[
+  {n:'Marcel',     h:'🥖', bd:[0,2],  myst:false},   // au coin du feu du camp
+  {n:'Brume',      h:'🌫️', bd:[-7,1], myst:true },   // s'évapore dans la prairie Ouest
+  {n:'Gégé',       h:'🎺', bd:[1,-4], myst:false},   // trompette au bord de la route
+  {n:'Vieux-Saule',h:'🌿', bd:[3,-5], myst:true },   // médite sous l'arbre-sentinelle
+  {n:'Ginette',    h:'☕', bd:[2,2],  myst:false},   // café sur l'esplanade
+  {n:'Lueur',      h:'✨', bd:[4,3],  myst:true },   // flotte près des lampadaires
+  {n:'Raymond',    h:'🎣', bd:[5,2],  myst:false},   // pêche sur la berge de la rivière
+  {n:'Mémé Rose',  h:'🌹', bd:[-3,2], myst:false}];  // hume le jardin fleuri
+// Le CAMP : bâtiments d'équipe posés par placeCamp() (idempotent, comme placeHome).
+const CAMP=[
+  {k:'dorm',spr:'cabin',   x:48,y:45,ico:'🛏️',name:'Le Dortoir', lv:[{c:600000,hr:8},{c:2000000,hr:10}],
+   desc:'+1 lit par niveau : embauche au-delà de 6 ouvriers'},
+  {k:'atl', spr:'atelier1',x:48,y:40,ico:'🛠️',name:'L\'Atelier',  lv:[{c:500000,hr:7}],
+   desc:'Débloque les améliorations avancées de l\'équipe'}];
+const VEND_POS={x:46,y:44};   // l'étal du vendeur : devant la maison, sous l'allée Est
+// Répliques (bulles de dialogue) : par métier au travail, par personnalité en pause. Le random
+// runtime est OK (l'interdit déterministe ne porte que sur le load/offline).
+const WK_LINES={
+  r:["Une de coupée, une de replantée !","Ça pousse pas tout seul… ah bah si.","Les mains dans la terre, la tête au frais.","J'ai le dos en compote, patron.","Récolter, c'est ma poésie à moi."],
+  g:["Bois, ma belle. Doucement.","Un peu d'eau, beaucoup d'amour.","Celui-là me fait de l'œil.","Les plants heureux, ça s'entend.","La qualité, ça s'arrose."],
+  v:["Le prix monte… patience.","Le marché, ça se renifle.","Petit lot, gros profit.","J'attends la vague, moi.","Vendre au sommet, un art."],
+  f:["Allez l'équipe, on accélère !","Beau boulot, les artistes !","On tient la cadence !","Le patron serait fier.","Du nerf, la vallée regarde !"],
+  titi:["Pause syndicale, deux minutes.","On mange quoi ce soir ?","Belle journée pour bosser dehors.","J'y crois, à c'te ferme."],
+  myst:["La terre se souvient de tout…","Les graines rêvent, la nuit.","J'entends l'Oubli murmurer…","Le vent porte des noms anciens."]};
+var wkTalk=null, wkTalkT=0;   // 1 bulle max à l'écran, rotation ~9s (var globaux, règle particles)
+function wkTalkTick(now){
+  if(wkTalk&&now>=wkTalk.t1)wkTalk=null;
+  if(now<wkTalkT||!workers.length||cine||zoom<=0.75)return;
+  wkTalkT=now+9000;
+  const w=workers[Math.floor(now/9000)%workers.length];
+  const id=WK_ID[w.id]||WK_ID[0];
+  const pool=(w.state==='break'||w.state==='bwalk')?(id.myst?WK_LINES.myst:WK_LINES.titi):(WK_LINES[w.job]||WK_LINES.r);
+  wkTalk={id:w.id,txt:pool[Math.floor(Math.random()*pool.length)],t1:now+2800};
+}
+// MARCHÉ VIVANT : cible sinusoïdale déterministe (vague de 30 min) + filtre 0.15/60s -> le prix
+// vécu ondule ~[6.75;12.25] : les seuils du vendeur (8/10/12) sont de vrais choix stratégiques.
+const MKT={MID:9.5,AMP:4.5,PER:1800000,K:0.15,STEP:60000,AEFF:2.75};
+function mktTarget(t){return MKT.MID+MKT.AMP*Math.sin(2*Math.PI*t/MKT.PER);}
+var mktT=Date.now();   // horodatage du dernier pas de dérive (persisté — pattern careT)
+function mktDrift(now){let ch=false;   // rattrape les pas de 60s manqués (online ET offline, même math)
+  const steps=Math.min(Math.floor((now-mktT)/MKT.STEP),120);   // >2h -> l'état initial est oublié (0.85^120)
+  if(steps>=120)mktT=now-120*MKT.STEP;
+  for(let i=0;i<Math.min(Math.floor((now-mktT)/MKT.STEP),120);i++){mktT+=MKT.STEP;
+    marketPrice=Math.max(5,Math.min(14,marketPrice+(mktTarget(mktT)-marketPrice)*MKT.K));ch=true;}
+  return ch;}
+let workerCount=0, wkUp={walk:0,dex:0,night:0};                 // PERSISTANT (save/load)
+var crew=[];                                                     // PERSISTANT — [{j,xp}] par ouvrier
+var wkB={dorm:0,atl:0}, wkU2={ferti:0,etal:0,sif:0,man:0};       // PERSISTANT — bâtiments + upgrades T2 (var :
+var wkVs={on:1,minP:10};                                         // placeHome() boote AVANT ce bloc -> pas de TDZ)
 var workers=[];    // RUNTIME — jamais sauvegardé (respawn à la maison au boot)
-var wkClaims={};   // "x,y" -> id : réservation d'un plant ready (évite 2 ouvriers sur la même cible)
+var wkClaims={};   // "x,y" -> id : réservation d'un plant (évite 2 ouvriers sur la même cible)
+function wkMax(){return WK_CFG.MAX+(wkB.dorm||0);}
 function wkHireCost(){return WK_CFG.HIRE[workerCount];}
 function wkHouseReq(){return WK_CFG.HOUSE_REQ[workerCount];}
 function wkUpCost(u){return Math.floor(u.base*Math.pow(u.mul,wkUp[u.key]));}
-function wkWalkSpeed(){return WK_CFG.WALK*Math.pow(1.12,wkUp.walk);}   // cases/s
-function wkActMs(base){return base*Math.pow(0.92,wkUp.dex);}
-function wkOfflineEff(){return WK_CFG.OFF_EFF+0.05*wkUp.night;}        // 0.35 -> 0.60
-function spawnWorker(i){workers.push({id:i,x:HOME_POS.x-2,y:HOME_POS.y+3,x0:0,y0:0,x1:0,y1:0,t0:0,t1:0,state:'idle',target:null,dir:1,scanT:0,zone:null});}   // l'allée SW : ils sortent de chez James
+function wkUp2Cost(u){return Math.floor(u.base*Math.pow(u.mul,wkU2[u.key]));}
+// XP -> niveau (max 5) : seuils cumulés 60/240/540/1200
+function wkLvl(xp){return xp>=1200?5:xp>=540?4:xp>=240?3:xp>=60?2:1;}
+function wkNextXp(lvl){return [0,60,240,540,1200,Infinity][lvl];}   // seuil du niveau suivant
+function gCap(lvl){return 1.5+0.125*(lvl-1);}                    // plafond qualité jardinier : 1.5 -> 2.0 (joueur : 2.5)
+function vMult(lvl){return Math.min(1,0.85+0.025*(lvl-1)+0.03*wkU2.etal);}   // prix vendeur : 85% -> 95% (+étal), jamais >100%
+var _fm=1;   // aura du contremaître, mémoïsée (recalcul au changement de crew — O(1) au tick)
+function fmRecalc(){let b=0;for(let i=0;i<crew.length;i++)if(crew[i].j==='f')b=Math.max(b,wkLvl(crew[i].xp));
+  _fm=b?1+0.10+0.025*(b-1)+0.03*wkU2.sif:1;}
+function fmMult(w){return(!w||w.job!=='f')?_fm:1;}               // le contremaître ne se booste pas lui-même
+function wkWalkSpeed(w){return WK_CFG.WALK*Math.pow(1.12,wkUp.walk)*fmMult(w);}   // cases/s
+function wkActMs(base,w){const lv=(w&&w.job==='r')?1-0.05*(wkLvl(crew[w.id]?crew[w.id].xp:0)-1):1;
+  return base*Math.pow(0.92,wkUp.dex)*lv/fmMult(w);}             // niveau récolteur -5%/niv + aura
+function wkOfflineEff(){return WK_CFG.OFF_EFF+0.05*wkUp.night;}  // 0.35 -> 0.60
+var _fmCyc=0;   // cycles complétés sous aura (XP du contremaître : +1/5 cycles)
+function wkGainXp(i,amt){const c=crew[i];if(!c)return;const l0=wkLvl(c.xp);
+  c.xp+=Math.floor(amt*(1+0.15*wkU2.man));
+  const l1=wkLvl(c.xp);
+  if(l1>l0){fmRecalc();const w=workers[i];   // level-up : FX + toast doré
+    if(w){const p=workerPos(w,performance.now());burst(isoX(p.x+.5,p.y+.5),isoY(p.x+.5,p.y+.5),'#ffd84d',16);
+      ft(isoX(p.x+.5,p.y+.5),isoY(p.x+.5,p.y+.5)-TH()*1.5,'⭐ '+WK_ID[i].n+' niv '+l1);}
+    if(document.getElementById('wkmodal').classList.contains('show'))renderWk();}}
+function spawnWorker(i){const src=(i>=6&&wkB.dorm)?{x:CAMP[0].x,y:CAMP[0].y+1}:{x:HOME_POS.x-2,y:HOME_POS.y+3};   // slots 7-8 sortent du Dortoir
+  workers.push({id:i,job:(crew[i]&&crew[i].j)||'r',x:src.x,y:src.y,x0:0,y0:0,x1:0,y1:0,t0:0,t1:0,
+    state:'idle',target:null,dir:1,scanT:0,zone:null,cyc:0,restT:performance.now()+30000,bub:null,patrol:0});}
 // récolte un plant ready : gains + FX + paliers + case vidée. PAS de save() (l'appelant décide).
 // c.variety est volontairement CONSERVÉ -> la replante (joueur ou ouvrier) garde la même variété.
 function harvestCell(c){
@@ -466,8 +568,9 @@ function harvestCell(c){
   c.state='empty'; c.grow=0;
   return grams;
 }
+const WK_MOVE={walk:1,vwalk:1,bwalk:1,patrol:1};   // états où l'ouvrier se déplace (interpolation + bob)
 function workerPos(w,now){   // position affichée, interpolée (lue par draw, ne mute rien)
-  if(w.state!=='walk')return{x:w.x,y:w.y};
+  if(!WK_MOVE[w.state])return{x:w.x,y:w.y};
   if(now>=w.t1)return{x:w.x1,y:w.y1};
   const k=(now-w.t0)/(w.t1-w.t0);
   return{x:w.x0+(w.x1-w.x0)*k, y:w.y0+(w.y1-w.y0)*k};
@@ -476,17 +579,23 @@ function wkRelease(w){if(w.target)delete wkClaims[w.target];w.target=null;w.stat
 function wkNextStep(w,c,now){   // un pas d'UNE case, axe du plus grand écart (marche en L, zéro pathfinding)
   const dx=c.x-w.x, dy=c.y-w.y, dd=Math.abs(dx)+Math.abs(dy);
   const sx=Math.abs(dx)>=Math.abs(dy)?Math.sign(dx):0, sy=sx?0:Math.sign(dy);
-  const sp=wkWalkSpeed()*(dd>WK_CFG.TROT_DIST?WK_CFG.TROT:1);   // champ lointain -> trot sur les routes, pas normal à l'arrivée
+  const sp=wkWalkSpeed(w)*(dd>WK_CFG.TROT_DIST?WK_CFG.TROT:1);   // champ lointain -> trot sur les routes, pas normal à l'arrivée
   w.x0=w.x;w.y0=w.y;w.x1=w.x+sx;w.y1=w.y+sy;w.t0=now;w.t1=now+1000/sp;
   const dS=(w.x1-w.x0)-(w.y1-w.y0); if(dS)w.dir=Math.sign(dS);   // flip selon le déplacement ÉCRAN (c-r)
 }
-// Ciblage à DEUX niveaux (anti-famine des champs lointains) : je choisis d'abord un CHAMP, puis je
+// Prédicats de ciblage par métier — la main du joueur (selCell) gagne TOUJOURS.
+function wkPred(w,now){
+  if(w.job==='g'){const cap=gCap(wkLvl(crew[w.id]?crew[w.id].xp:0));
+    return (c,k)=>c.state==='growing'&&c!==selCell&&!wkClaims[k]&&(c.gcd||0)<=now&&(c.quality||1)<cap;}
+  return (c,k)=>c.state==='ready'&&!wkClaims[k]&&c!==selCell;
+}
+// Scan à DEUX niveaux (anti-famine des champs lointains) : je choisis d'abord un CHAMP, puis je
 // travaille SES plants. Sticky (ma zone produit -> j'y reste), anti-entassement (zone la moins
 // chargée en ouvriers, tie-break la plus proche). w.zone est runtime pur (jamais sauvegardé).
-function wkFindTarget(w,now){
-  const cand={};   // zi -> {k,d} : meilleur plant ready non réservé de chaque zone (un seul scan)
+function wkScan(w,pred){
+  const cand={};   // zi -> {k,d} : meilleur plant éligible de chaque zone (un seul scan)
   for(const k in cropCells){const c=cropCells[k];
-    if(c.state!=='ready'||wkClaims[k]||c===selCell)continue;   // selCell exclu : on ne vole pas la case du joueur
+    if(!pred(c,k))continue;
     const d=Math.abs(c.x-w.x)+Math.abs(c.y-w.y);
     const b=cand[c.zi];if(!b||d<b.d)cand[c.zi]={k,d};}
   let zi=(w.zone!=null&&cand[w.zone])?w.zone:null;             // STICKY : zéro va-et-vient tant que ça produit
@@ -495,57 +604,211 @@ function wkFindTarget(w,now){
     let bs=Infinity;
     for(const z in cand){const s=(load[z]||0)*1e6+cand[z].d;if(s<bs){bs=s;zi=+z;}}   // moins chargée, puis plus proche
   }
-  if(zi==null){w.zone=null;return;}   // rien de mûr nulle part
-  w.zone=+zi;
-  const bk=cand[zi].k,c=cropCells[bk];wkClaims[bk]=w.id;w.target=bk;
-  if(cand[zi].d===0){w.state='harvest';w.t1=now+wkActMs(WK_CFG.HARVEST_MS);}
-  else{w.state='walk';wkNextStep(w,c,now);}
+  return zi==null?null:{zi:+zi,k:cand[zi].k,d:cand[zi].d};
+}
+function wkVendReady(){return !!(wkVs.on&&marketPrice>=wkVs.minP&&stock>=100);}   // le déclencheur du vendeur
+function wkWorkAvail(w,now){   // « y a-t-il du boulot pour MOI ? » (interrompt les pauses, ne claim rien)
+  if(w.job==='v')return wkVendReady();
+  if(w.job==='f')return W.cropzones.some(z=>z.owned);
+  const p=wkPred(w,now);for(const k in cropCells)if(p(cropCells[k],k))return true;return false;
+}
+function wkMaybeBreak(w,now){   // pause hobby — UNIQUEMENT depuis « aucune cible » : zéro prod sacrifiée
+  if(now<w.restT)return;   // pas encore l'heure -> il reste planté là (comme v18)
+  const id=WK_ID[w.id]||WK_ID[0], bx=HOME_POS.x+id.bd[0], by=HOME_POS.y+id.bd[1];
+  const ok=bx>=0&&by>=0&&bx<MW&&by<MH&&W.ground[by]&&W.ground[by][bx]!=='water'&&W.ground[by][bx]!=='soil';
+  w.bd=ok?{x:bx,y:by}:{x:HOME_POS.x-2,y:HOME_POS.y+3};   // fallback : l'allée SW du camp
+  if(w.x===w.bd.x&&w.y===w.bd.y){w.state='break';w.t1=now+8000;}
+  else{w.state='bwalk';wkNextStep(w,w.bd,now);}
+  w.scanT=now+2000;   // re-scan pendant la pause : un plant mûrit -> retour au boulot immédiat
+}
+function wkApplyCare(c,w){   // le soin du jardinier : GRATUIT (boosts{} jamais touché), plafonné
+  const lvl=wkLvl(crew[w.id]?crew[w.id].xp:0);
+  const amt=30*(1+0.08*wkU2.ferti);
+  let t='water';if((c.sun||0)<(c[t]||0))t='sun';if((c.nute||0)<(c[t]||0))t='nute';   // la jauge la plus basse
+  c[t]=Math.min(200,(c[t]||0)+amt);
+  const q=1+(((c.water||0)+(c.sun||0)+(c.nute||0))/600)*1.5;   // formule joueur (applyCare)
+  c.quality=Math.max(c.quality||1,Math.min(q,gCap(lvl)));      // clampée à SON plafond, ne défait jamais le joueur
+  c.gcd=performance.now()+8000;                                // cooldown : le soin pro se mérite
+  wkGainXp(w.id,1);
+  burst(isoX(c.x+.5,c.y+.5),isoY(c.x+.5,c.y+.5),'#7fd0ff',6);
+}
+function wkSell(w,now){   // la vente du vendeur : petit lot, au prix affiché, nudge du marché comme une vente joueur
+  const lvl=wkLvl(crew[w.id]?crew[w.id].xp:0);
+  const lot=Math.min(stock,150+50*(lvl-1));
+  if(lot<=0)return;
+  const earned=Math.floor(lot*marketPrice*valueMult()*homeSellMult()*vMult(lvl));
+  stock-=lot;setCoin(coin+earned);coinPulse();updateStock();
+  const ix=isoX(VEND_POS.x+.5,VEND_POS.y+.5),iy=isoY(VEND_POS.x+.5,VEND_POS.y+.5);
+  flyCoins(ix,iy,6);ft(ix,iy-TH(),'+'+money(earned)+' 💰');
+  marketPrice=Math.max(5,Math.min(14,marketPrice+(Math.random()*2-1)));   // sa vente fait vivre le marché
+  wkGainXp(w.id,10);save();   // ni stats.se ni stats.ea : les missions de vente restent la MAIN du joueur
+}
+// Ciblage idle par métier (récolteur = v18 intact, les autres = leur routine)
+function wkFindTarget(w,now){
+  if(w.job==='v'){   // le vendeur guette le marché
+    if(wkVendReady()){
+      if(w.x===VEND_POS.x&&w.y===VEND_POS.y){w.state='sell';w.t1=now+2000;}
+      else{w.state='vwalk';wkNextStep(w,VEND_POS,now);}
+    }else wkMaybeBreak(w,now);
+    return;}
+  if(w.job==='f'){   // le contremaître patrouille les champs et encourage
+    if(now>=w.restT){wkMaybeBreak(w,now);return;}   // même lui a droit au café
+    const zs=W.cropzones.filter(z=>z.owned);
+    if(!zs.length){wkMaybeBreak(w,now);return;}
+    w.patrol=(w.patrol+1)%zs.length;
+    const z=zs[w.patrol];w.pt={x:z.zx+(z.n>>1),y:z.zy+(z.n>>1)};
+    if(w.x===w.pt.x&&w.y===w.pt.y){w.state='cheer';w.t1=now+1500;}
+    else{w.state='patrol';wkNextStep(w,w.pt,now);}
+    return;}
+  const t=wkScan(w,wkPred(w,now));   // récolteur & jardinier : scan 2 niveaux
+  if(!t){w.zone=null;wkMaybeBreak(w,now);return;}
+  w.zone=t.zi;wkClaims[t.k]=w.id;w.target=t.k;
+  const act=w.job==='g'?'care':'harvest', ms=w.job==='g'?1200:WK_CFG.HARVEST_MS;
+  if(t.d===0){w.state=act;w.t1=now+wkActMs(ms,w);}
+  else{w.state='walk';wkNextStep(w,cropCells[t.k],now);}
 }
 function updateWorkers(now){   // LOGIQUE au tick 200ms — timers absolus => robuste au throttle d'onglet caché
   for(const w of workers){
     const c=w.target?cropCells[w.target]:null;
     if(w.state==='walk'){
-      if(!c||c.state!=='ready'){wkRelease(w);continue;}        // récoltée à la main entre-temps -> abandon propre
+      const ok=c&&(w.job==='g'
+        ?(c.state==='growing'&&c!==selCell&&(c.quality||1)<gCap(wkLvl(crew[w.id]?crew[w.id].xp:0)))
+        :c.state==='ready');
+      if(!ok){wkRelease(w);continue;}        // récoltée/soignée/prise en main entre-temps -> abandon propre
       if(now>=w.t1){w.x=w.x1;w.y=w.y1;
-        if(w.x===c.x&&w.y===c.y){w.state='harvest';w.t1=now+wkActMs(WK_CFG.HARVEST_MS);}
+        if(w.x===c.x&&w.y===c.y){
+          if(w.job==='g'){w.state='care';w.t1=now+wkActMs(1200,w);}
+          else{w.state='harvest';w.t1=now+wkActMs(WK_CFG.HARVEST_MS,w);}}
         else wkNextStep(w,c,now);}
     }else if(w.state==='harvest'){
       if(!c||c.state!=='ready'){wkRelease(w);continue;}
-      if(now>=w.t1){harvestCell(c);w.state='plant';w.t1=now+wkActMs(WK_CFG.PLANT_MS);}
+      if(now>=w.t1){harvestCell(c);w.state='plant';w.t1=now+wkActMs(WK_CFG.PLANT_MS,w);}
+    }else if(w.state==='care'){
+      if(!c||c.state!=='growing'||c===selCell){wkRelease(w);continue;}   // mûri/récolté/main du joueur -> on lâche
+      if(now>=w.t1){wkApplyCare(c,w);wkRelease(w);}
     }else if(w.state==='plant'){
       if(now>=w.t1){
         if(c&&c.state==='empty'){c.state='growing';c.grow=0;c.water=0;c.sun=0;c.nute=0;c.quality=1;   // même variety (conservée)
           burst(isoX(c.x+.5,c.y+.5),isoY(c.x+.5,c.y+.5),'#9dffb8',6);}
+        w.cyc++;wkGainXp(w.id,2);   // le cycle complet paie l'expérience
+        if(_fm>1&&w.job!=='f'){_fmCyc++;if(_fmCyc%5===0){const fi=crew.findIndex(x=>x.j==='f');if(fi>=0)wkGainXp(fi,1);}}
         wkRelease(w);}
+    }else if(w.state==='vwalk'){
+      if(!wkVendReady()){w.state='idle';w.scanT=now+1000;continue;}   // le joueur a vendu / prix retombé
+      if(now>=w.t1){w.x=w.x1;w.y=w.y1;
+        if(w.x===VEND_POS.x&&w.y===VEND_POS.y){w.state='sell';w.t1=now+2000;}
+        else wkNextStep(w,VEND_POS,now);}
+    }else if(w.state==='sell'){
+      if(now>=w.t1){if(wkVendReady())wkSell(w,now);w.state='idle';w.scanT=now+2000;}
+    }else if(w.state==='patrol'){
+      if(now>=w.t1){w.x=w.x1;w.y=w.y1;
+        if(w.pt&&w.x===w.pt.x&&w.y===w.pt.y){w.state='cheer';w.t1=now+1500;}
+        else if(w.pt)wkNextStep(w,w.pt,now);
+        else{w.state='idle';w.scanT=now;}}
+    }else if(w.state==='cheer'){
+      if(now>=w.t1){w.state='idle';w.scanT=now+400;}
+    }else if(w.state==='bwalk'){
+      if(now>=w.scanT){w.scanT=now+2000;if(wkWorkAvail(w,now)){w.state='idle';w.scanT=now;continue;}}   // le devoir appelle
+      if(now>=w.t1){w.x=w.x1;w.y=w.y1;
+        if(w.bd&&w.x===w.bd.x&&w.y===w.bd.y){w.state='break';w.t1=now+8000;}
+        else if(w.bd)wkNextStep(w,w.bd,now);
+        else{w.state='idle';w.scanT=now+500;}}
+    }else if(w.state==='break'){
+      if(now>=w.scanT){w.scanT=now+2000;if(wkWorkAvail(w,now)){w.state='idle';w.scanT=now;w.restT=now+45000;continue;}}
+      if(now>=w.t1){w.state='idle';w.scanT=now+500;w.restT=now+45000;}   // pause finie, prochaine dans 45s
     }else if(now>=w.scanT){w.scanT=now+500;wkFindTarget(w,now);}   // idle : re-scan throttlé 2x/s
   }
+  wkTalkTick(now);   // la vallée papote (1 bulle max, ~9s)
 }
+const WK_ACT={harvest:'✂️',plant:'🌱',care:'💧',sell:'💰',cheer:'📣'};   // bulle d'action par état
 function drawWorker(w,p,now){
   const ix=isoX(p.x+0.5,p.y+0.5)+((w.id%3)-1)*3*zoom;   // micro-offset par id : jamais 2 ouvriers pile superposés
   const iy=isoY(p.x+0.5,p.y+0.5)+TH()*0.18;             // pied posé dans la case
-  const spr=IMG['worker_'+(1+w.id%3)];                  // le jour où worker_1..3.png entrent au PACK : swap auto
+  const spr=IMG['worker_'+w.job]||IMG['worker_'+(1+w.id%3)];   // le jour où des sprites entrent au PACK : swap auto
   if(spr&&spr.complete&&spr.naturalWidth){shadow(ix,iy,TW()*0.5);drawSp(spr,ix,iy,TW()*0.55,null);return;}
   shadow(ix,iy,TW()*0.42);                              // FALLBACK asset-free : emoji canvas (comme le ✨ des ready)
-  const s=26*zoom, bob=w.state==='walk'?Math.abs(Math.sin(now/110))*3*zoom:0;
+  const s=26*zoom, bob=WK_MOVE[w.state]?Math.abs(Math.sin(now/110))*3*zoom:0;
   ctx.save();ctx.translate(ix,iy-bob);
   if(w.dir<0)ctx.scale(-1,1);                           // regarde dans le sens de la marche
-  if(w.state==='harvest')ctx.scale(1,0.94+0.06*Math.sin(now/120));   // petit « squat » de travail
-  ctx.font=s+'px serif';ctx.textAlign='center';ctx.fillText('👷',0,0);ctx.restore();
-  if(w.state==='harvest'||w.state==='plant'){           // bulle d'action qui pulse
-    ctx.save();ctx.globalAlpha=.55+.45*Math.sin(now/280);ctx.font=(11*zoom)+'px serif';ctx.textAlign='center';
-    ctx.fillText(w.state==='harvest'?'✂️':'🌱',ix,iy-s*1.15);ctx.restore();}
+  if(w.state==='harvest'||w.state==='care')ctx.scale(1,0.94+0.06*Math.sin(now/120));   // petit « squat » de travail
+  ctx.font=s+'px serif';ctx.textAlign='center';ctx.fillText(JOB_EMO[w.job]||'👷',0,0);ctx.restore();
+  const ae=w.state==='break'?((WK_ID[w.id]||{}).h||'☕'):WK_ACT[w.state];   // en pause : l'emoji de SON hobby
+  if(ae){ctx.save();ctx.globalAlpha=.55+.45*Math.sin(now/280);ctx.font=(11*zoom)+'px serif';ctx.textAlign='center';
+    ctx.fillText(ae,ix,iy-s*1.15);ctx.restore();}
+  if(wkTalk&&wkTalk.id===w.id){                          // bulle de dialogue (1 max à l'écran — wkTalkTick)
+    const z=Math.min(zoom,1.4);ctx.save();
+    ctx.font=(10*z)+'px sans-serif';
+    const tw2=ctx.measureText(wkTalk.txt).width, bw=tw2+14*z, bh=17*z, bx=ix-bw/2, by=iy-s*1.75-bh;
+    ctx.globalAlpha=.9;ctx.fillStyle='rgba(16,22,12,.92)';ctx.strokeStyle='rgba(180,220,140,.55)';ctx.lineWidth=1;
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(bx,by,bw,bh,6*z);else ctx.rect(bx,by,bw,bh);
+    ctx.fill();ctx.stroke();
+    ctx.fillStyle='#dff0c8';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(wkTalk.txt,ix,by+bh/2+0.5);ctx.restore();
+  }
 }
-// HORS-LIGNE analytique (déterministe -> pas d'exploit reload) : régime permanent au-delà de la
-// 1re pousse ; le champ mûr affiché au retour (growCells(off)) EST ce dernier cycle non compté.
+// HORS-LIGNE analytique (100% déterministe, ZÉRO Math.random -> pas d'exploit reload) : régime
+// permanent au-delà de la 1re pousse ; le champ mûr affiché au retour (growCells(off)) EST ce
+// dernier cycle non compté. v19 : décomposé par MÉTIER. Le vendeur vend F× de la PRODUCTION
+// offline (jamais le stock pré-existant du joueur) — approximation ASSUMÉE et conservatrice :
+// en ligne le backlog accumulé sous le seuil se vend au passage de la vague (~100% de la prod).
 function wkOfflineGains(offMs){
-  if(workerCount<=0)return 0;
+  const out={grams:0,sold:0,coin:0,vName:''};
+  if(workerCount<=0||offMs<=0)return out;
   let N=0;for(const k in cropCells)if(cropCells[k].state!=='empty')N++;   // cases « en rotation »
-  if(N<=0)return 0;
+  if(N<=0)return out;
   const growS=GROW_MS*speedMult()/1000;
-  const cycle=WK_CFG.AVG_WALK/wkWalkSpeed()+(WK_CFG.HARVEST_MS+WK_CFG.PLANT_MS)*Math.pow(0.92,wkUp.dex)/1000;
-  const rate=Math.min(workerCount/cycle, N/growS);                        // goulot = bras OU champ
   const effS=Math.max(0,offMs/1000-growS);
-  return Math.floor(rate*effS*wkOfflineEff()*16.5*yieldMult());           // 16.5 = espérance de la récolte, quality 1
+  if(effS<=0)return out;
+  const eff=wkOfflineEff();
+  // décomposition du crew (tout est dans crew -> déterministe)
+  const hC=[],gI=[];let vBest=-1,vLvl=0,fBest=0;
+  crew.forEach((c,i)=>{const l=wkLvl(c.xp);
+    if(c.j==='r')hC.push({i,l});
+    else if(c.j==='g')gI.push(i);
+    else if(c.j==='v'){if(l>vLvl||vBest<0){vBest=i;vLvl=l;}}
+    else if(c.j==='f')fBest=Math.max(fBest,l);});
+  const fm=fBest?1+0.10+0.025*(fBest-1)+0.03*wkU2.sif:1;
+  // débit des bras : Σ 1/cycle_i (dex + niveau récolteur + aura), goulot = bras OU champ
+  let arm=0;
+  for(const h of hC){h.cyc=WK_CFG.AVG_WALK/(WK_CFG.WALK*Math.pow(1.12,wkUp.walk)*fm)
+    +(WK_CFG.HARVEST_MS+WK_CFG.PLANT_MS)*Math.pow(0.92,wkUp.dex)*(1-0.05*(h.l-1))/fm/1000;arm+=1/h.cyc;}
+  const rate=Math.min(arm,N/growS);
+  const cycles=rate*effS*eff;   // cycles récolte+replante simulés
+  // jardiniers offline -> qualité moyenne (couverture ~20 plants/jardinier ; facteur 0.65 = LE levier
+  // d'équilibrage anti-méta : [r,r,r,g] >= 95% de [r,r,r,r] à niv 3 champ non saturé, teste-le si tu y touches)
+  let capMoy=0;for(const i of gI)capMoy+=gCap(wkLvl(crew[i].xp));capMoy=gI.length?capMoy/gI.length:1;
+  const qOff=1+Math.min(1,gI.length*20/N)*(capMoy-1)*0.65;
+  out.grams=Math.floor(cycles*16.5*yieldMult()*qOff);
+  // vendeur offline — fermé sur la sinusoïde du marché : F = fraction du temps au-dessus du seuil,
+  // P = prix moyen au-dessus du seuil. Garde F>0 (si minP dépassait l'amplitude, la division exploserait).
+  if(vBest>=0&&wkVs.on&&out.grams>0){
+    const s0=Math.max(-1,Math.min(1,(wkVs.minP-MKT.MID)/MKT.AEFF)), th0=Math.asin(s0);
+    const F=(Math.PI-2*th0)/(2*Math.PI);
+    if(F>0){
+      const P=MKT.MID+MKT.AEFF*2*Math.cos(th0)/(Math.PI-2*th0);
+      out.sold=Math.floor(out.grams*F);
+      out.coin=Math.floor(out.sold*P*valueMult()*homeSellMult()*vMult(vLvl));
+      out.grams-=out.sold;
+      out.vName=(WK_ID[vBest]||{}).n||'Le vendeur';
+    }
+  }
+  // XP offline : prorata du travail simulé de chacun, cap 300/ouvrier/session, tout en floor()
+  const man=1+0.15*wkU2.man, xcap=300;
+  if(arm>0&&cycles>0){
+    let hTot=0;for(const h of hC)hTot+=effS*eff/h.cyc;
+    const k=hTot>0?cycles/hTot:0;
+    for(const h of hC)crew[h.i].xp+=Math.min(xcap,Math.floor(Math.floor(effS*eff/h.cyc*k)*2*man));
+  }
+  for(const i of gI){const l=wkLvl(crew[i].xp);
+    const gCyc=WK_CFG.AVG_WALK/(WK_CFG.WALK*Math.pow(1.12,wkUp.walk)*fm)+1.2*Math.pow(0.92,wkUp.dex)/fm;
+    const acts=Math.min(effS*eff/gCyc, N*effS/8000);   // borné par le cooldown 8s des cellules
+    crew[i].xp+=Math.min(xcap,Math.floor(Math.floor(acts)*1*man));}
+  if(vBest>=0&&out.sold>0){const lots=Math.floor(out.sold/(150+50*(vLvl-1)));
+    crew[vBest].xp+=Math.min(xcap,Math.floor(lots*10*man));}
+  if(fBest>0){const fi=crew.findIndex(c=>c.j==='f');
+    if(fi>=0)crew[fi].xp+=Math.min(xcap,Math.floor(cycles/5*man));}
+  fmRecalc();   // les niveaux ont pu bouger
+  return out;
 }
 
 // === 🎯 MISSIONS : la chaîne d'objectifs qui raconte l'ascension de James (40 missions, 6 chapitres).
@@ -559,7 +822,8 @@ function landOwned(){return (W.landgroups||[]).filter(g=>g.owned).length;}
 function labSum(){return lab.yield+lab.speed+lab.value;}
 function wkUpSum(){return wkUp.walk+wkUp.dex+wkUp.night;}
 const MCH=[[0,"I — Le lopin hérité"],[7,"II — L'artisan"],[13,"III — La ferme"],
-           [20,"IV — Le domaine"],[26,"V — Le baron"],[32,"VI — La légende"]];
+           [20,"IV — Le domaine"],[26,"V — Le baron"],[32,"VI — La légende"],
+           [40,"VII — Le patron"]];
 // Vieux saves : les gestes prouvables par l'état intègrent la preuve dans p() (max(stats, preuve)) ;
 // les autres (soins/combo/variétés/ventes) restent demandés mais minuscules -> tuto rejouable, jamais punitif.
 const MISSIONS=[
@@ -603,12 +867,21 @@ const MISSIONS=[
   {ico:'👷',n:'6 ouvriers',t:6,p:()=>workerCount,r:120000,d:"« L'équipe au complet. Six growers d'élite. On m'appelle patron, j'ai arrêté de corriger. »"},
   {ico:'🌿',n:'Récolte 400 kg au total',t:400000,p:()=>totalHarvest,r:150000,d:"« 400 kilos. Les Graines de l'Oubli ? Plus personne n'oubliera jamais ce nom. »"},
   {ico:'🏆',n:'Le Domaine de Luxe',t:11,p:()=>houseLevel,r:250000,d:"« Piscine, garage, villa moderne. Parti d'une bâche et d'une graine. Je suis la légende de la vallée. »"},
+  // ── Chapitre VII — Le patron (v19, APPEND STRICT : les indices 0-39 sont gravés dans les saves) ──
+  {ico:'🛠️',n:'Construis l\'Atelier',t:1,p:()=>wkB.atl,r:40000,d:"« Un établi, des outils accrochés au mur. Une équipe, ça s'équipe. »"},
+  {ico:'🧑‍🌾',n:'Assigne un jardinier',t:1,p:()=>crew.filter(c=>c.j==='g').length,r:50000,d:"« Brume parle aux plants. Le plus fou ? Ils répondent — en poussant plus beau. »"},
+  {ico:'🤠',n:'Assigne un vendeur',t:1,p:()=>crew.filter(c=>c.j==='v').length,r:60000,d:"« Il guette le marché comme moi je guette la pluie. Vends quand ça brille, mon grand. »"},
+  {ico:'🛏️',n:'Construis le Dortoir',t:1,p:()=>wkB.dorm,r:100000,d:"« Des vrais lits pour ceux qui font pousser mon rêve. C'est ça, être patron. »"},
+  {ico:'👷',n:'7 ouvriers',t:7,p:()=>workerCount,r:150000,d:"« Sept. Le dortoir affiche complet et la vallée bourdonne comme une ruche. »"},
+  {ico:'⭐',n:'Un ouvrier niveau 5',t:5,p:()=>crew.reduce((m,c)=>Math.max(m,wkLvl(c.xp)),0),r:200000,d:"« Un maître dans mon équipe. Je lui ai tout appris — enfin, presque tout. »"},
+  {ico:'👑',n:'8 ouvriers',t:8,p:()=>workerCount,r:400000,d:"« Huit growers d'élite, un atelier, un dortoir. Le hameau Lucky a des prénoms, une âme, une légende. »"},
 ];
 // Cibles du guidage « 📍 Montre-moi » (index -> type). Les 3 missions de vente (3,16,28) n'en ont pas.
 const MGO={0:'field',1:'field',2:'field',4:'field',5:'field',8:'field',12:'field',17:'field',26:'field',31:'field',38:'field',
   6:'zone',11:'zone',20:'zone',35:'zone',19:'land',24:'land',32:'land',
   9:'house',13:'house',18:'house',21:'house',25:'house',27:'house',30:'house',33:'house',36:'house',39:'house',
-  7:'lab',15:'lab',10:'worker',14:'worker',22:'worker',23:'worker',29:'worker',34:'worker',37:'worker'};
+  7:'lab',15:'lab',10:'worker',14:'worker',22:'worker',23:'worker',29:'worker',34:'worker',37:'worker',
+  40:'worker',41:'worker',42:'worker',43:'worker',44:'worker',45:'worker',46:'worker'};
 MISSIONS.forEach((m,i)=>{if(MGO[i])m.go=MGO[i];});
 
 function isoX(c,r){return APP_W/2+(c-r)*TW()/2+cam.x;}
@@ -1005,19 +1278,68 @@ document.getElementById('labbtn').addEventListener('click',openLab);
 document.getElementById('labclose').addEventListener('click',closeLab);
 document.getElementById('labmodal').addEventListener('click',e=>{if(e.target.id==='labmodal')closeLab();});
 // === 👷 OUVRIERS : panneau d'embauche + upgrades (pattern labo) ===
+// PANNEAU v19 : render-ONCE (rebuild seulement à l'ouverture et aux changements d'état) ; les
+// valeurs vivantes (barres XP, prix) sont PATCHÉES par tickWk() -> zéro tap fantôme sur mobile.
 function renderWk(){
-  document.getElementById('wktitle').textContent='👷 Mes Ouvriers · '+workerCount+'/'+WK_CFG.MAX;
+  document.getElementById('wktitle').textContent='👷 Mes Ouvriers · '+workerCount+'/'+wkMax();
   const list=document.getElementById('wklist');list.innerHTML='';
-  const full=workerCount>=WK_CFG.MAX, req=full?0:wkHouseReq(), cost=full?0:wkHireCost();
-  const okH=!full&&houseLevel>=req, can=okH&&coin>=cost;
+  const sec=t=>{const d=document.createElement('div');d.className='wsec';d.textContent=t;list.appendChild(d);};
+  // ── 1) L'ÉQUIPE : une carte par ouvrier, métier réassignable ─────────────────────────────
+  if(crew.length){
+    sec('🧑‍🤝‍🧑 L\'équipe');
+    crew.forEach((c,i)=>{
+      const id=WK_ID[i]||WK_ID[0], l=wkLvl(c.xp), nx=wkNextXp(l), pv=wkNextXp(l-1)||0;
+      const pct=l>=5?100:Math.min(100,(c.xp-pv)/(nx-pv)*100);
+      const card=document.createElement('div');card.className='labitem';
+      card.innerHTML='<span class="labemo">'+JOB_EMO[c.j]+'</span>'+
+        '<div class="labinfo"><div class="labname">'+id.n+' <span style="opacity:.7">'+id.h+'</span></div>'+
+        '<div class="lablvl" id="wlvl'+i+'">'+JOB_NAME[c.j]+' · Niv '+l+(l>=5?' · MAX':'')+'</div>'+
+        '<div class="wxp"><i id="wxp'+i+'" style="width:'+pct+'%"></i></div>'+
+        '<div class="wjobs">'+['r','g','v','f'].map(j=>{
+          const dbl=j==='f'&&c.j!=='f'&&crew.some((o,x)=>x!==i&&o.j==='f');
+          return '<div class="wjob'+(c.j===j?' on':'')+'" data-wj="'+i+':'+j+'" title="'+JOB_NAME[j]+'"'+
+            (dbl?' style="opacity:.45"':'')+'>'+JOB_EMO[j]+'</div>';}).join('')+'</div></div>';
+      list.appendChild(card);
+    });
+    if(crew.some(c=>c.j==='v')){   // config du vendeur : toggle + seuil de PRIX
+      const vs=document.createElement('div');vs.className='labitem';
+      vs.innerHTML='<span class="labemo">🧺</span>'+
+        '<div class="labinfo"><div class="labname">L\'étal du marché</div>'+
+        '<div class="labdesc">Il vend par petits lots dès que le prix passe le seuil · prix : <b id="wkmp">'+marketPrice.toFixed(1)+'</b> 💰/g</div>'+
+        '<div class="wjobs">'+[8,10,12].map(p=>'<div class="wjob'+(wkVs.minP===p?' on':'')+'" data-vsp="'+p+'">≥'+p+'</div>').join('')+'</div></div>'+
+        '<button class="labbuy" id="wkvst">'+(wkVs.on?'▶ actif':'⏸ pause')+'</button>';
+      list.appendChild(vs);
+    }
+  }
+  // ── 2) EMBAUCHE ───────────────────────────────────────────────────────────────────────────
+  sec('👷 Embauche');
+  const hardMax=WK_CFG.HIRE.length, full=workerCount>=hardMax, needDorm=!full&&workerCount>=wkMax();
+  const req=full?0:wkHouseReq(), cost=full?0:wkHireCost();
+  const okH=!full&&!needDorm&&houseLevel>=req, can=okH&&coin>=cost;
   const hire=document.createElement('div');hire.className='labitem';
   hire.innerHTML='<span class="labemo">👷</span>'+
-    '<div class="labinfo"><div class="labname">Embaucher un ouvrier</div>'+
-    '<div class="labdesc">Récolte les plants mûrs et replante tout seul</div>'+
-    '<div class="lablvl">Ouvriers '+workerCount+'/'+WK_CFG.MAX+'</div></div>'+
+    '<div class="labinfo"><div class="labname">'+(full?'Équipe au complet':'Embaucher '+(WK_ID[workerCount]||{}).n)+'</div>'+
+    '<div class="labdesc">Arrive Récolteur — réassigne son métier quand tu veux</div>'+
+    '<div class="lablvl">Ouvriers '+workerCount+'/'+wkMax()+'</div></div>'+
     '<button class="labbuy" id="wkhire" '+(can?'':'disabled')+'>'+
-      (full?'MAX':okH?money(cost)+' 💰':'🏠 Maison niv '+req)+'</button>';
+      (full?'MAX':needDorm?'🛏️ Dortoir requis':okH?money(cost)+' 💰':'🏠 Maison niv '+req)+'</button>';
   list.appendChild(hire);
+  // ── 3) LE CAMP : Dortoir + Atelier ────────────────────────────────────────────────────────
+  sec('🏗️ Le Camp');
+  CAMP.forEach(b=>{
+    const lvl=wkB[b.k]||0, maxed=lvl>=b.lv.length, spec=maxed?null:b.lv[lvl];
+    const okB=!maxed&&houseLevel>=spec.hr, canB=okB&&coin>=spec.c;
+    const item=document.createElement('div');item.className='labitem';
+    item.innerHTML='<span class="labemo">'+b.ico+'</span>'+
+      '<div class="labinfo"><div class="labname">'+b.name+'</div>'+
+      '<div class="labdesc">'+b.desc+'</div>'+
+      '<div class="lablvl">Niveau '+lvl+(maxed?' · MAX':'/'+b.lv.length)+'</div></div>'+
+      '<button class="labbuy" data-camp="'+b.k+'" '+(canB?'':'disabled')+'>'+
+        (maxed?'MAX':okB?money(spec.c)+' 💰':'🏠 Maison niv '+spec.hr)+'</button>';
+    list.appendChild(item);
+  });
+  // ── 4) AMÉLIORATIONS : tier 1 + tier 2 (Atelier) ─────────────────────────────────────────
+  sec('🛠️ Améliorations');
   WK_UP.forEach(u=>{
     const l=wkUp[u.key],maxed=l>=u.max,c2=wkUpCost(u);
     const ok=workerCount>0&&!maxed&&coin>=c2;
@@ -1029,26 +1351,107 @@ function renderWk(){
       '<button class="labbuy" data-wk="'+u.key+'" '+(ok?'':'disabled')+'>'+(maxed?'MAX':money(c2)+' 💰')+'</button>';
     list.appendChild(item);
   });
+  WK_UP2.forEach(u=>{
+    const l=wkU2[u.key],maxed=l>=u.max,c2=wkUp2Cost(u),lock=!wkB.atl;
+    const ok=!lock&&workerCount>0&&!maxed&&coin>=c2;
+    const item=document.createElement('div');item.className='labitem';
+    item.innerHTML='<span class="labemo">'+u.emo+'</span>'+
+      '<div class="labinfo"><div class="labname">'+u.name+'</div>'+
+      '<div class="labdesc">'+u.desc+'</div>'+
+      '<div class="lablvl">'+(lock?'—':'Niveau '+l+(maxed?' · MAX':'/'+u.max))+'</div></div>'+
+      '<button class="labbuy" data-wk2="'+u.key+'" '+(ok?'':'disabled')+'>'+
+        (lock?'🛠️ Atelier requis':maxed?'MAX':money(c2)+' 💰')+'</button>';
+    list.appendChild(item);
+  });
   const foot=document.createElement('div');foot.className='labdesc';foot.style.textAlign='center';
-  foot.textContent='😴 Hors-ligne : tes ouvriers travaillent à '+Math.round(wkOfflineEff()*100)+'% d\'efficacité (max '+homeOfflineH()+'h)';
+  foot.textContent='😴 Hors-ligne : l\'équipe travaille à '+Math.round(wkOfflineEff()*100)+'% d\'efficacité (max '+homeOfflineH()+'h)';
   list.appendChild(foot);
+  // handlers (rebranchés à chaque rebuild — le rebuild n'arrive que sur événement discret)
   const hb=document.getElementById('wkhire');if(hb)hb.addEventListener('click',buyWorker);
   document.querySelectorAll('[data-wk]').forEach(b=>b.addEventListener('click',()=>buyWkUp(b.dataset.wk)));
+  document.querySelectorAll('[data-wk2]').forEach(b=>b.addEventListener('click',()=>buyWkUp2(b.dataset.wk2)));
+  document.querySelectorAll('[data-camp]').forEach(b=>b.addEventListener('click',()=>buyCampBld(b.dataset.camp)));
+  document.querySelectorAll('[data-wj]').forEach(b=>b.addEventListener('click',()=>{const[i,j]=b.dataset.wj.split(':');wkAssign(+i,j);}));
+  document.querySelectorAll('[data-vsp]').forEach(b=>b.addEventListener('click',()=>{wkVs.minP=+b.dataset.vsp;save();renderWk();}));
+  const vt=document.getElementById('wkvst');if(vt)vt.addEventListener('click',()=>{wkVs.on=wkVs.on?0:1;save();
+    toast(wkVs.on?'🤠 Le vendeur reprend l\'étal !':'⏸ Le vendeur fait la sieste');renderWk();});
+}
+function tickWk(){   // patch LÉGER 1x/s : barres XP + prix du marché — jamais de rebuild innerHTML
+  if(!document.getElementById('wkmodal').classList.contains('show'))return;
+  crew.forEach((c,i)=>{
+    const f=document.getElementById('wxp'+i);if(!f)return;
+    const l=wkLvl(c.xp),nx=wkNextXp(l),pv=wkNextXp(l-1)||0;
+    f.style.width=(l>=5?100:Math.min(100,(c.xp-pv)/(nx-pv)*100))+'%';
+    const lv=document.getElementById('wlvl'+i);if(lv)lv.textContent=JOB_NAME[c.j]+' · Niv '+l+(l>=5?' · MAX':'');
+  });
+  const mp=document.getElementById('wkmp');if(mp)mp.textContent=marketPrice.toFixed(1);
+}
+setInterval(tickWk,1000);
+function wkAssign(i,j){
+  if(!crew[i]||crew[i].j===j)return;
+  if(j==='f'&&crew.some((c,x)=>x!==i&&c.j==='f'))toast('📯 Un seul contremaître donne de la voix — le 2e serait décoratif !');
+  crew[i].j=j;
+  const w=workers[i];if(w){wkRelease(w);w.job=j;w.zone=null;}   // il lâche sa tâche et change de casquette
+  fmRecalc();save();
+  toast(JOB_EMO[j]+' '+(WK_ID[i]||{}).n+' devient '+JOB_NAME[j]+' !');
+  renderWk();
 }
 function openWk(){document.getElementById('wkmodal').classList.add('show');renderWk();}
 function closeWk(){document.getElementById('wkmodal').classList.remove('show');}
 function buyWorker(){
-  if(workerCount>=WK_CFG.MAX)return;
+  if(workerCount>=WK_CFG.HIRE.length)return;
+  if(workerCount>=wkMax()){toast('🛏️ Construis le Dortoir pour loger plus d\'ouvriers !');return;}
   if(houseLevel<wkHouseReq()){toast('🏠 Améliore ta maison (niv '+wkHouseReq()+') !');return;}
   const cost=wkHireCost();if(coin<cost){toast('Pas assez 💰');return;}
-  setCoin(coin-cost);workerCount++;spawnWorker(workerCount-1);save();   // débit + état + save ATOMIQUES
-  coinPulse();toast('👷 Ouvrier embauché !');renderWk();
+  setCoin(coin-cost);crew.push({j:'r',xp:0});workerCount=crew.length;spawnWorker(workerCount-1);save();   // débit + état + save ATOMIQUES
+  coinPulse();toast('👷 '+(WK_ID[workerCount-1]||{}).n+' rejoint l\'équipe !');renderWk();updateWkBtn();
   const w=workers[workers.length-1];burst(isoX(w.x+.5,w.y+.5),isoY(w.x+.5,w.y+.5),'#ffd84d',14);
 }
 function buyWkUp(k){const u=WK_UP.find(x=>x.key===k),l=wkUp[k];if(l>=u.max||workerCount===0)return;
   const cost=wkUpCost(u);if(coin<cost){toast('Pas assez 💰');return;}
   setCoin(coin-cost);wkUp[k]=l+1;save();coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderWk();}
-function updateWkBtn(){document.getElementById('wkbtn').classList.toggle('show',houseLevel>=2);}
+function buyWkUp2(k){const u=WK_UP2.find(x=>x.key===k),l=wkU2[k];
+  if(!u||!wkB.atl||l>=u.max||workerCount===0)return;
+  const cost=wkUp2Cost(u);if(coin<cost){toast('Pas assez 💰');return;}
+  setCoin(coin-cost);wkU2[k]=l+1;if(k==='sif')fmRecalc();save();coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderWk();}
+// Achat d'un bâtiment du camp : même mise en scène de chantier que la maison (pattern buyHouse)
+function buyCampBld(k){
+  const b=CAMP.find(x=>x.k===k);if(!b||cine)return;
+  const lvl=wkB[k]||0;if(lvl>=b.lv.length)return;
+  const spec=b.lv[lvl];
+  if(houseLevel<spec.hr){toast('🏠 Améliore ta maison (niv '+spec.hr+') !');return;}
+  if(coin<spec.c){toast('Pas assez 💰');return;}
+  setCoin(coin-spec.c);wkB[k]=lvl+1;save();   // état commité ATOMIQUEMENT au débit
+  cine=true;closeWk();
+  document.getElementById('cineblock').classList.add('show');
+  const bx=b.x+0.5,by=b.y+0.5;
+  glideCam(bx,by,Math.max(zoom,1.05),600,()=>{
+    let hits=0;
+    const iv=setInterval(()=>{
+      const ix=isoX(bx,by),iy=isoY(bx,by);
+      const ox=(Math.random()-0.5)*TW()*1.8,oy=(Math.random()-0.5)*TH()*1.8-TH();
+      burst(ix+ox,iy+oy,hits%2?'#c9b28a':'#8a6f4d',10);
+      if(hits%2===0)ft(ix+ox,iy+oy-10,'🔨');
+      hits++;
+    },180);
+    setTimeout(()=>{clearInterval(iv);
+      placeCamp();   // REVEAL : le bâtiment apparaît
+      const ix=isoX(bx,by),iy=isoY(bx,by);
+      burst(ix,iy-TH()*1.5,'#ffd84d',24);
+      revealFX={x:bx,y:by,t0:performance.now(),dur:900};
+      const fl=document.getElementById('flash');fl.classList.remove('go');void fl.offsetWidth;fl.classList.add('go');
+      setTimeout(()=>{
+        toast(b.ico+' '+b.name+(b.lv.length>1?' · niveau '+wkB[k]:'')+' — construit !');
+        if(k==='dorm'&&wkB.dorm===1)setTimeout(()=>toast('👷 '+(WK_ID[0]||{}).n+' a enfin un vrai lit !'),2200);
+        updateWkBtn();save();
+        document.getElementById('cineblock').classList.remove('show');cine=false;
+      },900);
+    },1600);
+  });
+}
+function updateWkBtn(){const b=document.getElementById('wkbtn');
+  b.classList.toggle('show',houseLevel>=2);
+  b.innerHTML='👷<span class="wkcount">'+workerCount+'/'+wkMax()+'</span>';}
 document.getElementById('wkbtn').addEventListener('click',openWk);
 document.getElementById('wkclose').addEventListener('click',closeWk);
 document.getElementById('wkmodal').addEventListener('click',e=>{if(e.target.id==='wkmodal')closeWk();});
@@ -1378,14 +1781,25 @@ function save(){try{
   const crops={};for(const k in cropCells){const c=cropCells[k];if(c.state!=='empty')crops[k]={s:c.state,g:c.grow,vv:c.variety,w:c.water||0,su:c.sun||0,n:c.nute||0,q:c.quality||1};}
   const zones=[];W.cropzones.forEach((z,i)=>{if(z.owned)zones.push(i);});
   const land=[];(W.landgroups||[]).forEach((g,i)=>{if(g.owned)land.push(i);});
-  localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,t:Date.now(),coin,stock,marketPrice,totalHarvest,houseLevel,boosts,careT,lab,wk:{n:workerCount,up:wkUp},mi,st:stats,zones,land,crops}));
+  localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,t:Date.now(),coin,stock,marketPrice,totalHarvest,houseLevel,boosts,careT,lab,
+    wk:{n:workerCount,up:wkUp,crew:crew.map(c=>[c.j,c.xp]),b:wkB,u2:wkU2,vs:wkVs},mt:mktT,mi,st:stats,zones,land,crops}));   // wk étendu v19 (additif) + horodatage marché
 }catch(e){}}
 function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){s=null;}
   if(!s||s.v!==1)return;
   setCoin(s.coin);stock=s.stock;marketPrice=s.marketPrice;totalHarvest=s.totalHarvest||0;
   houseLevel=s.houseLevel||1;placeHome();   // re-pose la maison au bon niveau
   if(s.boosts)boosts=s.boosts; if(s.lab)lab=s.lab; careT=s.careT||Date.now();
-  if(s.wk){workerCount=Math.min(WK_CFG.MAX,s.wk.n||0);if(s.wk.up)wkUp={walk:0,dex:0,night:0,...s.wk.up};}   // vieux saves sans wk -> 0 ouvrier
+  if(s.wk){   // v19 : lecture DÉFENSIVE + migration (save v18 sans crew -> n Récolteurs, rien perdu)
+    if(s.wk.up)wkUp={walk:0,dex:0,night:0,...s.wk.up};
+    wkB={dorm:0,atl:0,...(s.wk.b||{})}; wkU2={ferti:0,etal:0,sif:0,man:0,...(s.wk.u2||{})};
+    wkVs={on:1,minP:10,...(s.wk.vs||{})}; if(![8,10,12].includes(wkVs.minP))wkVs.minP=10;
+    crew=Array.isArray(s.wk.crew)
+      ?s.wk.crew.map(e=>({j:('rgvf'.includes(e&&e[0])?e[0]:'r'),xp:Math.max(0,Math.floor(+(e&&e[1])||0))}))
+      :Array.from({length:Math.max(0,s.wk.n||0)},()=>({j:'r',xp:0}));
+    workerCount=Math.min(wkMax(),crew.length); crew.length=workerCount;   // clamp APRÈS le parse bâtiments
+    fmRecalc(); placeCamp();   // l'aura + les bâtiments possédés (placeHome a déjà tourné sans eux)
+  }
+  mktT=s.mt||s.t||Date.now(); mktDrift(Date.now());   // le marché a ondulé pendant l'absence (déterministe)
   mi=Math.min(s.mi||0,MISSIONS.length);if(s.st)stats={...stats,...s.st};   // vieux saves sans missions -> chaîne rétro-claimable
   if(W.landgroups&&s.land)for(const gi of s.land){if(W.landgroups[gi]){W.landgroups[gi].owned=true;applyClearing(gi);}}
   if(s.zones)for(const zi of s.zones){const z=W.cropzones[zi];if(z){z.owned=true;if(z.bonus)clearZoneLand(z);}}   // re-dégage le décor des parcelles bonus achetées
@@ -1394,19 +1808,23 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   if(s.crops)for(const k in s.crops){const c=cropCells[k];if(c){const d=s.crops[k];c.state=d.s;c.grow=d.g;c.variety=d.vv;c.water=d.w;c.sun=d.su;c.nute=d.n;c.quality=d.q;}}
   const off=Math.min(Math.max(0,Date.now()-(s.t||Date.now())),homeOfflineH()*3600*1000);   // OFFLINE (capé : 8h base + lits de la maison ; horloge reculée -> 0)
   if(off>0)growCells(off);
-  const wkG=wkOfflineGains(off);   // rendement des ouvriers pendant l'absence (analytique, ne double-compte pas growCells)
-  if(wkG>0){stock+=wkG;totalHarvest+=wkG;checkPaliers();}   // un palier franchi pendant la nuit s'annonce
+  const _g0=performance.now()+8000;   // anti-exploit reload : le F5 ne ré-arme PAS un burst de soins jardinier gratuits
+  for(const k in cropCells)if(cropCells[k].state==='growing')cropCells[k].gcd=_g0;
+  const wkO=wkOfflineGains(off);   // rendement des ouvriers pendant l'absence (analytique, ne double-compte pas growCells)
+  if(wkO.grams>0||wkO.sold>0){stock+=wkO.grams;totalHarvest+=wkO.grams+wkO.sold;checkPaliers();}   // le vendu compte dans la carrière
+  if(wkO.coin>0)setCoin(coin+wkO.coin);   // les ventes offline du vendeur
   for(let i=0;i<workerCount;i++)spawnWorker(i);             // runtime : ils reprennent le boulot depuis la maison
   regenCare(Date.now());
   updateStock();updateCareUI();updateHomeBadge();updateWkBtn();
   let rc=0;for(const k in cropCells)if(cropCells[k].state==='ready')rc++;
   if(off>60000&&rc>0)setTimeout(()=>toast('Bon retour ! 🌿 '+rc+' plant'+(rc>1?'s':'')+' prêt'+(rc>1?'s':'')+' à récolter'),700);
-  if(wkG>0)setTimeout(()=>toast('👷 Tes ouvriers ont récolté '+money(wkG)+' g !'),2600);   // séquencé après le « Bon retour »
+  if(wkO.grams+wkO.sold>0)setTimeout(()=>toast('👷 Tes ouvriers ont récolté '+money(wkO.grams+wkO.sold)+' g !'),2600);   // séquencé après le « Bon retour »
+  if(wkO.coin>0)setTimeout(()=>toast('🤠 '+wkO.vName+' a vendu '+money(wkO.sold)+' g au marché · +'+money(wkO.coin)+' 💰'),3500);
   const m0=curMission();   // mission déjà accomplie au retour -> rappel différé (après les autres toasts), sans re-toaster ensuite
   if(m0&&missionDone(m0)){_mNotif=true;setTimeout(()=>banner('🎯 Mission accomplie — réclame ta récompense !',true),4400);}
 }
 load(); updateMissionUI(); lastTick=Date.now();
-setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;growCells(dt);regenCare(now);updateWorkers(performance.now());updateMissionUI();},200);
+setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;growCells(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateMissionUI();},200);
 setInterval(save,10000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
 window.addEventListener('pagehide',save);

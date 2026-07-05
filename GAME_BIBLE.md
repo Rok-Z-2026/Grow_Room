@@ -191,10 +191,37 @@ James a maintenant un toit — il peut embaucher. Les ouvriers **sortent du doma
 sud-ouest) et travaillent les champs, visibles sur la map : ils marchent case par case, se
 penchent pour récolter (✂️) et replanter (🌱).
 
-**Règle d'or : « tu sèmes, ils entretiennent. »** Un ouvrier récolte les plants mûrs et replante
-la **même variété** au même endroit. Il ne sème jamais une case vide que le joueur n'a pas semée,
-ne soigne pas (qualité 1 — soigner reste le geste du joueur), et **ne vend jamais** (le marché
-appartient au joueur). Si le joueur récolte à la main la cible d'un ouvrier, la main gagne.
+**Règle d'or (v19) : « tu sèmes, ils entretiennent — et s'ILS font plus, c'est parce que TU
+l'as décidé. »** Un ouvrier arrive **Récolteur** : il récolte les plants mûrs et replante la
+**même variété** au même endroit, ne sème jamais une case vide que le joueur n'a pas semée.
+Les métiers qui vont plus loin (soigner, vendre) n'existent que par **réassignation manuelle**
+— assigner un métier, c'est consentir. Dans tous les cas : si le joueur touche la cible d'un
+ouvrier, **la main gagne** ; et les compteurs de missions « gestes » (`stats.ha/se/ea`) restent
+exclusivement ceux de la MAIN du joueur.
+
+**Les 4 métiers (v19)** — réassignables à tout moment, gratuitement, depuis la carte de
+l'ouvrier :
+
+| Métier | Ce qu'il fait | Garde-fous |
+|---|---|---|
+| 👷 **Récolteur** | la base : récolte + replante même variété | comportement v18 intact |
+| 🧑‍🌾 **Jardinier** | arrose/soigne les plants en pousse, **gratuitement** | ne touche JAMAIS au stock de soins du joueur ; qualité plafonnée à 2.0 (niv 5) < 2.5 joueur ; cooldown 8s/plant (ré-armé au load — anti-exploit F5) ; pas de boost de pousse |
+| 🤠 **Vendeur** | guette le marché, vend par **petits lots** (150-350 g) quand le prix passe le seuil (8/10/12, toggle pause) | prix 85→95% du marché (+Étal, jamais >100%) ; ne touche jamais stats.se/ea. **Philosophie : il achète ton temps, pas des grammes** — hors comparaison de rendement |
+| 👨‍💼 **Contremaître** | patrouille les champs owned (📣), aura **globale** +10→20% (+Sifflet) sur vitesse d'action et de marche des autres | un seul compte (le meilleur niveau) — le 2e est décoratif et l'UI le grise |
+
+**Identités & vie (v19)** : chaque slot d'embauche a son personnage FIXE (déterministe, zéro
+random au load) — Marcel 🥖, Brume 🌫️, Gégé 🎺, Vieux-Saule 🌿, Ginette ☕, Lueur ✨,
+Raymond 🎣, Mémé Rose 🌹 — mix titis français / mystiques de la vallée, répliques contrastées
+en bulles canvas (1 max à l'écran, rotation ~9s, zoom > 0.75). Quand il n'y a rien à faire :
+**pause hobby** à SON coin de vallée (Raymond pêche la berge, Ginette café sur l'esplanade,
+Brume s'évapore dans la prairie…) — interrompue en ≤2s dès qu'un plant mûrit : zéro production
+sacrifiée, par construction (la pause ne part que de la branche « aucune cible »).
+
+**XP & niveaux (v19)** : cycle récolte +2 XP · soin +1 · vente +10 · contremaître +1/5 cycles
+boostés. Seuils cumulés 60/240/540/1200 (niv max 5), gain ×(1+15%/niv Manuel). Effets par
+niveau : récolteur −5% temps d'action · jardinier +0.125 de cap qualité · vendeur +2.5 pts de
+prix · contremaître +2.5 pts d'aura. XP hors-ligne au prorata du travail simulé, cap
+300/ouvrier/session, tout en floor() (déterministe).
 
 **Répartition sur les champs** *(v15)* : chaque ouvrier choisit d'abord un **champ** (le moins
 occupé par ses collègues, puis le plus proche) et y reste tant qu'il produit (assignation
@@ -211,14 +238,35 @@ il **presse le pas** (×1,8 au-delà de 6 cases) : on les voit traverser les rou
 | 4 | 90 000 | niv 7 — La Maison de Maître |
 | 5 | 350 000 | niv 9 — La Villa |
 | 6 | 1 200 000 | niv 10 — Le Manoir |
+| 7 | 3 500 000 | niv 10 + 🛏️ Dortoir |
+| 8 | 9 000 000 | niv 11 + 🛏️ Dortoir niv 2 |
+
+**Le Camp (v19)** — bâtiments d'équipe posés sur la carte (assets `cabin`/`atelier1` déjà au
+PACK, positions fixes slot-safe : Dortoir (48,45) berge SE, Atelier (48,40) bord de route NE,
+`placeCamp()` idempotente rejouée au boot/load/reveal, cinématique de chantier façon maison) :
+- 🛏️ **Le Dortoir** : niv 1 = 600 000 (maison ≥ 8), niv 2 = 2 000 000 (maison ≥ 10) —
+  +1 lit par niveau (`wkMax()=6+dorm`). Les slots ≥ 7 sortent du Dortoir au spawn.
+- 🛠️ **L'Atelier** : 500 000 (maison ≥ 7) — débloque les upgrades tier 2.
 
 **Upgrades** : 👟 Bonnes bottes (+12% marche, ×10) · 🧤 Gants experts (-8% temps d'action, ×10) ·
-🏮 Lanternes (+5% d'efficacité hors-ligne, ×5).
+🏮 Lanternes (+5% d'efficacité hors-ligne, ×5). **Tier 2 (Atelier)** : 🌾 Fertilisant maison
+(+8% apport jardinier, ×5) · 🧺 Étal couvert (+3% prix vendeur, ×5) · 📯 Sifflet en laiton
+(+3% aura, ×5) · 📖 Manuel de l'ouvrier (+15% XP, ×5).
 
-**Hors-ligne** : les ouvriers travaillent pendant l'absence à **35%** d'efficacité (jusqu'à
-**60%** avec les Lanternes), dans la limite du cap de la maison (`homeOfflineH()`). Simulation
-analytique déterministe (`min(bras, champ) × temps × efficacité × 16,5 g`), sans double-compte
-avec la pousse : au retour, toast « 👷 Tes ouvriers ont récolté X g ! ».
+**Le marché vivant (v19)** : le prix ondule vers une cible sinusoïdale déterministe
+(`9,5 + 4,5·sin(2πt/30 min)`, filtre 0,15/60 s → amplitude vécue ≈ ±2,75, prix ~[6,75 ; 12,25]).
+Les seuils du vendeur sont de VRAIS choix : ≥8 ≈ 68 % du temps, ≥10 ≈ 43 %, ≥12 ≈ 14 % (rare
+mais juteux). Les ventes (joueur ET vendeur) gardent leur nudge aléatoire ±1 par-dessus, clamp
+[5 ; 14] inchangé.
+
+**Hors-ligne (v19, décomposé par métier — 100% déterministe)** : récolteurs
+`min(Σ bras, champ) × temps × efficacité (35→60%) × 16,5 g × qOff`, dans la limite du cap
+maison. Jardiniers → `qOff` (couverture ~20 plants/jardinier, facteur 0,65 = LE levier
+d'équilibrage anti-méta : `[r,r,r,g]` ≥ 95 % de `[r,r,r,r]` à niv 3 champ non saturé, et > 100 %
+champ saturé — le « tous récolteurs avant de dormir » ne paie pas). Vendeur → vend `F×` la
+**production offline uniquement** (jamais le stock pré-existant du joueur) au prix moyen fermé
+`P` au-dessus du seuil (approximation ASSUMÉE et conservatrice : en ligne, le backlog se vend au
+passage de la vague). Toasts au retour : récolte 👷 puis vente 🤠 séquencés.
 
 *Visuel : emoji 👷 canvas (ombre, balancement de marche) en attendant les sprites `worker_1..3`
 — le moteur les chargera automatiquement dès qu'ils entreront au PACK via le pipeline `tools/`.*
@@ -227,7 +275,7 @@ avec la pousse : au retour, toast « 👷 Tes ouvriers ont récolté X g ! ».
 
 ## 7ter. 🎯 Missions & Objectifs ✅ *(implémenté)*
 
-Le **fil rouge de James** : une chaîne séquentielle de **40 missions en 6 chapitres** qui raconte
+Le **fil rouge de James** : une chaîne séquentielle de **47 missions en 7 chapitres** qui raconte
 son ascension et guide le joueur vers chaque système dans l'ordre naturel. **Une seule mission
 active à la fois** : carte-tracker permanente sous la topbar *(v15 : médaillon doré, barre
 épaisse avec reflet animé, fraction ; accomplie → fond or, rayons tournants, 🎁 qui bounce)*,
@@ -239,7 +287,9 @@ d'événement « Mission accomplie ! » / « Nouvelle mission ». Récompense cr
 Chapitres : **I — Le lopin hérité** (tuto gestes : planter, soigner, récolter, vendre, combo) ·
 **II — L'artisan** (labo, variétés, Cabane, 1er ouvrier) · **III — La ferme** (montée maison/
 ouvriers/labo, 1re clairière) · **IV — Le domaine** (expansion) · **V — Le baron** (gros caps) ·
-**VI — La légende** (toute la vallée, 6 ouvriers, 400 kg, Domaine de Luxe 🏆).
+**VI — La légende** (toute la vallée, 6 ouvriers, 400 kg, Domaine de Luxe 🏆) ·
+**VII — Le patron** *(v19 : Atelier, jardinier, vendeur, Dortoir, 7-8 ouvriers, un maître
+niv 5 — append strict : les indices 0-39 sont gravés dans les saves)*.
 
 Récompenses 💰 (50 → 250 000, total ≈ 908 000 ≈ 18 % des coûts endgame — coup de pouce, pas de
 triche) + quelques recharges de soins. Objectifs dérivés de l'état (`totalHarvest`, `houseLevel`,
@@ -291,9 +341,10 @@ Le but ultime, c'est de réunir les quatre : le territoire, le domaine, les homm
   pointillés avec l'objectif "🔓 +X g").
 - Système de plantes (6 variétés × 8 stades), marché fluctuant, soins (eau/soleil/sérum + combo +
   qualité), labo (rendement/vitesse/valeur), sauvegarde auto + offline capé par la maison.
-- **👷 Ouvriers** : embauche (6 slots liés au niveau de maison), travail visible sur la map
-  (marche, récolte, replante même variété), 3 upgrades, gains hors-ligne analytiques — voir 7bis.
-- **🎯 Missions** : chaîne de 40 missions en 6 chapitres (voix de James), tracker permanent,
+- **👷 Ouvriers v19** : 8 slots (6 + Dortoir), 4 métiers réassignables (récolteur/jardinier/
+  vendeur/contremaître), identités fixes + XP/niveaux, Camp (Dortoir/Atelier + upgrades T2),
+  marché sinusoïdal vivant, pauses hobby, offline par métier — voir 7bis.
+- **🎯 Missions** : chaîne de 47 missions en 7 chapitres (voix de James), tracker permanent,
   claim manuel atomique, rétro-compatible vieux saves — voir 7ter.
 
 **Atlas sources à intégrer (`02_Asset/`) :**
