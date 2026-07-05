@@ -1609,7 +1609,7 @@ function decScale(t){if(t.startsWith('mod_')){const p=t.split('_');return MODS_C
   if(t==='crate')return 0.55;
   if(t==='compost')return 0.6;
   return 0.95;}
-function isBig(t){return t.startsWith('house')||t.startsWith('serre')||t.startsWith('mod_')||t==='tree'||t==='treeC'||t==='cabin'||t==='atelier1'||t==='watertower'||t==='forge';}   // home_* volontairement EXCLU -> la maison de James ne s'estompe jamais ; mod_* inclus (tours hautes, §14)
+function isBig(t){return t.startsWith('house')||t.startsWith('serre')||t==='tree'||t==='treeC'||t==='cabin'||t==='atelier1'||t==='watertower'||t==='forge';}   // home_* ET mod_* volontairement EXCLUS -> la maison de James et les MACHINES ne s'estompent JAMAIS (M2) ; les modules restent des CIBLES (un arbre devant eux s'estompe)
 function clampCam(){
   const xs=[isoX(0,0)-cam.x,isoX(MW,0)-cam.x,isoX(0,MH)-cam.x,isoX(MW,MH)-cam.x];
   const ys=[isoYb(0,0)-cam.y,isoYb(MW,0)-cam.y,isoYb(0,MH)-cam.y,isoYb(MW,MH)-cam.y];
