@@ -92,9 +92,10 @@
 .bldfx{font-size:10.5px;color:#a8bc90;margin-top:2px;}
 .bldbtn{background:linear-gradient(180deg,#78c04a,#4e8c2c);border:1.5px solid #a0e070;border-radius:11px;color:#fff;font-weight:800;font-size:12px;padding:9px 12px;cursor:pointer;white-space:nowrap;}
 .bldbtn:disabled{filter:grayscale(.8);opacity:.6;}
-.placebar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));background:rgba(20,26,14,.92);border:1.5px solid #8a7a48;border-radius:16px;padding:10px 12px;display:none;align-items:center;gap:10px;z-index:40;box-shadow:0 6px 18px rgba(0,0,0,.5);}
+.placebar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));background:rgba(20,26,14,.92);border:1.5px solid #8a7a48;border-radius:16px;padding:10px 12px;display:none;align-items:center;gap:10px;z-index:40;box-shadow:0 6px 18px rgba(0,0,0,.5);width:max-content;max-width:calc(100% - 16px);}   /* M2 : largeur = contenu (l'abspos left:50% plafonnait à ~197px), bornée à l'écran */
 .placebar.show{display:flex;}
-.placetxt{font-size:12px;color:#e8f4d8;max-width:180px;}
+.placetxt{font-size:12px;color:#e8f4d8;flex:1 1 auto;min-width:0;max-width:210px;}   /* M2 : le texte plie en lignes PLEINES, les boutons ne bougent pas */
+.placebar .placeok,.placebar .placeno{flex-shrink:0;}
 .placeok{background:linear-gradient(180deg,#78c04a,#4e8c2c);border:1.5px solid #a0e070;border-radius:12px;color:#fff;font-weight:800;font-size:14px;padding:10px 14px;cursor:pointer;}
 .placeok:disabled{filter:grayscale(.8);opacity:.55;}
 .placeno{background:linear-gradient(180deg,#5c3a30,#402620);border:1.5px solid #a06858;border-radius:12px;color:#ffd8cc;font-weight:800;font-size:14px;padding:10px 14px;cursor:pointer;}
@@ -1715,6 +1716,15 @@ function draw(){
     // VUE DES PORTÉES (v22) : halo losange bleu sur les cases couvertes (pattern selCell —
     // perf prouvée). Les CHAMPS couverts s'illuminent plus fort : c'est eux qu'on arrose.
     const rvk=x+','+y, rvOn=(rangeView&&rangeView.keys.has(rvk))||(placingMod&&placingMod.has&&placingMod.keys&&placingMod.keys.has(rvk));
+    const rcOn=!rvOn&&placingMod&&placingMod.reco&&placingMod.reco.has(rvk);   // M2 É2 : spots recommandés (le bleu du ghost GAGNE sur le vert)
+    if(rcOn){
+      const hx=isoX(x+0.5,y+0.5),hy=isoY(x+0.5,y+0.5),w2=TW()/2,h2=TH()/2;
+      const pu=0.5+0.5*Math.sin(FNOW/560+(x+y)*0.7);                           // désynchro du pulse bleu (420ms) + phase spatiale
+      ctx.save();ctx.beginPath();
+      ctx.moveTo(hx,hy-h2);ctx.lineTo(hx+w2,hy);ctx.lineTo(hx,hy+h2);ctx.lineTo(hx-w2,hy);ctx.closePath();
+      ctx.fillStyle='rgba(130,235,140,'+(0.10+0.10*pu).toFixed(3)+')';ctx.fill();
+      ctx.lineWidth=1.5;ctx.strokeStyle='rgba(160,245,160,'+(0.35+0.20*pu).toFixed(3)+')';ctx.stroke();ctx.restore();
+    }
     if(rvOn){
       const hx=isoX(x+0.5,y+0.5), hy=isoY(x+0.5,y+0.5), w2=TW()/2, h2=TH()/2;
       const pulse=0.5+0.5*Math.sin(FNOW/420);
@@ -2561,11 +2571,38 @@ function openBld(){
   document.getElementById('bldmodal').classList.add('show');
 }
 function closeBld(){const el=document.getElementById('bldmodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
+function computeReco(k){   // M2 É2 : score(case TAP) = nb de champs couverts si on tape ici — 1 seul appel (startPlacing), JAMAIS par frame
+  const fp=modFp(k,1),R=MOD_RANGE[0],off=Math.floor((fp-1)/2),D=R+fp-1;
+  const cand=new Set();
+  for(const ck in cropCells){const c=cropCells[ck];          // candidats = losanges rayon D autour des champs (seules cases pouvant couvrir ≥1 champ)
+    for(let dy=-D;dy<=D;dy++){const w=D-Math.abs(dy);
+      for(let dx=-w;dx<=w;dx++)cand.add((c.x+dx)+','+(c.y+dy));}}
+  const scored=[];
+  for(const key of cand){const i=key.indexOf(','),cx=+key.slice(0,i),cy=+key.slice(i+1);
+    let n=0;for(const rk of modRangeKeys(k,1,cx-off,cy-off))if(cropCells[rk])n++;
+    if(n>0)scored.push([key,cx,cy,n]);}
+  scored.sort((a,b)=>b[3]-a[3]);                             // meilleurs scores d'abord — validation en descendant
+  const reco=new Set();let bc=null,th=1;
+  for(const [key,cx,cy,n] of scored){
+    if(bc&&n<th)break;                                       // seuil RELATIF AU MEILLEUR VALIDE (fresh save : le lopin est
+    if(!modCanPlace(k,1,cx-off,cy-off))continue;             // ceinturé de parcelles interdites -> les gros scores sont invalides)
+    if(!bc){bc={x:cx,y:cy,n};th=Math.max(1,Math.ceil(n*0.7));}
+    reco.add(key);}
+  return {keys:reco,best:bc};
+}
 function startPlacing(k){
-  closeBld();placingMod={k,x0:0,y0:0,ok:false,has:false,keys:null};
-  document.getElementById('placetxt').textContent='Touche une case libre pour poser « '+MODS_CFG[k].lvN[0]+' »';
+  closeBld();placingMod={k,x0:0,y0:0,ok:false,has:false,keys:null,reco:null,recoBest:null};
+  const rc=computeReco(k);placingMod.reco=rc.keys;placingMod.recoBest=rc.best;
+  const first=mods.length===0;                               // 1re machine de la partie (signal persisté par mods eux-mêmes)
+  document.getElementById('placetxt').textContent=
+    (first?'📍 Pose-moi près de tes champs ! ':'')+'Touche une case '+(rc.best?'🟢 ':'')+'pour poser « '+MODS_CFG[k].lvN[0]+' »';
   document.getElementById('placeok').disabled=true;
   document.getElementById('placebar').classList.add('show');
+  if(first){let tx,ty;                                       // caméra : meilleur spot, sinon centre des champs (fallback fresh save)
+    if(rc.best){tx=rc.best.x;ty=rc.best.y;}
+    else{let sx=0,sy=0,n=0;for(const ck in cropCells){sx+=cropCells[ck].x;sy+=cropCells[ck].y;n++;}
+      if(!n)return;tx=sx/n;ty=sy/n;}
+    glideCam(tx+0.5,ty+0.5,Math.max(zoom,0.9),750);}         // pattern missionGuide — glideCam ne touche pas cine
 }
 function stopPlacing(){placingMod=null;document.getElementById('placebar').classList.remove('show');}
 function tryPlaceAt(x,y){
