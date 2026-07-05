@@ -360,6 +360,10 @@ var SND_TAB={
   ui_denied:{l:'ui',t:200},                     // doux, jamais punitif
   sfx_zone_unlock:{l:'sfx',t:300},
   sfx_palier_new:{l:'sfx',t:500},
+  // É3 — ambiances & musique (boucles — personne n'appelle S() dessus, gérées par sndAmbTick)
+  amb_valley_day:{n:2,l:'amb'},                 // cyclées à la main avec crossfade (sndAmbCycle), PAS loop=true
+  amb_river:{l:'amb',loop:1},                   // gain ∝ distance caméra↔eau (sndAmbTick)
+  mus_valley_main:{l:'mus',loop:1},
 };
 var SND={ctx:null,master:null,g:{},buf:{},st:{},lastStgAt:-1e9,stgUntil:-1e9,
   on:localStorage.getItem('tinygrow_sound')!=='0',
@@ -371,12 +375,13 @@ function sndBoot(){                              // appelé 1× APRÈS la 1re fr
   for(const k in SND_LAYERS){const g=SND.ctx.createGain();g.gain.value=SND_LAYERS[k];g.connect(SND.master);SND.g[k]=g;}
   SND.ctx.addEventListener('statechange',()=>{if(SND.ctx.state!=='running')sndArm();});   // l'OS re-suspend → on ré-arme
   sndLoadAll();
+  setInterval(sndAmbTick,1000);                  // É3 : démarrage des boucles + gain rivière (1×/s)
 }
 function sndDecode(ab){return new Promise((res,rej)=>{   // vieux Safari = callbacks only
   const p=SND.ctx.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej);});}
 function sndFetch(name){return fetch(AUDIO_BASE+name+'.mp3')
   .then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(sndDecode)
-  .then(b=>{SND.buf[name]=b;SND.dbg.dec++;})
+  .then(b=>{SND.buf[name]=b;SND.dbg.dec++;SND.dbg.pcm=(SND.dbg.pcm||0)+b.length*b.numberOfChannels*4;})   // pcm = checkpoint mémoire É3
   .catch(()=>{SND.dbg.fail++;});}                // 404/KO → la clé n'entre jamais dans buf → S() muet
 function sndLoadAll(){const names=[];
   for(const k in SND_TAB){const e=SND_TAB[k];
@@ -422,6 +427,37 @@ function sndToggle(){SND.on=!SND.on;localStorage.setItem('tinygrow_sound',SND.on
   const el=document.getElementById('sndbadge');if(el)el.textContent=SND.on?'🔊':'🔇';
   if(SND.ctx){const p=SND.master.gain,t=SND.ctx.currentTime;
     p.cancelScheduledValues(t);p.setTargetAtTime(SND.on?1:0,t,0.04);}}
+// ── É3 : la vallée respire — ambiance cyclée, musique en boucle, rivière spatialisée ──
+var SND_WATER=null,SND_RIVER=null,SND_AMBON=false;   // runtime pur (règle 5 : var globaux)
+function sndLoopStart(name,layer){const b=SND.buf[name];if(!b)return null;   // boucle seamless + gain dédié
+  const src=SND.ctx.createBufferSource();src.buffer=b;src.loop=true;
+  const g=SND.ctx.createGain();g.gain.value=1;src.connect(g);g.connect(SND.g[layer]);src.start();return{src,g};}
+function sndAmbCycle(){                          // valley_day _1/_2 en alternance, crossfade 0.8 s
+  if(!SND.ctx||SND.ctx.state!=='running'){setTimeout(sndAmbCycle,3000);return;}   // suspendu -> la chaîne survit
+  SND.ambN=SND.ambN===1?2:1;const b=SND.buf['amb_valley_day_'+SND.ambN];
+  if(!b){setTimeout(sndAmbCycle,3000);return;}   // pas encore décodée -> on retente
+  const src=SND.ctx.createBufferSource();src.buffer=b;const g=SND.ctx.createGain();
+  const t=SND.ctx.currentTime,X=0.8;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1,t+X);
+  g.gain.setValueAtTime(1,t+b.duration-X);g.gain.linearRampToValueAtTime(0,t+b.duration);
+  src.connect(g);g.connect(SND.g.amb);src.start();
+  setTimeout(sndAmbCycle,Math.max(1000,(b.duration-X)*1000));   // le suivant démarre PENDANT le fade-out
+}
+function sndAmbTick(){                           // 1×/s (armé par sndBoot) : démarrages + gain rivière
+  if(!SND.ctx||SND.ctx.state!=='running')return; // rien avant l'unlock
+  if(!SND_AMBON){SND_AMBON=true;sndAmbCycle();}
+  if(!SND.mus)SND.mus=sndLoopStart('mus_valley_main','mus');    // null tant que pas décodé -> retente
+  if(!SND_RIVER){SND_RIVER=sndLoopStart('amb_river','amb');if(SND_RIVER)SND_RIVER.g.gain.value=0;}
+  if(SND_RIVER){
+    if(!SND_WATER){SND_WATER=[];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(W.ground[y][x]==='water')SND_WATER.push([x,y]);}
+    const wx=-cam.x/(TW()/2), wy=(APP_H*0.22-cam.y)/(TH()/2);   // case au CENTRE de l'écran (inverse iso plat)
+    const cx=(wx+wy)/2, cy=(wy-wx)/2;
+    let d=1e9;for(const w of SND_WATER){const dd=Math.abs(w[0]-cx)+Math.abs(w[1]-cy);if(dd<d)d=dd;}
+    const tg=Math.max(0,Math.min(1,1-(d-2)/12));                // plein à d≤2 · silencieux à d≥14
+    SND.dbg.riverD=Math.round(d);SND.dbg.riverG=tg;             // hooks harnais
+    SND_RIVER.g.gain.setTargetAtTime(tg,SND.ctx.currentTime,0.4);
+  }
+}
 // ===== fin AUDIO v24 =====
 function labCost(u){return Math.floor(u.base*Math.pow(u.mul,lab[u.key])*homeLabDiscount());}
 function yieldMult(){return 1+lab.yield*0.25;}
