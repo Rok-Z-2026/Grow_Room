@@ -169,7 +169,7 @@
   .toast{top:96px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v19</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v20</span></div>
 <div id="mtrack" class="mtrack"><span class="mmed"><span class="mico" id="mico">🎯</span></span><div class="mcol"><span class="mtxt" id="mtxt"></span><div class="mbar"><i id="mtfill"></i><span class="mnum" id="mnum"></span><span class="mshine"></span></div></div><span class="mchev">›</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
@@ -906,6 +906,11 @@ MISSIONS.forEach((m,i)=>{if(MGO[i])m.go=MGO[i];});
 function isoX(c,r){return APP_W/2+(c-r)*TW()/2+cam.x;}
 var particles=[];
 var revealFX=null;   // {x,y,t0,dur} : onde dorée du reveal de la maison (dessinée en fin de draw)
+// OcclusionFade 2.0 : état persistant du fondu des gros objets (var : draw() tourne avant ce
+// bloc au 1er rAF ? non — mais règle particles/TDZ, on ne prend aucun risque).
+var fadeCur={};                    // "x,y" -> alpha COURANT (n'existe que pour les cellules en fondu)
+var fadeLastT=performance.now();   // horloge du lissage (dt de frame local au fondu)
+const FADE_MIN=0.38, FADE_K=16;    // plancher d'opacité ; vitesse (~95% de la transition en 190ms)
 function burst(px,py,color,n){for(var i=0;i<(n||14);i++){var a=Math.random()*Math.PI*2,sp=1.5+Math.random()*3.5;particles.push({x:px,y:py,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,life:1,col:color||'#ffe87a',sz:2+Math.random()*3});}}
 function updateParticles(){for(var i=0;i<particles.length;i++){var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.18;p.vx*=0.96;p.life-=0.025;}particles=particles.filter(function(p){return p.life>0;});}
 function drawParticles(){ctx.save();for(var i=0;i<particles.length;i++){var p=particles[i];ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,7);ctx.fill();}ctx.restore();}
@@ -967,13 +972,15 @@ function drawSp(img,cx,cyB,tw,a){if(!img||!img.complete||!img.naturalWidth)retur
 
 // dessine un sprite qui se balance dans le vent : la BASE reste ancree (cx,cyB),
 // le HAUT penche horizontalement selon le temps. amp = amplitude du balancement.
-function drawSpWind(img,cx,cyB,tw,amp,phase){
+// a (optionnel) = alpha de fondu -> l'arbre garde son vent ET son ancre pendant qu'il s'estompe.
+function drawSpWind(img,cx,cyB,tw,amp,phase,a){
   if(!img||!img.complete||!img.naturalWidth)return;
   const r=img.naturalHeight/img.naturalWidth, th=tw*r;
   const T=performance.now()/1000;
   // brise principale lente + micro-frisson rapide, dephase par objet
   const sway=Math.sin(T*0.9+phase)*amp + Math.sin(T*2.7+phase*1.7)*amp*0.25;
   ctx.save();
+  if(a!=null)ctx.globalAlpha=a;   // le restore existant remet globalAlpha -> zéro fuite
   ctx.translate(cx,cyB);          // origine = pied du sprite
   ctx.transform(1,0,sway,1,0,0);  // skew horizontal : le haut se decale, le bas non
   ctx.drawImage(img,-tw/2,-th,tw,th);
@@ -990,13 +997,8 @@ function shadow(cx,cyB,w,a){
   ctx.beginPath();ctx.ellipse(cx,cyB,w*0.38,w*0.15,0,0,Math.PI*2);ctx.fill();
   ctx.restore();
 }
-// alpha de FONDU d'un gros objet (arbre/batiment) qui masque un champ en zoom : null = pas de fondu, sinon 0..0.4
-function fadeA(x,y,t,ix,iy){
-  if(!(isBig(t)&&zoom>0.9))return null;
-  for(const kk in cropCells){const c=cropCells[kk];
-    if((x+y)>(c.x+c.y)&&Math.abs(isoX(c.x+.5,c.y+.5)-ix)<TW()*1.1&&isoY(c.x+.5,c.y+.5)>iy-TH()*4&&isoY(c.x+.5,c.y+.5)<iy+TH()*1.2)return Math.max(0,Math.min(0.4,(1.42-zoom)));}
-  return null;
-}
+// (l'ancien fadeA — fenêtres forfaitaires, filtre de flou coûteux, fondu même sur cases VIDES —
+// est remplacé par OcclusionFade 2.0 : calcul par frame dans draw(), rects précis, lissage.)
 function decImg(d){const[t,v]=d;if(['tree','treeC','bush','bushF','flower','rock','stump'].includes(t))return t+v;return t;}
 // Calibrage des dioramas home_1..11 (mesure du contenu réel des PNG — tous pleine largeur, mais
 // l'équateur du socle varie de 147 à 217px du bas). sc : largeur du socle constante (réf home_6) ;
@@ -1092,13 +1094,58 @@ function draw(){
       const t=dec[0],img=decImg(dec),sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
       drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc);}
   }
+  // OUVRIERS : position interpolée -> indexés par case arrondie, dessinés à la profondeur de leur
+  // case (remonté AVANT les ombres : le fondu d'occlusion protège aussi l'équipe)
+  const nowW=performance.now(), wkByCell={};
+  for(const w of workers){const p=workerPos(w,nowW);
+    const k=Math.round(p.x)+','+Math.round(p.y);(wkByCell[k]=wkByCell[k]||[]).push({w,p});}
+  // ── OcclusionFade 2.0 : 1 calcul par frame, partagé ombres+objets ────────────────────────────
+  // Un gros objet (isBig) ne s'estompe QUE s'il recouvre RÉELLEMENT (rects précis dérivés du
+  // rendu, insets des PNG, pénétration mini) une cible protégée strictement derrière lui :
+  // plant growing/ready, case sélectionnée (même vide — le joueur la regarde), ou ouvrier.
+  // Jamais une case vide. Transition lissée ~190ms (fadeCur), vent et ancre conservés, zéro blur.
+  const fadeS=Math.max(0,Math.min(1,(zoom-0.8)/0.25));   // rampe de zoom : rien <=0.8, plein >=1.05
+  const fadeTg=[];                                        // cibles {d,x0,x1,y0,y1}
+  if(fadeS>0){
+    for(const k in cropCells){const c=cropCells[k];
+      const sel=(c===selCell); if(c.state==='empty'&&!sel)continue; if(!vis(c.x,c.y))continue;
+      const ix=isoX(c.x+.5,c.y+.5),iy=isoY(c.x+.5,c.y+.5),d=c.x+c.y;
+      if(sel)fadeTg.push({d,x0:ix-TW()*0.5,x1:ix+TW()*0.5,y0:iy-TH()*1.2,y1:iy+TH()*0.55});   // halo + diamant
+      if(c.state!=='empty')fadeTg.push({d,x0:ix-TW()*0.34,x1:ix+TW()*0.34,y0:iy-TH()*1.15,y1:iy+TH()*0.30});}   // touffe+barre+✨
+    for(const k in wkByCell)for(const e of wkByCell[k]){   // ouvriers : rect interpolé, d = case de peinture
+      const p=e.p,d=Math.round(p.x)+Math.round(p.y);
+      const ix=isoX(p.x+.5,p.y+.5),iy=isoY(p.x+.5,p.y+.5)+TH()*0.18;
+      fadeTg.push({d,x0:ix-TW()*0.29,x1:ix+TW()*0.29,y0:iy-TH()*1.40,y1:iy+TH()*0.20});}
+  }
+  const fadeTgt={};                                       // "x,y" -> alpha CIBLE (absent = opaque)
+  if(fadeS>0&&fadeTg.length){
+    const aT=1-(1-FADE_MIN)*fadeS, pen=6*zoom;            // pénétration mini : 2px de coin ne comptent pas
+    for(const {x,y} of cells){
+      const dec=W.decor[y][x]; if(!dec||!isBig(dec[0]))continue;
+      const t=dec[0],img=IMG[decImg(dec)]; if(!img||!img.naturalWidth)continue;
+      const d=x+y, sc=decScale(t), w=TW()*sc, h=w*img.naturalHeight/img.naturalWidth;
+      const ix=isoX(x+.5,y+.5), foot=isoY(x+.5,y+.5)+TH()*((t==='tree'||t==='treeC')?0.62:decYOff(t));
+      const ox0=ix-w/2+w*0.10, ox1=ix+w/2-w*0.10, oy0=foot-h+h*0.08, oy1=foot;   // insets bords PNG
+      for(const g of fadeTg){ if(g.d>=d)continue;                                 // strictement derrière
+        if(Math.min(g.x1,ox1)-Math.max(g.x0,ox0)>pen&&Math.min(g.y1,oy1)-Math.max(g.y0,oy0)>pen){
+          fadeTgt[x+','+y]=aT;break;}}}                                           // early-exit 1re cible
+  }
+  {  // lissage exponentiel (~190ms) + nettoyage borné — fadeCur ne garde QUE les cellules en fondu
+    const nowF=performance.now(), dtF=Math.min(0.05,(nowF-fadeLastT)/1000); fadeLastT=nowF;
+    const kF=Math.min(1,dtF*FADE_K);
+    for(const k in fadeTgt)if(!(k in fadeCur))fadeCur[k]=1;    // nouveau fondu : part de l'opaque
+    for(const k in fadeCur){const tg=(k in fadeTgt)?fadeTgt[k]:1;
+      fadeCur[k]+=(tg-fadeCur[k])*kF;
+      if(tg===1&&fadeCur[k]>0.995)delete fadeCur[k];}
+  }
+  const fadeAlpha=k=>{const a=fadeCur[k];return a==null?null:a;};   // null = chemin opaque normal
   // PASSE OMBRES : APRES tout le sol, AVANT les objets -> l'ombre se pose sur le terrain
   for(const {x,y} of cells){
     const dec=W.decor[y][x];
     if(dec && ['tree','treeC'].includes(dec[0])){const t=dec[0],sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
-      const a=fadeA(x,y,t,ix,iy);   // l'ombre fond avec l'arbre estompe (a=0.4 -> pleine, a=0 -> invisible)
+      const a=fadeAlpha(x+','+y);   // l'ombre fond en lock-step avec l'arbre (alpha BRUT 0.38..1)
       if(a===null)shadow(ix,iy+TH()*0.58,TW()*sc*0.85);
-      else if(a>0.01)shadow(ix,iy+TH()*0.58,TW()*sc*0.85,a/0.4);}
+      else shadow(ix,iy+TH()*0.58,TW()*sc*0.85,a);}
   }
   // DECO CHAMP : une lanterne aux 4 coins de chaque parcelle owned -> encadre joliment (PAS de cadre pierre).
   // Dessinees dans la passe crop a la profondeur de leur case-coin (coin Nord derriere les plants, Sud devant).
@@ -1108,25 +1155,19 @@ function draw(){
     if(fdOK(x0,y0))fieldDeco[x0+','+y0]={sp:'lamp',ux:0,uy:-1,front:false,sc:0.6};    // coin Nord (arriere) : lanterne
     if(fdOK(x1,y0))fieldDeco[x1+','+y0]={sp:'lamp',ux:1,uy:0,front:false,sc:0.6};     // coin Est : lanterne
     if(fdOK(x0,y1))fieldDeco[x0+','+y1]={sp:'lamp',ux:-1,uy:0,front:false,sc:0.6};}   // coin Ouest : lanterne (coin Sud laisse ouvert)
-  // OUVRIERS : position interpolée -> indexés par case arrondie, dessinés à la profondeur de leur case
-  const nowW=performance.now(), wkByCell={};
-  for(const w of workers){const p=workerPos(w,nowW);
-    const k=Math.round(p.x)+','+Math.round(p.y);(wkByCell[k]=wkByCell[k]||[]).push({w,p});}
   // PASSE OBJETS
   for(const {x,y} of cells){
     const dec=W.decor[y][x];
     if(dec && !['pond_big','pond_mare','cascade'].includes(dec[0])){const t=dec[0],img=decImg(dec),sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
-      // FONDU : un gros objet (arbre/bâtiment) qui MASQUE un champ cultivable en zoom
-      // -> on l'estompe (faible opacité) + on le floute, pour voir les parcelles derrière.
-      let a=fadeA(x,y,t,ix,iy);   // fondu partage avec la passe ombres
+      // FONDU 2.0 : alpha lissé partagé avec la passe ombres. Fade OU pas : MÊME branche de dessin
+      // -> même ancre (fini le saut vertical), le vent continue, zéro filtre blur.
+      const a=fadeAlpha(x+','+y);
       const wind=['tree','treeC','bush','bushF','flower'].includes(t);
-      if(a!=null){                                               // masque un champ -> estompé+flou, ou INVISIBLE si trop proche (a~0)
-        if(a>0.03){ctx.save();ctx.filter='blur(3px)';drawSp(IMG[img],ix,iy+TH()*0.85,TW()*sc,a);ctx.restore();}
-      } else if(wind){
+      if(wind){
         const amp=(t==='flower'?0.10:t==='bush'||t==='bushF'?0.055:0.035); // fleurs souples, arbres raides
-        drawSpWind(IMG[img],ix,iy+TH()*0.62,TW()*sc,amp,(x*1.3+y*0.7));
+        drawSpWind(IMG[img],ix,iy+TH()*0.62,TW()*sc,amp,(x*1.3+y*0.7),a);
       } else {
-        drawSp(IMG[img],ix,iy+TH()*decYOff(t),TW()*sc,null);
+        drawSp(IMG[img],ix,iy+TH()*decYOff(t),TW()*sc,a);
       }
       // halo chaud pulsant des lampadaires de l'esplanade (pattern du halo des plants ready — perf prouvée)
       if(t==='lamp'){const pl=0.8+0.2*Math.sin(performance.now()/900+(x*2.1+y*3.7));

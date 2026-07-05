@@ -73,6 +73,12 @@
 - **Eau animée** 4 frames (`water_f0`–`water_f3`) ✓
 - **Vent** (`drawSpWind`) ✓
 - **Ombres** (`function shadow`) ✓
+- **Fondu d'occlusion 2.0** : un gros objet (`isBig`, `home_*` exclu) ne s'estompe QUE s'il
+  recouvre réellement (rects précis + insets PNG + pénétration mini 6px·zoom) un plant vivant,
+  `selCell` ou un ouvrier strictement derrière lui — jamais une case vide. Calcul 1×/frame dans
+  `draw()` (cibles `fadeTg` → `fadeTgt`), lissage ~190ms (`fadeCur` global, `FADE_MIN=0.38`),
+  rampe zoom 0.8→1.05, vent+ancre conservés, zéro `ctx.filter`. ⚠️ Ombres en lock-step avec
+  l'alpha BRUT ✓
 - **Plantes** : 4 variétés (`v` / `p` / `b` / `o`) × 8 stades → `plant_X_1` à `plant_X_8`
 - **Décor** : trees, bushes, flowers, rocks, stumps, bâtiments, rampes, plans d'eau
 - **Mon Domaine** : galerie 11 niveaux (`HOUSE`), bonus cumulatifs, cinématique `glideCam` ✓
