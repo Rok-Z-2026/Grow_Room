@@ -79,6 +79,13 @@
   `draw()` (cibles `fadeTg` → `fadeTgt`), lissage ~190ms (`fadeCur` global, `FADE_MIN=0.38`),
   rampe zoom 0.8→1.05, vent+ancre conservés, zéro `ctx.filter`. ⚠️ Ombres en lock-step avec
   l'alpha BRUT ✓
+- **Champs 2.0** : le tapis `parc1-4` est un élément de **passe SOL** (jamais la passe objets —
+  sinon il « avale » la base des sprites voisins). Muret `field_border` clippé aux seules arêtes
+  EXTÉRIEURES (flags `eN/eE/eS/eW` posés par `rebuildCrop`, adjacence via `cropCells` → zéro
+  bordure interne), triangles avant + pentagones arrière (+`hw` pour les tops des blocs), boîte
+  calée sur la BASE mesurée de l'anneau (bw 1.014·TW, bh 1.122·TH, ancre 0.55). Portail `fence2`
+  unique sur la case SUD de `gateCell` (max x+y, recalculé par rebuildCrop, fallback case champ
+  si eau/hors-map) ✓
 - **Plantes** : 4 variétés (`v` / `p` / `b` / `o`) × 8 stades → `plant_X_1` à `plant_X_8`
 - **Décor** : trees, bushes, flowers, rocks, stumps, bâtiments, rampes, plans d'eau
 - **Mon Domaine** : galerie 11 niveaux (`HOUSE`), bonus cumulatifs, cinématique `glideCam` ✓

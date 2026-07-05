@@ -169,7 +169,7 @@
   .toast{top:96px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v20</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde · 🏮v21</span></div>
 <div id="mtrack" class="mtrack"><span class="mmed"><span class="mico" id="mico">🎯</span></span><div class="mcol"><span class="mtxt" id="mtxt"></span><div class="mbar"><i id="mtfill"></i><span class="mnum" id="mnum"></span><span class="mshine"></span></div></div><span class="mchev">›</span></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
 <button id="labbtn" class="labbtn">🧪</button>
@@ -267,7 +267,20 @@ function valueMult(){return 1+lab.value*0.20;}
 const H=(x,y)=>{const ix=Math.floor(x),iy=Math.floor(y);return(ix>=0&&iy>=0&&ix<MW&&iy<MH)?W.hgt[iy][ix]:0;};
 
 const cropCells={};
-function rebuildCrop(){W.cropzones.forEach((z,zi)=>{if(!z.owned)return;for(let dy=0;dy<z.n;dy++)for(let dx=0;dx<z.n;dx++){const x=z.zx+dx,y=z.zy+dy,k=x+','+y;if(!cropCells[k])cropCells[k]={x,y,zi,state:'empty',grow:0,variety:0};}});}   // zi = index de zone (stable) -> assignation des ouvriers par champ
+var gateCell=null;   // la case de champ la plus « avant » (max x+y) : l'entrée du domaine (portail fence2)
+function rebuildCrop(){W.cropzones.forEach((z,zi)=>{if(!z.owned)return;for(let dy=0;dy<z.n;dy++)for(let dx=0;dx<z.n;dx++){const x=z.zx+dx,y=z.zy+dy,k=x+','+y;if(!cropCells[k])cropCells[k]={x,y,zi,state:'empty',grow:0,variety:0};}});   // zi = index de zone (stable) -> assignation des ouvriers par champ
+  // v21 : ARÊTES EXTÉRIEURES (muret) + PORTAIL — recalcul COMPLET à chaque rebuild (les achats
+  // changent les arêtes des cellules existantes ; une zone ne se dé-possède jamais). O(cases),
+  // 3 événements seulement (boot/achat/load) — jamais par frame. L'adjacence via cropCells
+  // fusionne les zones owned entre elles : aucune bordure interne au milieu du champ.
+  gateCell=null;
+  for(const k in cropCells){const c=cropCells[k];
+    c.eN=!cropCells[c.x+','+(c.y-1)]; c.eE=!cropCells[(c.x+1)+','+c.y];
+    c.eS=!cropCells[c.x+','+(c.y+1)]; c.eW=!cropCells[(c.x-1)+','+c.y];
+    if(!gateCell||c.x+c.y>gateCell.x+gateCell.y||(c.x+c.y===gateCell.x+gateCell.y&&c.x>gateCell.x))gateCell=c;}
+  if(gateCell){const sy=gateCell.y+1;   // garde-fou : case sud hors map ou eau -> le portail s'ancre sur la case champ
+    gateCell.gOnField=!(W.ground[sy]&&W.ground[sy][gateCell.x]&&W.ground[sy][gateCell.x]!=='water');}
+}
 // === PARCELLES BONUS DE PALIER (extension collée au champ, débloquée aux grammes totaux récoltés) ===
 const PALIERS=[200,600,1500,3500,8000,18000,40000,90000];  // grammes totaux -> ouvre la parcelle bonus suivante
 function zoneCellsValid(zx,zy,n){
@@ -1085,6 +1098,35 @@ function draw(){
       ctx.globalAlpha=1;
       ctx.restore();}
     }
+    // TAPIS DU CHAMP (v21) : élément de SOL -> peint en passe SOL. Fini l'artefact de couche :
+    // le losange opaque n'est plus peint à la profondeur d'objet, il ne repeint plus la base
+    // des sprites voisins (buissons/lanternes « avalés »). PNG déjà losange -> NE PAS clipper.
+    const fk=x+','+y, fc=cropCells[fk];
+    if(fc){
+      const fx=isoX(x+0.5,y+0.5), fy=isoY(x+0.5,y+0.5);
+      const pk=fc.state==='growing'?(fc.grow<0.15?'parc3':'parc2'):fc.state==='ready'?'parc4':'parc1';
+      const pimg=IMG[pk];
+      if(pimg&&pimg.complete&&pimg.naturalWidth){const dw=TW()*1.04,dh=TH()*1.04;
+        ctx.drawImage(pimg,fx-dw/2,fy-dh/2,dw,dh);}
+      // MURET (v21) : l'anneau field_border, clippé aux seules ARÊTES EXTÉRIEURES du champ
+      // (triangles centre->arête ; pentagones à l'arrière : les tops des blocs montent de ~hw).
+      // Boîte calée sur la BASE mesurée de l'anneau (300x220, base 296x196, centre (150,121)).
+      if(fc.eN||fc.eE||fc.eS||fc.eW){
+        const bimg=IMG['field_border'];
+        if(bimg&&bimg.complete&&bimg.naturalWidth){
+          const w2=TW()/2,h2=TH()/2,hw=TH()*0.14;
+          ctx.save();ctx.beginPath();
+          if(fc.eN){ctx.moveTo(fx,fy);ctx.lineTo(fx,fy-h2);ctx.lineTo(fx,fy-h2-hw);ctx.lineTo(fx+w2,fy-hw);ctx.lineTo(fx+w2,fy);ctx.closePath();}   // T->R (arrière droit)
+          if(fc.eW){ctx.moveTo(fx,fy);ctx.lineTo(fx-w2,fy);ctx.lineTo(fx-w2,fy-hw);ctx.lineTo(fx,fy-h2-hw);ctx.lineTo(fx,fy-h2);ctx.closePath();}   // L->T (arrière gauche)
+          if(fc.eE){ctx.moveTo(fx,fy);ctx.lineTo(fx+w2,fy);ctx.lineTo(fx,fy+h2);ctx.closePath();}   // R->B (avant droit)
+          if(fc.eS){ctx.moveTo(fx,fy);ctx.lineTo(fx,fy+h2);ctx.lineTo(fx-w2,fy);ctx.closePath();}   // B->L (avant gauche)
+          ctx.clip();
+          const bw=TW()*1.014,bh=TH()*1.122;
+          ctx.drawImage(bimg,fx-bw/2,fy-bh*0.55,bw,bh);
+          ctx.restore();
+        }
+      }
+    }
     }
   // PASSE EAU : APRES le sol, AVANT ombres/objets -> mares/lacs poses sur le sol
   // et TOUJOURS sous les arbres/batiments (dessines ensuite dans la passe objets).
@@ -1157,6 +1199,14 @@ function draw(){
     if(fdOK(x0,y1))fieldDeco[x0+','+y1]={sp:'lamp',ux:-1,uy:0,front:false,sc:0.6};}   // coin Ouest : lanterne (coin Sud laisse ouvert)
   // PASSE OBJETS
   for(const {x,y} of cells){
+    // PORTAIL (v21) : l'entrée du domaine cultivé — fence2 ancré sur la case au SUD de gateCell
+    // (profondeur d+1 : devant les plants du champ, derrière les objets plus au sud ; sa base
+    // d'herbe intégrée se fond dans la prairie). Fallback case champ si le sud est eau/hors-map.
+    if(gateCell&&x===gateCell.x&&y===gateCell.y+(gateCell.gOnField?0:1)){
+      const gimg=IMG['fence2'];
+      if(gimg&&gimg.complete&&gimg.naturalWidth)
+        drawSp(gimg,isoX(x+0.5,y+0.5)-TW()*0.05,isoY(x+0.5,y+0.5)+TH()*(gateCell.gOnField?0.5:0.55),TW()*1.10,null);
+    }
     const dec=W.decor[y][x];
     if(dec && !['pond_big','pond_mare','cascade'].includes(dec[0])){const t=dec[0],img=decImg(dec),sc=decScale(t);const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
       // FONDU 2.0 : alpha lissé partagé avec la passe ombres. Fade OU pas : MÊME branche de dessin
@@ -1179,10 +1229,7 @@ function draw(){
         ctx.fillStyle=gg;ctx.beginPath();ctx.arc(ix,gy,R,0,7);ctx.fill();}}
     // 4) crop
     const ck=x+','+y;if(cropCells[ck]){const c=cropCells[ck];const ix=isoX(x+0.5,y+0.5),iy=isoY(x+0.5,y+0.5);
-      // TERRE LABOUREE a sillons : sprite 'parc' complet par case (bordure bois incluse, ratio 0.605),
-      // mappe exactement sur le losange de la tuile -> pave parfaitement, zero chevauchement. (NE PAS clipper.)
-      let pk=c.state==='growing'?(c.grow<0.15?'parc3':'parc2'):c.state==='ready'?'parc4':'parc1';
-      {const pimg=IMG[pk];if(pimg&&pimg.complete&&pimg.naturalWidth){const dw=TW()*1.04,dh=TH()*1.04;ctx.drawImage(pimg,ix-dw/2,iy-dh/2,dw,dh);}}
+      // (le tapis 'parc' est désormais peint en passe SOL — v21, fix de l'artefact de couche)
       // lanterne de coin ARRIERE (Nord/Est/Ouest) : posee AVANT les plants -> derriere eux
       const fd=fieldDeco[ck];
       if(fd&&!fd.front){const lp=IMG[fd.sp];if(lp&&lp.naturalWidth)drawSp(lp,ix+fd.ux*TW()/2,iy+fd.uy*TH()/2,TW()*fd.sc,null);}
