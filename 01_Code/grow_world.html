@@ -383,6 +383,17 @@ var SND_TAB={
   stg_worker_hired:{l:'stg',stg:1},
   sfx_job_change:{l:'sfx'},
   stg_dorm_bed:{n:4,l:'stg',stg:1},             // décalé APRÈS le reveal (sinon il volerait la fanfare)
+  // É6 — ouvriers (couche wk 0.28 ≈ −6dB vs joueur, vis:1 = seulement à l'écran) + offline + vent
+  sfx_wk_harvest:{l:'wk',t:300,vis:1,p:0.05},
+  sfx_wk_plant:{l:'wk',t:300,vis:1,p:0.05},
+  sfx_wk_sell:{l:'wk',t:400},
+  sfx_bubble_pop:{l:'wk',t:400,vis:1},
+  sfx_wk_mumble:{n:8,l:'wk',t:400,vis:1},       // optionnel à l'oreille — se retire en 1 ligne
+  sfx_foreman_whistle:{l:'wk',t:15000},
+  stg_welcome_back:{l:'stg',stg:1},
+  sfx_off_harvest:{l:'sfx',v:0.8},
+  sfx_off_sale:{l:'sfx',v:0.8},
+  amb_wind_gust:{n:2,l:'amb',v:0.8},            // déclenché par le timer de sndAmbTick (20-60s)
   // É3 — ambiances & musique (boucles — personne n'appelle S() dessus, gérées par sndAmbTick)
   amb_valley_day:{n:2,l:'amb'},                 // cyclées à la main avec crossfade (sndAmbCycle), PAS loop=true
   amb_river:{l:'amb',loop:1},                   // gain ∝ distance caméra↔eau (sndAmbTick)
@@ -422,7 +433,7 @@ function sndArm(){['touchstart','touchend','mousedown','keydown'].forEach(t=>
   window.addEventListener(t,sndUnlock,{capture:true,passive:true}));}   // capture → passe malgré les preventDefault du canvas
 sndArm();
 function S(key,o){                               // play — les call sites restent des one-liners
-  const e=SND_TAB[key];if(!e||!SND.ctx)return;
+  const e=SND_TAB[key];if(!e||!SND.ctx||SND.ctx.state!=='running')return;   // É6 : JAMAIS de sons empilés pré-unlock (les timeouts offline partent avant le 1er tap)
   const st=SND.st[key]||(SND.st[key]={t:-1e9,v:0}),now=performance.now();
   if(e.t&&now-st.t<e.t)return;                   // throttle déclaratif
   if(e.stg&&now<SND.stgUntil)return;             // jamais 2 stingers (règle : SKIP)
@@ -468,9 +479,12 @@ function sndAmbCycle(){                          // valley_day _1/_2 en alternan
   src.connect(g);g.connect(SND.g.amb);src.start();
   setTimeout(sndAmbCycle,Math.max(1000,(b.duration-X)*1000));   // le suivant démarre PENDANT le fade-out
 }
-function sndAmbTick(){                           // 1×/s (armé par sndBoot) : démarrages + gain rivière
+function sndAmbTick(){                           // 1×/s (armé par sndBoot) : démarrages + gain rivière + vent
   if(!SND.ctx||SND.ctx.state!=='running')return; // rien avant l'unlock
   if(!SND_AMBON){SND_AMBON=true;sndAmbCycle();}
+  const nw=performance.now();                    // É6 : une rafale de vent toutes les 20-60 s
+  if(!SND.windT)SND.windT=nw+8000+Math.random()*20000;   // la 1re arrive vite (8-28 s)
+  else if(nw>=SND.windT){S('amb_wind_gust');SND.windT=nw+20000+Math.random()*40000;}
   if(!SND.mus)SND.mus=sndLoopStart('mus_valley_main','mus');    // null tant que pas décodé -> retente
   if(!SND_RIVER){SND_RIVER=sndLoopStart('amb_river','amb');if(SND_RIVER)SND_RIVER.g.gain.value=0;}
   if(SND_RIVER){
@@ -920,6 +934,7 @@ function wkTalkTick(now){
   const id=WK_ID[w.id]||WK_ID[0];
   const pool=(w.state==='break'||w.state==='bwalk')?(id.myst?WK_LINES.myst:WK_LINES.titi):(WK_LINES[w.job]||WK_LINES.r);
   wkTalk={id:w.id,txt:pool[Math.floor(Math.random()*pool.length)],t1:now+2800};
+  S('sfx_bubble_pop',{at:{x:w.x,y:w.y}});S('sfx_wk_mumble',{at:{x:w.x,y:w.y}});   // 🔊 pop + marmonnement (à l'écran)
 }
 // MARCHÉ VIVANT : cible sinusoïdale déterministe (vague de 30 min) + filtre 0.15/60s -> le prix
 // vécu ondule ~[6.75;12.25] : les seuils du vendeur (8/10/12) sont de vrais choix stratégiques.
@@ -1049,6 +1064,7 @@ function wkSell(w,now){   // la vente du vendeur : petit lot, au prix affiché, 
   const lvl=wkLvl(crew[w.id]?crew[w.id].xp:0);
   const lot=Math.min(stock,150+50*(lvl-1));
   if(lot<=0)return;
+  S('sfx_wk_sell');
   const earned=Math.floor(lot*marketPrice*valueMult()*homeSellMult()*vMult(lvl));
   stock-=lot;setCoin(coin+earned);coinPulse();updateStock();
   const ix=isoX(VEND_POS.x+.5,VEND_POS.y+.5),iy=isoY(VEND_POS.x+.5,VEND_POS.y+.5);
@@ -1070,7 +1086,7 @@ function wkFindTarget(w,now){
     if(!zs.length){wkMaybeBreak(w,now);return;}
     w.patrol=(w.patrol+1)%zs.length;
     const z=zs[w.patrol];w.pt={x:z.zx+(z.n>>1),y:z.zy+(z.n>>1)};
-    if(w.x===w.pt.x&&w.y===w.pt.y){w.state='cheer';w.t1=now+1500;}
+    if(w.x===w.pt.x&&w.y===w.pt.y){S('sfx_foreman_whistle',{at:{x:w.x,y:w.y}});w.state='cheer';w.t1=now+1500;}
     else{w.state='patrol';wkNextStep(w,w.pt,now);}
     return;}
   const t=wkScan(w,wkPred(w,now));   // récolteur & jardinier : scan 2 niveaux
@@ -1095,13 +1111,13 @@ function updateWorkers(now){   // LOGIQUE au tick 200ms — timers absolus => ro
         else wkNextStep(w,c,now);}
     }else if(w.state==='harvest'){
       if(!c||c.state!=='ready'){wkRelease(w);continue;}
-      if(now>=w.t1){harvestCell(c);w.state='plant';w.t1=now+wkActMs(WK_CFG.PLANT_MS,w);}
+      if(now>=w.t1){S('sfx_wk_harvest',{at:c});harvestCell(c);w.state='plant';w.t1=now+wkActMs(WK_CFG.PLANT_MS,w);}
     }else if(w.state==='care'){
       if(!c||c.state!=='growing'||c===selCell){wkRelease(w);continue;}   // mûri/récolté/main du joueur -> on lâche
       if(now>=w.t1){wkApplyCare(c,w);wkRelease(w);}
     }else if(w.state==='plant'){
       if(now>=w.t1){
-        if(c&&c.state==='empty'){c.state='growing';c.grow=0;c.water=0;c.sun=0;c.nute=0;c.quality=1;   // même variety (conservée)
+        if(c&&c.state==='empty'){S('sfx_wk_plant',{at:c});c.state='growing';c.grow=0;c.water=0;c.sun=0;c.nute=0;c.quality=1;   // même variety (conservée)
           const _il=irLvAt(c);
           if(_il>=4){c.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : le replant ouvrier aussi
             if(vis(c.x,c.y))burst(isoX(c.x+0.5,c.y+0.5),isoY(c.x+0.5,c.y+0.5)-TH()*0.2,'#6fc8ff',6);}   // v22.5 : petite éclaboussure (visible only)
@@ -1120,7 +1136,7 @@ function updateWorkers(now){   // LOGIQUE au tick 200ms — timers absolus => ro
       if(now>=w.t1){if(wkVendReady())wkSell(w,now);w.state='idle';w.scanT=now+2000;}
     }else if(w.state==='patrol'){
       if(now>=w.t1){w.x=w.x1;w.y=w.y1;
-        if(w.pt&&w.x===w.pt.x&&w.y===w.pt.y){w.state='cheer';w.t1=now+1500;}
+        if(w.pt&&w.x===w.pt.x&&w.y===w.pt.y){S('sfx_foreman_whistle',{at:{x:w.x,y:w.y}});w.state='cheer';w.t1=now+1500;}
         else if(w.pt)wkNextStep(w,w.pt,now);
         else{w.state='idle';w.scanT=now;}}
     }else if(w.state==='cheer'){
@@ -2752,9 +2768,9 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   regenCare(Date.now());
   updateStock();updateCareUI();updateHomeBadge();updateWkBtn();updateModBtn();
   let rc=0;for(const k in cropCells)if(cropCells[k].state==='ready')rc++;
-  if(off>60000&&rc>0)setTimeout(()=>toast('Bon retour ! 🌿 '+rc+' plant'+(rc>1?'s':'')+' prêt'+(rc>1?'s':'')+' à récolter'),700);
-  if(wkO.grams+wkO.sold>0)setTimeout(()=>toast('👷 Tes ouvriers ont récolté '+money(wkO.grams+wkO.sold)+' g !'),2600);   // séquencé après le « Bon retour »
-  if(wkO.coin>0)setTimeout(()=>toast('🤠 '+wkO.vName+' a vendu '+money(wkO.sold)+' g au marché · +'+money(wkO.coin)+' 💰'),3500);
+  if(off>60000&&rc>0)setTimeout(()=>{S('stg_welcome_back');toast('Bon retour ! 🌿 '+rc+' plant'+(rc>1?'s':'')+' prêt'+(rc>1?'s':'')+' à récolter');},700);
+  if(wkO.grams+wkO.sold>0)setTimeout(()=>{S('sfx_off_harvest');toast('👷 Tes ouvriers ont récolté '+money(wkO.grams+wkO.sold)+' g !');},2600);   // séquencé après le « Bon retour »
+  if(wkO.coin>0)setTimeout(()=>{S('sfx_off_sale');toast('🤠 '+wkO.vName+' a vendu '+money(wkO.sold)+' g au marché · +'+money(wkO.coin)+' 💰');},3500);
   const m0=curMission();   // mission déjà accomplie au retour -> rappel différé (après les autres toasts), sans re-toaster ensuite
   if(m0&&missionDone(m0)){_mNotif=true;setTimeout(()=>{S('stg_mission_done');banner('🎯 Mission accomplie — réclame ta récompense !',true);},4400);}
 }
