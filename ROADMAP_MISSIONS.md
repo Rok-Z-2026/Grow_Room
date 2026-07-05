@@ -33,9 +33,9 @@ décisions finales, il ne reste que le diagnostic technique et le GO de Nano par
 
 | # | Mission | Effort | Statut | Fini le | Note |
 |---|---------|--------|--------|---------|------|
-| M2 | Machines : visibilité, guidage, utilité | S/M | ⬜ À faire | — | — |
+| M2 | Machines : visibilité, guidage, utilité | S/M | 🔵 En cours | — | — |
 | M5 | Employés : évolution visible | M | ⬜ À faire | — | — |
-| 🎧 | Sprint audio de base (`AUDIO_HANDOFF.md`) | M | ⬜ À faire | — | — |
+| 🎧 | Sprint audio de base (`AUDIO_HANDOFF.md`) | M | ✅ Terminée | 05/07/2026 | v24 « La Vallée qui chante » : É0-É7 complètes (82/88 sons, spatialisation, ducking, 🔇), validée à l'oreille par Nano et déployée |
 | M8 | Menu principal & menu pause | M/L | ⬜ À faire | — | — |
 | M6 | Menu du jeu + réglages son | M | ⬜ À faire | — | — |
 | M7 | Mixage spatial | M | ⬜ À faire | — | — |
