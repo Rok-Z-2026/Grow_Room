@@ -199,7 +199,7 @@
   .toast{top:96px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="tag entag" id="enbadge">⚡0/0</span><span class="spacer"></span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde ·</span><span class="tag vtag">🏮v23.5</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="tag entag" id="enbadge">⚡0/0</span><span class="spacer"></span><span class="tag" id="sndbadge">🔊</span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde ·</span><span class="tag vtag">🏮v23.5</span></div>
 <div id="mtrack" class="mtrack"><span class="mmed"><span class="mico" id="mico">🎯</span></span><div class="mcol"><span class="mtxt" id="mtxt"></span><div class="mbar"><i id="mtfill"></i><span class="mnum" id="mnum"></span><span class="mshine"></span></div></div><span class="mchev">›</span></div>
 <div id="diag" class="diag"></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
@@ -328,6 +328,81 @@ const LAB=[
   {key:'value',name:'Valeur',emo:'💎',base:180,mul:1.65,max:20,desc:'+20% prix de vente'},
 ];
 function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+// ===== 🔊 AUDIO v24 — Web Audio pur, lazy après la 1re frame, tolérant aux pannes =====
+// Règles : panne (404/décodage) = no-op silencieux, le jeu ne casse JAMAIS · mute = rampe du
+// master (PAS ctx.suspend : gèlerait currentTime → ducking/crossfades cassés) · throttles sur
+// performance.now() (S() est appelé HORS-frame, FNOW serait périmé) · jamais de jitter pitch
+// sur un loop (ça changerait sa durée) · clé localStorage SÉPARÉE du save : 'tinygrow_sound'.
+var AUDIO_BASE='../02_Asset/audio/';
+var SND_LAYERS={mus:0.18,amb:0.30,sfx:0.55,wk:0.28,ui:0.40,stg:0.80};   // table de mixage (handoff)
+// SND_TAB — SEULE source de vérité : seules les clés listées sont téléchargées (1 vague = +lignes).
+// n=variations _1.._n · l=couche · v=×vol · p=jitter pitch ± · t=throttle ms · loop ·
+// stg=stinger (exclusif + ducking) · skipStg=zappe si stinger < X ms · vis=exige à l'écran · p1=prioritaire
+var SND_TAB={
+  sfx_harvest:{n:2,l:'sfx',p:0.05,t:80,p1:1},   // É1 — preuve de vie (récolte main du joueur)
+};
+var SND={ctx:null,master:null,g:{},buf:{},st:{},lastStgAt:-1e9,stgUntil:-1e9,
+  on:localStorage.getItem('tinygrow_sound')!=='0',
+  dbg:{dec:0,fail:0,played:{}}};                 // dbg = hook des harnais, jamais lu par le jeu
+function sndBoot(){                              // appelé 1× APRÈS la 1re frame peinte (kick en fin de script)
+  if(SND.ctx)return;
+  try{const AC=window.AudioContext||window.webkitAudioContext;SND.ctx=new AC();}catch(e){return;}
+  SND.master=SND.ctx.createGain();SND.master.gain.value=SND.on?1:0;SND.master.connect(SND.ctx.destination);
+  for(const k in SND_LAYERS){const g=SND.ctx.createGain();g.gain.value=SND_LAYERS[k];g.connect(SND.master);SND.g[k]=g;}
+  SND.ctx.addEventListener('statechange',()=>{if(SND.ctx.state!=='running')sndArm();});   // l'OS re-suspend → on ré-arme
+  sndLoadAll();
+}
+function sndDecode(ab){return new Promise((res,rej)=>{   // vieux Safari = callbacks only
+  const p=SND.ctx.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej);});}
+function sndFetch(name){return fetch(AUDIO_BASE+name+'.mp3')
+  .then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(sndDecode)
+  .then(b=>{SND.buf[name]=b;SND.dbg.dec++;})
+  .catch(()=>{SND.dbg.fail++;});}                // 404/KO → la clé n'entre jamais dans buf → S() muet
+function sndLoadAll(){const names=[];
+  for(const k in SND_TAB){const e=SND_TAB[k];
+    if(e.n)for(let i=1;i<=e.n;i++)names.push([k+'_'+i,e.p1?0:1]);else names.push([k,e.p1?0:1]);}
+  names.sort((a,b)=>a[1]-b[1]);                  // p1 d'abord, ordre de table ensuite
+  let i=0;const next=()=>{if(i<names.length)sndFetch(names[i++][0]).then(next);};
+  next();next();                                 // 2 téléchargements chaînés en parallèle
+}
+function sndUnlock(){if(!SND.ctx)return;         // geste avant la 1re frame → les listeners restent armés
+  try{const z=SND.ctx.createBufferSource();z.buffer=SND.ctx.createBuffer(1,1,22050);
+    z.connect(SND.ctx.destination);z.start(0);}catch(e){}      // déverrouillage iOS legacy
+  SND.ctx.resume().then(()=>{if(SND.ctx.state==='running')
+    ['touchstart','touchend','mousedown','keydown'].forEach(t=>window.removeEventListener(t,sndUnlock,true));});}
+function sndArm(){['touchstart','touchend','mousedown','keydown'].forEach(t=>
+  window.addEventListener(t,sndUnlock,{capture:true,passive:true}));}   // capture → passe malgré les preventDefault du canvas
+sndArm();
+function S(key,o){                               // play — les call sites restent des one-liners
+  const e=SND_TAB[key];if(!e||!SND.ctx)return;
+  const st=SND.st[key]||(SND.st[key]={t:-1e9,v:0}),now=performance.now();
+  if(e.t&&now-st.t<e.t)return;                   // throttle déclaratif
+  if(e.stg&&now<SND.stgUntil)return;             // jamais 2 stingers (règle : SKIP)
+  if(e.skipStg&&now-SND.lastStgAt<e.skipStg)return;
+  if(e.vis&&o&&o.at&&!vis(o.at.x,o.at.y))return; // ouvriers hors écran (É6)
+  let name=key;
+  if(e.n){let v=1+Math.floor(Math.random()*e.n);if(e.n>1&&v===st.v)v=v%e.n+1;st.v=v;name=key+'_'+v;}   // anti-répétition
+  const b=SND.buf[name];if(!b)return;            // pas (encore) chargé → silence
+  st.t=now;
+  const src=SND.ctx.createBufferSource();src.buffer=b;
+  if(e.loop)src.loop=true;                       // ⚠️ loop et p structurellement exclusifs
+  else if(e.p)src.playbackRate.value=1+(Math.random()*2-1)*e.p;
+  const g=SND.ctx.createGain();g.gain.value=(e.v||1)*((o&&o.v)||1);
+  src.connect(g);g.connect(SND.g[e.l]||SND.master);
+  if(e.stg){SND.stgUntil=now+b.duration*1000;SND.lastStgAt=now;sndDuck(b.duration);}
+  src.start();
+  SND.dbg.played[key]=(SND.dbg.played[key]||0)+1;
+  return src;                                    // handle → stop()/crossfade des loops (É3) sans changer les call sites
+}
+function sndDuck(dur){const t=SND.ctx.currentTime;   // stinger → mus+amb ×0.5, rampes douces
+  ['mus','amb'].forEach(l=>{const p=SND.g[l].gain;   // cibles = CONSTANTES SND_LAYERS, jamais gain.value en cours de rampe
+    p.cancelScheduledValues(t);p.setTargetAtTime(SND_LAYERS[l]*0.5,t,0.05);
+    p.setTargetAtTime(SND_LAYERS[l],t+Math.max(dur,1.5),0.25);});}
+function sndToggle(){SND.on=!SND.on;localStorage.setItem('tinygrow_sound',SND.on?'1':'0');
+  const el=document.getElementById('sndbadge');if(el)el.textContent=SND.on?'🔊':'🔇';
+  if(SND.ctx){const p=SND.master.gain,t=SND.ctx.currentTime;
+    p.cancelScheduledValues(t);p.setTargetAtTime(SND.on?1:0,t,0.04);}}
+// ===== fin AUDIO v24 =====
 function labCost(u){return Math.floor(u.base*Math.pow(u.mul,lab[u.key])*homeLabDiscount());}
 function yieldMult(){return 1+lab.yield*0.25;}
 function speedMult(){return Math.pow(0.92,lab.speed);}  // <1 = plus rapide
@@ -2457,7 +2532,7 @@ function onTap(px,py){
   if(placingMod){const tc=tapCell(px,py);if(tc)tryPlaceAt(tc.x,tc.y);return;}   // mode pose : le tap déplace le ghost
   const c=pickCrop(px,py);if(c){
     if(c.state==='empty'){selCell=c;showSeedbar(true);showCarebar(false);}   // selectionner -> graines
-    else if(c.state==='ready'){harvestCell(c);stats.ha++;selCell=null;showSeedbar(false);showCarebar(false);save();}   // stats.ha = récoltes À LA MAIN (pas les ouvriers)
+    else if(c.state==='ready'){S('sfx_harvest');harvestCell(c);stats.ha++;selCell=null;showSeedbar(false);showCarebar(false);save();}   // stats.ha = récoltes À LA MAIN (pas les ouvriers) · 🔊 v24
     else if(c.state==='growing'){  // selectionner -> panneau de soins
       selCell=c;showCarebar(true);showSeedbar(false);}
     return;}
@@ -2597,5 +2672,7 @@ setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastT
 setInterval(save,10000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
 window.addEventListener('pagehide',save);
+const _sb=document.getElementById('sndbadge');_sb.textContent=SND.on?'🔊':'🔇';_sb.addEventListener('click',sndToggle);   // 🔊 v24
+requestAnimationFrame(()=>setTimeout(sndBoot,0));   // audio : RIEN avant la 1re frame peinte (draw() intouché)
 window.__wipe=()=>{localStorage.removeItem(SAVE_KEY);location.reload();};
 </script></body></html>

@@ -160,6 +160,20 @@
   d'action, hobby de pause et bulles `wkTalk` sont COMMUNS aux 2 chemins — plus jamais
   d'early-return avant. Fallback emoji conservé (boot avant chargement). Portraits panneau =
   CSS sprite `.labspr` (background-size 96×192, position −30px 0 = col1/row0) via `wkFace(n)` ✓
+- **🔊 Audio v24 (É1)** : Web Audio pur, bloc unique après `clamp()` (`SND`/`S()`/`SND_TAB`/
+  `SND_LAYERS`). 88 MP3 dans `02_Asset/audio/` (blobs normaux, PAS LFS — mp3 non couvert par
+  les règles LFS). **`SND_TAB` = seule source de vérité** : seules les clés listées sont
+  téléchargées (1 vague de câblage = +lignes) ; schéma `{n,l,v,p,t,loop,stg,skipStg,vis,p1}`.
+  Boot lazy : `sndBoot` via rAF+setTimeout en fin de script (RIEN avant la 1re frame, `draw()`
+  intouché) ; decode OK sur contexte suspendu ; fetch chaîné ×2, `p1` d'abord. Unlock mobile :
+  listeners capture+passive sur window (touchstart/touchend/mousedown/keydown), retirés
+  seulement à `state==='running'`, ré-armés par `statechange`. ⚠️ **Panne = no-op** (404/KO →
+  `S()` muet, le jeu ne casse JAMAIS) · mute = rampe du MASTER, jamais `ctx.suspend()` ·
+  throttles sur `performance.now()` (S() est hors-frame, pas FNOW) · jamais de jitter `p` sur
+  un `loop` · ducking `sndDuck` : cibles = constantes `SND_LAYERS`, jamais `gain.value` en
+  cours de rampe · clé localStorage SÉPARÉE `'tinygrow_sound'` (le save reste intouché) ·
+  `SND.dbg` réservé aux harnais. Toggle 🔊/🔇 = `#sndbadge` topbar. É0 : queues des sfx_/ui_
+  trimmées (jamais amb/mus/stg/loops) — rollback unitaire `git checkout ce00f26 -- <fichier>`.
 - **Missions** : chaîne `MISSIONS[53]` (8 chapitres — **append strict**, indices historiques gravés
   dans les saves) + compteurs `stats{}`, tracker `.mtrack` + modal `#mmodal`, claim atomique,
   save `{mi,st}` additif ✓
