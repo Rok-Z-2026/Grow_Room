@@ -200,7 +200,7 @@
   .toast{top:96px;}
 }
 </style></head><body>
-<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="tag entag" id="enbadge">⚡0/0</span><span class="spacer"></span><span class="tag" id="sndbadge">🔊</span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde ·</span><span class="tag vtag">🏮v23.5</span></div>
+<div id="app"><canvas id="iso"></canvas><div class="topbar"><span class="coin" id="coin">0</span><span class="stock" id="stockbadge">🌿 <b id="stockval">0 g</b></span><span class="tag entag" id="enbadge">⚡0/0</span><span class="spacer"></span><span class="tag" id="sndbadge">🔊</span><span class="tag homebadge" id="homebadge">🏠<b id="homelvl">1</b></span><span class="tag">🌍 Mon Monde ·</span><span class="tag vtag">🏮v24</span></div>
 <div id="mtrack" class="mtrack"><span class="mmed"><span class="mico" id="mico">🎯</span></span><div class="mcol"><span class="mtxt" id="mtxt"></span><div class="mbar"><i id="mtfill"></i><span class="mnum" id="mnum"></span><span class="mshine"></span></div></div><span class="mchev">›</span></div>
 <div id="diag" class="diag"></div>
 <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button></div>
@@ -394,6 +394,12 @@ var SND_TAB={
   sfx_off_harvest:{l:'sfx',v:0.8},
   sfx_off_sale:{l:'sfx',v:0.8},
   amb_wind_gust:{n:2,l:'amb',v:0.8},            // déclenché par le timer de sndAmbTick (20-60s)
+  // É7 — polish (boucles de proximité gérées par sndAmbTick, crossfade Domaine, marché)
+  sfx_market_high:{l:'sfx',v:0.9},              // franchissement ≥12 à la hausse (1×/vague par construction)
+  mus_menu_home:{l:'mus',loop:1},               // crossfade openHome↔closeHome (sndHomeMus)
+  amb_water_pump:{l:'amb',loop:1},              // proximité module Irrigation
+  amb_campfire_1:{l:'amb',loop:1},              // proximité maison, Domaine ≤2 (l'époque du camp)
+  amb_crickets_soft_1:{l:'amb',loop:1},         // couche contemplative au dézoom
   // É3 — ambiances & musique (boucles — personne n'appelle S() dessus, gérées par sndAmbTick)
   amb_valley_day:{n:2,l:'amb'},                 // cyclées à la main avec crossfade (sndAmbCycle), PAS loop=true
   amb_river:{l:'amb',loop:1},                   // gain ∝ distance caméra↔eau (sndAmbTick)
@@ -461,7 +467,9 @@ function sndDuck(dur){const t=SND.ctx.currentTime;   // stinger → mus+amb ×0.
     p.setTargetAtTime(SND_LAYERS[l],t+Math.max(dur,1.5),0.25);});}
 function sndToggle(){SND.on=!SND.on;localStorage.setItem('tinygrow_sound',SND.on?'1':'0');
   const el=document.getElementById('sndbadge');if(el)el.textContent=SND.on?'🔊':'🔇';
-  if(SND.ctx){const p=SND.master.gain,t=SND.ctx.currentTime;
+  SND.mutedAt=SND.on?0:performance.now();        // É7 : chrono du suspend batterie
+  if(SND.ctx){if(SND.on&&SND.ctx.state==='suspended')SND.ctx.resume();   // réveil après un suspend batterie
+    const p=SND.master.gain,t=SND.ctx.currentTime;
     p.cancelScheduledValues(t);p.setTargetAtTime(SND.on?1:0,t,0.04);}}
 // ── É3 : la vallée respire — ambiance cyclée, musique en boucle, rivière spatialisée ──
 var SND_WATER=null,SND_RIVER=null,SND_AMBON=false;   // runtime pur (règle 5 : var globaux)
@@ -479,23 +487,52 @@ function sndAmbCycle(){                          // valley_day _1/_2 en alternan
   src.connect(g);g.connect(SND.g.amb);src.start();
   setTimeout(sndAmbCycle,Math.max(1000,(b.duration-X)*1000));   // le suivant démarre PENDANT le fade-out
 }
-function sndAmbTick(){                           // 1×/s (armé par sndBoot) : démarrages + gain rivière + vent
+function sndProx(h,name,d,full,quiet){           // É7 : boucle de proximité générique — gain 1 à d≤full → 0 à d≥quiet
+  if(!SND[h]){SND[h]=sndLoopStart(name,'amb');if(SND[h])SND[h].g.gain.value=0;}
+  if(!SND[h])return 0;
+  const tg=Math.max(0,Math.min(1,1-(d-full)/(quiet-full)));
+  SND[h].g.gain.setTargetAtTime(tg,SND.ctx.currentTime,0.4);
+  return tg;
+}
+function sndHomeMus(on){                         // É7 : crossfade musique principale ↔ galerie du Domaine (0.3 s)
+  if(!SND.ctx||SND.ctx.state!=='running')return;
+  const t=SND.ctx.currentTime;
+  if(on){
+    if(!SND.musHome)SND.musHome=sndLoopStart('mus_menu_home','mus');
+    if(!SND.musHome)return;                      // pas encore décodée → la principale continue, zéro casse
+    SND.musHome.g.gain.value=0;SND.musHome.g.gain.setTargetAtTime(1,t,0.3);
+    if(SND.mus){SND.mus.g.gain.cancelScheduledValues(t);SND.mus.g.gain.setTargetAtTime(0,t,0.3);}
+  }else{
+    if(SND.musHome){const h=SND.musHome;SND.musHome=null;
+      h.g.gain.cancelScheduledValues(t);h.g.gain.setTargetAtTime(0,t,0.3);
+      setTimeout(()=>{try{h.src.stop();}catch(e){}},900);}
+    if(SND.mus){SND.mus.g.gain.cancelScheduledValues(t);SND.mus.g.gain.setTargetAtTime(1,t,0.3);}
+  }
+}
+function sndAmbTick(){                           // 1×/s (armé par sndBoot) : boucles, proximités, vent, batterie
   if(!SND.ctx||SND.ctx.state!=='running')return; // rien avant l'unlock
   if(!SND_AMBON){SND_AMBON=true;sndAmbCycle();}
   const nw=performance.now();                    // É6 : une rafale de vent toutes les 20-60 s
   if(!SND.windT)SND.windT=nw+8000+Math.random()*20000;   // la 1re arrive vite (8-28 s)
   else if(nw>=SND.windT){S('amb_wind_gust');SND.windT=nw+20000+Math.random()*40000;}
   if(!SND.mus)SND.mus=sndLoopStart('mus_valley_main','mus');    // null tant que pas décodé -> retente
+  const wx=-cam.x/(TW()/2), wy=(APP_H*0.22-cam.y)/(TH()/2);     // case au CENTRE de l'écran (inverse iso plat)
+  const cx=(wx+wy)/2, cy=(wy-wx)/2;
   if(!SND_RIVER){SND_RIVER=sndLoopStart('amb_river','amb');if(SND_RIVER)SND_RIVER.g.gain.value=0;}
   if(SND_RIVER){
     if(!SND_WATER){SND_WATER=[];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(W.ground[y][x]==='water')SND_WATER.push([x,y]);}
-    const wx=-cam.x/(TW()/2), wy=(APP_H*0.22-cam.y)/(TH()/2);   // case au CENTRE de l'écran (inverse iso plat)
-    const cx=(wx+wy)/2, cy=(wy-wx)/2;
     let d=1e9;for(const w of SND_WATER){const dd=Math.abs(w[0]-cx)+Math.abs(w[1]-cy);if(dd<d)d=dd;}
     const tg=Math.max(0,Math.min(1,1-(d-2)/12));                // plein à d≤2 · silencieux à d≥14
     SND.dbg.riverD=Math.round(d);SND.dbg.riverG=tg;             // hooks harnais
     SND_RIVER.g.gain.setTargetAtTime(tg,SND.ctx.currentTime,0.4);
   }
+  let dp=1e9;for(const m of mods)if(m.k==='ir'){const dd=Math.abs(m.x-cx)+Math.abs(m.y-cy);if(dd<dp)dp=dd;}   // É7 : la pompe la plus proche
+  SND.dbg.pumpG=sndProx('pump','amb_water_pump',dp,2,9);
+  const df=houseLevel<=2?Math.abs(HOME_POS.x-cx)+Math.abs(HOME_POS.y-cy):1e9;   // É7 : le feu de camp des débuts
+  SND.dbg.fireG=sndProx('fire','amb_campfire_1',df,3,11);
+  if(!SND.crick){SND.crick=sndLoopStart('amb_crickets_soft_1','amb');if(SND.crick)SND.crick.g.gain.value=0;}
+  if(SND.crick)SND.crick.g.gain.setTargetAtTime(zoom<=0.62?0.8:0,SND.ctx.currentTime,0.8);   // É7 : grillons contemplatifs
+  if(!SND.on&&SND.mutedAt&&nw-SND.mutedAt>30000)SND.ctx.suspend();   // É7 : batterie — 30 s de mute → suspend (resume au re-toggle)
 }
 // ===== fin AUDIO v24 =====
 function labCost(u){return Math.floor(u.base*Math.pow(u.mul,lab[u.key])*homeLabDiscount());}
@@ -945,7 +982,9 @@ function mktDrift(now){let ch=false;   // rattrape les pas de 60s manqués (onli
   const steps=Math.min(Math.floor((now-mktT)/MKT.STEP),120);   // >2h -> l'état initial est oublié (0.85^120)
   if(steps>=120)mktT=now-120*MKT.STEP;
   for(let i=0;i<Math.min(Math.floor((now-mktT)/MKT.STEP),120);i++){mktT+=MKT.STEP;
-    marketPrice=Math.max(5,Math.min(14,marketPrice+(mktTarget(mktT)-marketPrice)*MKT.K));ch=true;}
+    const _pm=marketPrice;
+    marketPrice=Math.max(5,Math.min(14,marketPrice+(mktTarget(mktT)-marketPrice)*MKT.K));ch=true;
+    if(_pm<12&&marketPrice>=12)S('sfx_market_high');}   // 🔊 É7 : le marché s'emballe (1×/vague — il doit redescendre sous 12 d'abord)
   return ch;}
 let workerCount=0, wkUp={walk:0,dex:0,night:0};                 // PERSISTANT (save/load)
 var crew=[];                                                     // PERSISTANT — [{j,xp}] par ouvrier
@@ -2302,8 +2341,8 @@ function renderHome(){
   document.getElementById('homefoot').textContent='Bonus cumulés : '+homeBonusSummary();}
 function homeCenterCard(idx,smooth){const car=document.getElementById('homecar'),card=car.children[idx];if(!card)return;
   car.scrollTo({left:card.offsetLeft-(car.clientWidth-card.offsetWidth)/2,behavior:smooth?'smooth':'auto'});}
-function openHome(){S('ui_panel_open');document.getElementById('homemodal').classList.add('show');renderHome();homeCenterCard(houseLevel-1,false);}
-function closeHome(){const el=document.getElementById('homemodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
+function openHome(){S('ui_panel_open');sndHomeMus(true);document.getElementById('homemodal').classList.add('show');renderHome();homeCenterCard(houseLevel-1,false);}
+function closeHome(){const el=document.getElementById('homemodal');if(el.classList.contains('show')){S('ui_panel_close');sndHomeMus(false);}el.classList.remove('show');}
 // caméra interpolée : glisse le CENTRE écran vers la case (tx,ty) au zoom tz en ms — réutilisable pour d'autres cinématiques
 function glideCam(tx,ty,tz,ms,done){S('sfx_cam_glide');   // 🔊 v24 (throttle 800 ms)
   const z0=zoom, s0=-cam.x/(TW()/2), a0=(APP_H*0.5-APP_H*0.28-cam.y)/(TH()/2);   // (c-r) et (c+r) du point monde au centre écran

@@ -160,20 +160,29 @@
   d'action, hobby de pause et bulles `wkTalk` sont COMMUNS aux 2 chemins — plus jamais
   d'early-return avant. Fallback emoji conservé (boot avant chargement). Portraits panneau =
   CSS sprite `.labspr` (background-size 96×192, position −30px 0 = col1/row0) via `wkFace(n)` ✓
-- **🔊 Audio v24 (É1)** : Web Audio pur, bloc unique après `clamp()` (`SND`/`S()`/`SND_TAB`/
-  `SND_LAYERS`). 88 MP3 dans `02_Asset/audio/` (blobs normaux, PAS LFS — mp3 non couvert par
-  les règles LFS). **`SND_TAB` = seule source de vérité** : seules les clés listées sont
-  téléchargées (1 vague de câblage = +lignes) ; schéma `{n,l,v,p,t,loop,stg,skipStg,vis,p1}`.
-  Boot lazy : `sndBoot` via rAF+setTimeout en fin de script (RIEN avant la 1re frame, `draw()`
-  intouché) ; decode OK sur contexte suspendu ; fetch chaîné ×2, `p1` d'abord. Unlock mobile :
-  listeners capture+passive sur window (touchstart/touchend/mousedown/keydown), retirés
-  seulement à `state==='running'`, ré-armés par `statechange`. ⚠️ **Panne = no-op** (404/KO →
-  `S()` muet, le jeu ne casse JAMAIS) · mute = rampe du MASTER, jamais `ctx.suspend()` ·
-  throttles sur `performance.now()` (S() est hors-frame, pas FNOW) · jamais de jitter `p` sur
-  un `loop` · ducking `sndDuck` : cibles = constantes `SND_LAYERS`, jamais `gain.value` en
-  cours de rampe · clé localStorage SÉPARÉE `'tinygrow_sound'` (le save reste intouché) ·
-  `SND.dbg` réservé aux harnais. Toggle 🔊/🔇 = `#sndbadge` topbar. É0 : queues des sfx_/ui_
-  trimmées (jamais amb/mus/stg/loops) — rollback unitaire `git checkout ce00f26 -- <fichier>`.
+- **🔊 Audio v24 (É0-É7 COMPLET)** : Web Audio pur, bloc unique après `clamp()` (`SND`/`S()`/
+  `SND_TAB`/`SND_LAYERS`). 88 MP3 dans `02_Asset/audio/` (blobs normaux, PAS LFS), **82 câblés**
+  — restent au placard : `sfx_grams_pop` (doublon récolte), `sfx_gauge_fill` (pas de trigger),
+  `sfx_sprinkler_loop`, `mus_valley_night` (pas de cycle jour/nuit), `amb_campfire_2`/
+  `amb_crickets_soft_2`. **`SND_TAB` = seule source de vérité** (schéma
+  `{n,l,v,p,t,loop,stg,skipStg,skipAny,vis,p1}` — seules les clés listées sont téléchargées).
+  Boot lazy `sndBoot` (rAF+setTimeout fin de script, RIEN avant la 1re frame) ; unlock mobile
+  capture+passive ré-armé par `statechange` ; **S() ne joue QUE si `state==='running'`**
+  (jamais de sons empilés pré-unlock). Couches `{mus:.18,amb:.30,sfx:.55,wk:.28,ui:.40,stg:.80}`.
+  Stingers : exclusifs (skip) + ducking `sndDuck` mus/amb ×0.5 (cibles = CONSTANTES, jamais
+  `gain.value` en rampe) ; les enchaînements se font par setTimeout > durée du stinger
+  (house_up à +2400ms, dorm_bed à 5400ms). `skipAny` = anti-doublon (ui_toast/banner_in muets
+  si un son dédié vient de partir) ; `vis:1` + `{at:cell}` = ouvriers muets hors écran.
+  `sndAmbTick` 1×/s : cycle valley_day crossfadé 0.8s (jamais loop=true sur les cyclées),
+  rivière/pompe/feu de camp par distance Manhattan à la case CENTRE écran (inverse iso plat),
+  grillons si zoom≤0.62, vent 20-60s, suspend batterie à 30s de mute (resume au re-toggle).
+  `sndHomeMus` = crossfade openHome↔closeHome. ⚠️ Panne = no-op (404/KO → S() muet) · mute =
+  rampe du MASTER · throttles sur `performance.now()` (hors-frame, pas FNOW) · jamais de
+  jitter `p` sur un `loop` · clé localStorage SÉPARÉE `'tinygrow_sound'` · `SND.dbg` réservé
+  aux harnais (dec/fail/played/pcm/riverG/pumpG/fireG). Toggle 🔊/🔇 = `#sndbadge`
+  (flex-shrink:0 !). É0 : queues sfx_/ui_ trimmées, garantie fin-de-contenu@-45dB, rollback
+  `git checkout ce00f26 -- <fichier>`. ~110 Mo de PCM décodé (mus 120s ≈ 42 Mo) — échappatoire
+  décodage-à-la-demande si un mobile souffre. Harnais : verify_audio.js 48/48.
 - **Missions** : chaîne `MISSIONS[53]` (8 chapitres — **append strict**, indices historiques gravés
   dans les saves) + compteurs `stats{}`, tracker `.mtrack` + modal `#mmodal`, claim atomique,
   save `{mi,st}` additif ✓

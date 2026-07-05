@@ -337,6 +337,14 @@ corriges. Missions 50-52 (chapitre VIII continue : Table d'engrais, Générateur
 v27) ont été AVANCÉS — voir 7bis. Le reste du chantier v27 (assignation par champ, Technicien,
 Centre des employés) garde sa place dans la roadmap.
 
+**v24 🔊 « La Vallée qui chante »** ✅ : le jeu a une bande-son complète (88 MP3 ElevenLabs,
+82 câblés). Boucle cœur (plante/soins/combos à pitch montant/récolte/vente), ambiance de la
+vallée crossfadée + musique douce + **rivière/pompe/feu de camp spatialisés** (volume ∝
+distance caméra), UI et toasts intelligents (zéro doublon), stingers de mission/reveal/embauche
+avec **ducking**, ouvriers à −6dB seulement à l'écran, retour offline séquencé, rafales de
+vent, grillons au dézoom, musique dédiée de la galerie du Domaine, toggle 🔊/🔇 persistant,
+économie de batterie. Le son ne casse JAMAIS le jeu (panne = silence).
+
 **À venir** (une tranche jouable par version) : ★ Qualité + 📦 Logistique (v24) ·
 🛒 Commandes/Réputation (v25, les clients utiliseront les 8 planches grises) · 🌡️ Climat +
 Événements (v26) · 👷 Employés 2.0 — suite (v27) · 📖 Carnet complet (v28) · équilibrage (v29) ·
