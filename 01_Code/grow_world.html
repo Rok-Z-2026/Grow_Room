@@ -360,12 +360,22 @@ var SND_TAB={
   ui_denied:{l:'ui',t:200},                     // doux, jamais punitif
   sfx_zone_unlock:{l:'sfx',t:300},
   sfx_palier_new:{l:'sfx',t:500},
+  // É4 — UI & missions
+  ui_panel_open:{l:'ui',t:150},
+  ui_panel_close:{l:'ui',t:150},
+  ui_btn:{l:'ui',v:0.8,t:80},
+  ui_seedbar_show:{l:'ui',v:0.9,t:150},
+  ui_toast:{l:'ui',v:0.8,t:250,skipStg:1000,skipAny:150},   // se tait si un son vient de partir (anti-doublon)
+  sfx_banner_in:{l:'ui',t:300,skipAny:150},
+  sfx_guide_ping:{l:'ui',t:500},
+  stg_mission_done:{l:'stg',stg:1},             // exclusivité + ducking automatiques
+  stg_mission_claim:{l:'stg',stg:1},
   // É3 — ambiances & musique (boucles — personne n'appelle S() dessus, gérées par sndAmbTick)
   amb_valley_day:{n:2,l:'amb'},                 // cyclées à la main avec crossfade (sndAmbCycle), PAS loop=true
   amb_river:{l:'amb',loop:1},                   // gain ∝ distance caméra↔eau (sndAmbTick)
   mus_valley_main:{l:'mus',loop:1},
 };
-var SND={ctx:null,master:null,g:{},buf:{},st:{},lastStgAt:-1e9,stgUntil:-1e9,
+var SND={ctx:null,master:null,g:{},buf:{},st:{},lastStgAt:-1e9,stgUntil:-1e9,lastPlayAt:-1e9,
   on:localStorage.getItem('tinygrow_sound')!=='0',
   dbg:{dec:0,fail:0,played:{}}};                 // dbg = hook des harnais, jamais lu par le jeu
 function sndBoot(){                              // appelé 1× APRÈS la 1re frame peinte (kick en fin de script)
@@ -404,6 +414,7 @@ function S(key,o){                               // play — les call sites rest
   if(e.t&&now-st.t<e.t)return;                   // throttle déclaratif
   if(e.stg&&now<SND.stgUntil)return;             // jamais 2 stingers (règle : SKIP)
   if(e.skipStg&&now-SND.lastStgAt<e.skipStg)return;
+  if(e.skipAny&&now-SND.lastPlayAt<e.skipAny)return;   // É4 : anti-doublon (toast/bannière qui co-tirent avec un son dédié)
   if(e.vis&&o&&o.at&&!vis(o.at.x,o.at.y))return; // ouvriers hors écran (É6)
   let name=key;
   if(e.n){let v=1+Math.floor(Math.random()*e.n);if(e.n>1&&v===st.v)v=v%e.n+1;st.v=v;name=key+'_'+v;}   // anti-répétition
@@ -415,6 +426,7 @@ function S(key,o){                               // play — les call sites rest
   const g=SND.ctx.createGain();g.gain.value=(e.v||1)*((o&&o.v)||1);
   src.connect(g);g.connect(SND.g[e.l]||SND.master);
   if(e.stg){SND.stgUntil=now+b.duration*1000;SND.lastStgAt=now;sndDuck(b.duration);}
+  SND.lastPlayAt=now;
   src.start();
   SND.dbg.played[key]=(SND.dbg.played[key]||0)+1;
   return src;                                    // handle → stop()/crossfade des loops (É3) sans changer les call sites
@@ -1935,8 +1947,8 @@ function money(n){return Math.floor(n).toLocaleString('fr-FR');}
 function buyLab(k){const u=LAB.find(x=>x.key===k),l=lab[k];if(l>=u.max)return;const cost=labCost(u);
   if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
   S('sfx_buy');setCoin(coin-cost);lab[k]=l+1;coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderLab();updateStock();save();}
-function openLab(){document.getElementById('labmodal').classList.add('show');renderLab();}
-function closeLab(){document.getElementById('labmodal').classList.remove('show');}
+function openLab(){S('ui_panel_open');document.getElementById('labmodal').classList.add('show');renderLab();}
+function closeLab(){const el=document.getElementById('labmodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
 document.getElementById('labbtn').addEventListener('click',openLab);
 document.getElementById('labclose').addEventListener('click',closeLab);
 document.getElementById('labmodal').addEventListener('click',e=>{if(e.target.id==='labmodal')closeLab();});
@@ -2036,8 +2048,8 @@ function renderWk(){
   document.querySelectorAll('[data-wk2]').forEach(b=>b.addEventListener('click',()=>buyWkUp2(b.dataset.wk2)));
   document.querySelectorAll('[data-camp]').forEach(b=>b.addEventListener('click',()=>buyCampBld(b.dataset.camp)));
   document.querySelectorAll('[data-wj]').forEach(b=>b.addEventListener('click',()=>{const[i,j]=b.dataset.wj.split(':');wkAssign(+i,j);}));
-  document.querySelectorAll('[data-vsp]').forEach(b=>b.addEventListener('click',()=>{wkVs.minP=+b.dataset.vsp;save();renderWk();}));
-  const vt=document.getElementById('wkvst');if(vt)vt.addEventListener('click',()=>{wkVs.on=wkVs.on?0:1;save();
+  document.querySelectorAll('[data-vsp]').forEach(b=>b.addEventListener('click',()=>{S('ui_btn');wkVs.minP=+b.dataset.vsp;save();renderWk();}));
+  const vt=document.getElementById('wkvst');if(vt)vt.addEventListener('click',()=>{S('ui_btn');wkVs.on=wkVs.on?0:1;save();
     toast(wkVs.on?'🤠 Le vendeur reprend l\'étal !':'⏸ Le vendeur fait la sieste');renderWk();});
 }
 function tickWk(){   // patch LÉGER 1x/s : barres XP + prix du marché — jamais de rebuild innerHTML
@@ -2060,8 +2072,8 @@ function wkAssign(i,j){
   toast(JOB_EMO[j]+' '+(WK_ID[i]||{}).n+' devient '+JOB_NAME[j]+' !');
   renderWk();
 }
-function openWk(){document.getElementById('wkmodal').classList.add('show');renderWk();}
-function closeWk(){document.getElementById('wkmodal').classList.remove('show');}
+function openWk(){S('ui_panel_open');document.getElementById('wkmodal').classList.add('show');renderWk();}
+function closeWk(){const el=document.getElementById('wkmodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
 function buyWorker(){
   if(workerCount>=WK_CFG.HIRE.length)return;
   if(workerCount>=wkMax()){S('ui_denied');toast('🛏️ Construis le Dortoir pour loger plus d\'ouvriers !');return;}
@@ -2135,7 +2147,7 @@ function updateMissionUI(){   // tick 200ms + après claim/load — memo de sign
   document.getElementById('mtxt').textContent=done?'RÉCLAME TA RÉCOMPENSE !':m.n;
   document.getElementById('mnum').textContent=cur.toLocaleString('fr-FR')+'/'+m.t.toLocaleString('fr-FR');
   document.getElementById('mtfill').style.width=(cur/m.t*100)+'%';
-  if(done&&!_mNotif){_mNotif=true;banner('✅ Mission accomplie !',true);burst(APP_W*0.4,78,'#ffd84d',18);}
+  if(done&&!_mNotif){_mNotif=true;S('stg_mission_done');banner('✅ Mission accomplie !',true);burst(APP_W*0.4,78,'#ffd84d',18);}   // 🔊 stinger AVANT la bannière (elle se tait dessous)
   if(document.getElementById('mmodal').classList.contains('show'))renderMission();
 }
 function renderMission(){
@@ -2156,10 +2168,11 @@ function renderMission(){
   const cb=document.getElementById('mclaim');if(cb)cb.addEventListener('click',claimMission);
   const gb=document.getElementById('mgo');if(gb)gb.addEventListener('click',missionGuide);
 }
-function openMissions(){document.getElementById('mmodal').classList.add('show');renderMission();}
-function closeMissions(){document.getElementById('mmodal').classList.remove('show');}
+function openMissions(){S('ui_panel_open');document.getElementById('mmodal').classList.add('show');renderMission();}
+function closeMissions(){const el=document.getElementById('mmodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
 function claimMission(){
   const m=curMission();if(!m||!missionDone(m))return;
+  S('stg_mission_claim');   // 🔊 stinger + ducking (les coins_fly passent par-dessus)
   const from=coin, ar=document.getElementById('app').getBoundingClientRect();
   const br=document.getElementById('mclaim').getBoundingClientRect();   // coords AVANT le re-render
   const bx=br.left-ar.left+br.width/2, by=br.top-ar.top+br.height/2;
@@ -2199,6 +2212,7 @@ var bnQ=[],bnBusy=false;
 function banner(msg,gold){bnQ.push({msg,gold:!!gold});if(!bnBusy)bnNext();}
 function bnNext(){if(!bnQ.length){bnBusy=false;return;}
   bnBusy=true;const b=document.getElementById('banner'),it=bnQ.shift();
+  S('sfx_banner_in');   // 🔊 au moment où elle GLISSE (skipAny : muette sous un stinger)
   b.textContent=it.msg;b.classList.toggle('gold',it.gold);b.classList.add('show');
   setTimeout(()=>{b.classList.remove('show');setTimeout(bnNext,340);},2000);}
 // guidage « 📍 Montre-moi » : caméra vers la cible monde ou pulse du bouton UI concerné
@@ -2206,7 +2220,7 @@ function guideBtn(id){const el=document.getElementById(id);if(!el)return;
   el.classList.remove('guide');void el.offsetWidth;el.classList.add('guide');
   setTimeout(()=>el.classList.remove('guide'),3100);}
 function missionGuide(){
-  const m=curMission();if(!m||!m.go)return;closeMissions();
+  const m=curMission();if(!m||!m.go)return;S('sfx_guide_ping');closeMissions();
   const g=m.go;
   if(g==='lab')return guideBtn('labbtn');
   if(g==='worker')return guideBtn(document.getElementById('wkbtn').classList.contains('show')?'wkbtn':'homebtn');   // pas encore logé -> la maison d'abord
@@ -2258,8 +2272,8 @@ function renderHome(){
   document.getElementById('homefoot').textContent='Bonus cumulés : '+homeBonusSummary();}
 function homeCenterCard(idx,smooth){const car=document.getElementById('homecar'),card=car.children[idx];if(!card)return;
   car.scrollTo({left:card.offsetLeft-(car.clientWidth-card.offsetWidth)/2,behavior:smooth?'smooth':'auto'});}
-function openHome(){document.getElementById('homemodal').classList.add('show');renderHome();homeCenterCard(houseLevel-1,false);}
-function closeHome(){document.getElementById('homemodal').classList.remove('show');}
+function openHome(){S('ui_panel_open');document.getElementById('homemodal').classList.add('show');renderHome();homeCenterCard(houseLevel-1,false);}
+function closeHome(){const el=document.getElementById('homemodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
 // caméra interpolée : glisse le CENTRE écran vers la case (tx,ty) au zoom tz en ms — réutilisable pour d'autres cinématiques
 function glideCam(tx,ty,tz,ms,done){
   const z0=zoom, s0=-cam.x/(TW()/2), a0=(APP_H*0.5-APP_H*0.28-cam.y)/(TH()/2);   // (c-r) et (c+r) du point monde au centre écran
@@ -2326,7 +2340,7 @@ function zoomAt(nz,sx,sy){nz=clamp(nz,0.4,1.7);
   clampCam();}
 function ft(px,py,t,c){const e=document.createElement('div');e.className='float';e.textContent=t;e.style.left=px+'px';e.style.top=py+'px';if(c)e.style.color=c;document.getElementById('app').appendChild(e);setTimeout(()=>e.remove(),1100);}
 function coinPulse(){const el=document.getElementById('coin');el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');}
-function showCarebar(s){const el=document.getElementById('carebar');if(el)el.classList.toggle('show',s);updateCareUI();}
+function showCarebar(s){const el=document.getElementById('carebar');if(el){if(s&&!el.classList.contains('show'))S('ui_seedbar_show');el.classList.toggle('show',s);}updateCareUI();}
 function updateCareUI(){
   const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=boosts[t]+'/'+careMax(t);};
   set('bw','water');set('bs','sun');set('bn','nute');
@@ -2360,7 +2374,7 @@ function applyCare(type){
   if(selCell.state==='ready'){showCarebar(false);selCell=null;}
   save();
 }
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),1800);}
+function toast(msg){S('ui_toast');const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),1800);}   // 🔊 skipAny : muet si un son dédié vient de partir
 function updateStock(){const el=document.getElementById('stockval');if(el)el.textContent=stock+' g';const bar=document.getElementById('sellbar');if(bar)bar.classList.toggle('show',stock>0);const pe=document.getElementById('sellprice');if(pe)pe.textContent='≈ '+Math.floor(stock*marketPrice*valueMult()*homeSellMult())+' 💰';}
 function sellAll(){if(stock<=0)return;S('sfx_sell');const earned=Math.floor(stock*marketPrice*valueMult()*homeSellMult());setCoin(coin+earned);coinPulse();
   stats.se++;stats.ea+=earned;   // missions : ventes + total gagné (jamais alimenté par les récompenses)
@@ -2394,7 +2408,7 @@ function buyLandGroup(g,px,py){
   toast('Forêt défrichée ! 🪓');save();
 }
 // selCell est déclarée plus haut (avant draw) pour éviter le TDZ
-function showSeedbar(s){document.getElementById('seedbar').classList.toggle('show',s);}
+function showSeedbar(s){const el=document.getElementById('seedbar');if(s&&!el.classList.contains('show'))S('ui_seedbar_show');el.classList.toggle('show',s);}
 // === 🏗️ UI MODULES (v22) : menu de construction, pose libre, panneau, upgrade ===
 function tapCell(px,py){   // écran -> case : inverse iso plat + raffinage local (les collines existent)
   const wx=(px-APP_W/2-cam.x)/(TW()/2), wy=(py-APP_H*0.28-cam.y)/(TH()/2);
@@ -2452,14 +2466,15 @@ function renderEn(){
     +'<div class="modnext">💡 L\'Overdrive RÉSERVE 150⚡ pendant ses 10 min : garde du surplus, ou le réseau passe en dégradé. (L\'Energy Core le déclenche tout seul.)</div>'
     +'<div class="modbtns">'+ov+'</div>';
   const ob=document.getElementById('ovbtn');if(ob)ob.onclick=()=>{if(fireOverdrive(false))renderEn();};}
-function openEn(){renderEn();document.getElementById('enmodal').classList.add('show');}
+function openEn(){S('ui_panel_open');renderEn();document.getElementById('enmodal').classList.add('show');}
 document.getElementById('enbadge').onclick=openEn;
-document.getElementById('enclose').onclick=()=>document.getElementById('enmodal').classList.remove('show');
+document.getElementById('enclose').onclick=()=>{const el=document.getElementById('enmodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');};
 function updateModBtn(){const b=document.getElementById('modbtn');if(!b)return;
   const show=houseLevel>=3;b.style.display=show?'block':'none';
   if(show&&!mods.length&&!window._modHint){window._modHint=1;   // découverte : 1 rappel doux par session tant qu'aucun module
     setTimeout(()=>toast('🏗️ Nouveau : les MODULES ! Construis ton premier Arrosoir'),1600);}}
 function openBld(){
+  S('ui_panel_open');
   const el=document.getElementById('bldlist');let h='';
   for(const k of MOD_ORDER){const c=MODS_CFG[k];
     const locked=houseLevel<c.hr, n=modCopies(k), cap=modCopyCap(), cost=modCost1(k);
@@ -2475,7 +2490,7 @@ function openBld(){
   el.querySelectorAll('[data-bld]').forEach(b=>b.onclick=()=>startPlacing(b.dataset.bld));
   document.getElementById('bldmodal').classList.add('show');
 }
-function closeBld(){document.getElementById('bldmodal').classList.remove('show');}
+function closeBld(){const el=document.getElementById('bldmodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
 function startPlacing(k){
   closeBld();placingMod={k,x0:0,y0:0,ok:false,has:false,keys:null};
   document.getElementById('placetxt').textContent='Touche une case libre pour poser « '+MODS_CFG[k].lvN[0]+' »';
@@ -2546,6 +2561,7 @@ function pickMod(px,py){
   const c=tapCell(px,py);if(!c)return -1;const i=modCells[c.x+','+c.y];return i==null?-1:i;}
 function openModPanel(i){
   const m=mods[i];if(!m)return;const c=MODS_CFG[m.k];
+  S('ui_panel_open');
   document.getElementById('modtitle').textContent=c.ico+' '+c.lvN[m.lv-1]+' · niv '+m.lv;
   let en='';   // v23 : le réseau est VIVANT
   if(m.k==='en')en=' · <b style="color:#ffd84d">+'+(c.prod[m.lv-1])+'⚡ au réseau</b>';
@@ -2571,7 +2587,7 @@ function openModPanel(i){
     closeModPanel();};
   document.getElementById('modmodal').classList.add('show');
 }
-function closeModPanel(){document.getElementById('modmodal').classList.remove('show');}
+function closeModPanel(){const el=document.getElementById('modmodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
 function upgradeMod(i){
   const m=mods[i];if(!m||m.lv>=5||cine)return;
   const gate=MOD_GATE[m.lv];
@@ -2641,7 +2657,7 @@ cv.addEventListener('touchend',e=>{e.preventDefault();
 },{passive:false});
 cv.addEventListener('mousedown',e=>{ds=xy(e);cs={...cam};dm=false;md=true;});cv.addEventListener('mousemove',e=>{if(!md)return;const[x,y]=xy(e);if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;cam.x=cs.x+x-ds[0];cam.y=cs.y+y-ds[1];clampCam();});cv.addEventListener('mouseup',e=>{if(!dm&&ds)onTap(ds[0],ds[1]);ds=null;md=false;});
 cv.addEventListener('wheel',e=>{e.preventDefault();const m=xy(e);zoomAt(zoom*(e.deltaY<0?1.1:.9),m[0],m[1]);},{passive:false});
-document.getElementById('zin').onclick=()=>zoomAt(zoom*1.2,APP_W/2,APP_H/2);document.getElementById('zout').onclick=()=>zoomAt(zoom/1.2,APP_W/2,APP_H/2);
+document.getElementById('zin').onclick=()=>{S('ui_btn');zoomAt(zoom*1.2,APP_W/2,APP_H/2);};document.getElementById('zout').onclick=()=>{S('ui_btn');zoomAt(zoom/1.2,APP_W/2,APP_H/2);};
 // ===== FONDATIONS IDLE : temps réel, sauvegarde, offline, régén des soins =====
 function growCells(ms){let became=0;const ov=ovSpd();for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'){c.grow+=ms*irSpd(c)*ov/(varT(c.variety)*speedMult());if(c.grow>=1){c.grow=1;c.state='ready';became++;}}}return became;}
 // v22 IRRIGATION : drain -1/min, remplissage par module vers son cap (batch 5s — perf).
@@ -2724,7 +2740,7 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   if(wkO.grams+wkO.sold>0)setTimeout(()=>toast('👷 Tes ouvriers ont récolté '+money(wkO.grams+wkO.sold)+' g !'),2600);   // séquencé après le « Bon retour »
   if(wkO.coin>0)setTimeout(()=>toast('🤠 '+wkO.vName+' a vendu '+money(wkO.sold)+' g au marché · +'+money(wkO.coin)+' 💰'),3500);
   const m0=curMission();   // mission déjà accomplie au retour -> rappel différé (après les autres toasts), sans re-toaster ensuite
-  if(m0&&missionDone(m0)){_mNotif=true;setTimeout(()=>banner('🎯 Mission accomplie — réclame ta récompense !',true),4400);}
+  if(m0&&missionDone(m0)){_mNotif=true;setTimeout(()=>{S('stg_mission_done');banner('🎯 Mission accomplie — réclame ta récompense !',true);},4400);}
 }
 load(); updateMissionUI(); lastTick=Date.now();
 setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;if(growCells(dt))S('sfx_plant_ready');waterTick(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateMissionUI();if(rangeView&&performance.now()>rangeView.t1)rangeView=null;
