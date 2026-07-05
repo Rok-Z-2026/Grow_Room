@@ -28,12 +28,13 @@
 
 - Le **moteur** est dans le HTML (le **dernier `<script>`**). Les **assets sont externes**.
 - **PACK** = **tableau de clés** (`const PACK = ["plant_v_8", ...]`) + `const ASSET_BASE =
-  "../02_Asset/runtime/"`. **215 assets**, chacun un PNG dans `02_Asset/runtime/<clé>.png`
-  (dont `home_1..home_11` : les 11 niveaux du domaine de James, dioramas complets ; et
-  `mod_<ir|nu|cl|en|lo|ce>_<1..5>` : les 30 bâtiments modules v22, calés 1 tuile = 140 px).
+  "../02_Asset/runtime/"`. **255 assets**, chacun un PNG dans `02_Asset/runtime/<clé>.png`
+  (dont `home_1..home_11` : les 11 niveaux du domaine de James, dioramas complets ;
+  `mod_<ir|nu|cl|en|lo|ce>_<1..5>` : les 30 bâtiments modules v22, calés 1 tuile = 140 px ;
+  et `wk_1..wk_40` : les 40 spritesheets personnages v23.5, 64×128).
 - `IMG{}` est rempli en bouclant sur `PACK` : `im.src = ASSET_BASE + k + ".png"`.
   Clés des sols via `groundKey()`.
-- **Manifest** : `02_Asset/runtime/manifest.json` liste les 215 clés (source de vérité).
+- **Manifest** : `02_Asset/runtime/manifest.json` liste les 255 clés (source de vérité).
 - **Histoire/monde** : pipeline de boot — `relocateStarter()` (lopin au centre) →
   `relocateObstacles()` (clairières éloignées du domaine) → `initBonusZones()` →
   `clearWorldToNature()` (zéro bâti humain, sable/pavé→prairie) → `buildRoads()` (3 routes de terre
@@ -142,12 +143,24 @@
   (idle/walk/harvest/plant/care/vwalk/sell/patrol/cheer/bwalk/break), identités fixes `WK_ID[8]`
   + pauses hobby, Camp (`CAMP`/`placeCamp()` — Dortoir (48,45) `wkMax()=6+dorm`, Atelier (48,40)
   upgrades `WK_UP2`), marché sinusoïdal `mktDrift()` (cible 9.5±4.5, filtre 0.15/60s, `mt` persisté),
-  rendu emoji par métier `JOB_EMO` + bulles `WK_LINES`, offline par métier `wkOfflineGains()`
-  (déterministe, vendeur en formule fermée F/P, XP prorata cap 300).
+  rendu sprites v23.5 (fallback emoji `JOB_EMO`) + bulles `WK_LINES`, offline par métier
+  `wkOfflineGains()` (déterministe, vendeur en formule fermée F/P, XP prorata cap 300).
   ⚠️ Jardinier : ne touche JAMAIS `boosts{}` (soin gratuit plafonné `gCap`, cooldown `c.gcd`
   ré-armé au load). ⚠️ Vendeur : jamais `stats.se/ea`. ⚠️ Le facteur 0.65 de `qOff` = levier
   d'équilibrage anti-méta (teste `[r,r,r,g]>=95%` si tu y touches) ✓
-- **Missions** : chaîne `MISSIONS[47]` (7 chapitres — **append strict**, indices 0-39 gravés
+- **👷 Employés 2.0 (v23.5)** : les ouvriers sont rendus depuis les planches `wk_1..wk_40`
+  (64×128) — cellule **20×32** à `sx=col*20, sy=row*32` (⚠️ **JAMAIS** de stride 64/3, les 4 px
+  de droite sont vides), rangées **bas/gauche/droite/haut**, **col 1 = idle**, marche = cycle
+  `[0,1,2,1]` à 140 ms déphasé par `w.id`. Tenues par MÉTIER : `WK_SPR{r,g,v,f}` (pools
+  disjoints, 32/40 planches), pick déterministe `wkSprN(job,id)` = `pool[id%8]` — **zéro save**.
+  Les 8 planches grises (5,7,19,21,22,27,29,33) sont **réservées aux clients v25**. Rendu dans
+  `drawWorker` : drawImage 9-arg, `imageSmoothingEnabled=false` scopé par save/restore (le
+  restore ré-arme le lissage global de resize()), snap entier anti-shimmer, squat harvest/care
+  conservé, `wkRow(dx,dy)` grille→rangée (+x→2 · +y→1 · −x/−y→3 · statique→0). ⚠️ Pulse
+  d'action, hobby de pause et bulles `wkTalk` sont COMMUNS aux 2 chemins — plus jamais
+  d'early-return avant. Fallback emoji conservé (boot avant chargement). Portraits panneau =
+  CSS sprite `.labspr` (background-size 96×192, position −30px 0 = col1/row0) via `wkFace(n)` ✓
+- **Missions** : chaîne `MISSIONS[53]` (8 chapitres — **append strict**, indices historiques gravés
   dans les saves) + compteurs `stats{}`, tracker `.mtrack` + modal `#mmodal`, claim atomique,
   save `{mi,st}` additif ✓
 

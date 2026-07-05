@@ -272,8 +272,11 @@ champ saturé — le « tous récolteurs avant de dormir » ne paie pas). Vendeu
 `P` au-dessus du seuil (approximation ASSUMÉE et conservatrice : en ligne, le backlog se vend au
 passage de la vague). Toasts au retour : récolte 👷 puis vente 🤠 séquencés.
 
-*Visuel : emoji 👷 canvas (ombre, balancement de marche) en attendant les sprites `worker_1..3`
-— le moteur les chargera automatiquement dès qu'ils entreront au PACK via le pipeline `tools/`.*
+*Visuel (v23.5 ✅) : les 40 spritesheets `wk_1..wk_40` remplacent les emoji — tenue par MÉTIER
+(Récolteur terre · Jardinier vert · Vendeur rouge de marché · Contremaître distingué), pick
+déterministe par identité (`wkSprN`), 4 directions + cycle de marche 3 frames, portraits sprite
+dans le panneau Équipe. Fallback emoji 👷 conservé pendant le chargement. Les 8 planches grises
+sont réservées aux CLIENTS (v25).*
 
 ---
 
@@ -330,10 +333,15 @@ avec la Qualité 2.0 (v24).
 sans irrigation, sol fatigué — avec le remède (🏗️). Hystérésis 5 min, « ✅ Réglé » quand tu
 corriges. Missions 50-52 (chapitre VIII continue : Table d'engrais, Générateur, Overdrive).
 
+**v23.5 « Les Visages de la Vallée »** ✅ : les sprites des Employés 2.0 (volet visuel de la
+v27) ont été AVANCÉS — voir 7bis. Le reste du chantier v27 (assignation par champ, Technicien,
+Centre des employés) garde sa place dans la roadmap.
+
 **À venir** (une tranche jouable par version) : ★ Qualité + 📦 Logistique (v24) ·
-🛒 Commandes/Réputation (v25) · 🌡️ Climat + Événements (v26) · 👷 Employés 2.0 sprites (v27) ·
-📖 Carnet complet (v28) · équilibrage (v29) · 🌸 Saisons de l'Oubli (v30). Le document de
-référence : le GDD approuvé « L'Exploitation » (03_Design/GDD_EXPLOITATION.md).
+🛒 Commandes/Réputation (v25, les clients utiliseront les 8 planches grises) · 🌡️ Climat +
+Événements (v26) · 👷 Employés 2.0 — suite (v27) · 📖 Carnet complet (v28) · équilibrage (v29) ·
+🌸 Saisons de l'Oubli (v30). Le document de référence : le GDD approuvé « L'Exploitation »
+(03_Design/GDD_EXPLOITATION.md).
 
 Récompenses 💰 (50 → 250 000, total ≈ 908 000 ≈ 18 % des coûts endgame — coup de pouce, pas de
 triche) + quelques recharges de soins. Objectifs dérivés de l'état (`totalHarvest`, `houseLevel`,
