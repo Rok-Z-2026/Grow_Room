@@ -75,6 +75,26 @@
 .homebtn{position:absolute;right:14px;top:calc(min(340px,46vh) + 74px);width:64px;height:64px;border-radius:18px;background:linear-gradient(180deg,#4a3a24,#33261a);border:2px solid #8a7038;font-size:30px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.4);z-index:20;}
 .homebtn:active{transform:scale(0.94);}
 .wkbtn{position:absolute;right:14px;top:calc(min(340px,46vh) + 148px);width:64px;height:64px;border-radius:18px;background:linear-gradient(180deg,#2e3c4a,#1e2a34);border:2px solid #5a7488;font-size:30px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.4);z-index:20;display:none;}
+.modbtn{position:absolute;right:14px;top:calc(min(340px,46vh) + 222px);width:64px;height:64px;border-radius:18px;background:linear-gradient(180deg,#3c3424,#28221a);border:2px solid #8a7a48;font-size:30px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.4);z-index:20;display:none;}
+.bldrow{display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,#2c3522,#222a1c);border:1.5px solid #4a5c38;border-radius:14px;padding:10px 12px;margin-bottom:8px;}
+.bldrow.lock{opacity:.55;}
+.bldico{font-size:26px;width:34px;text-align:center;}
+.bldtxt{flex:1;min-width:0;}
+.bldnm{font-size:13px;color:#e8f4d8;font-weight:700;}
+.bldfx{font-size:10.5px;color:#a8bc90;margin-top:2px;}
+.bldbtn{background:linear-gradient(180deg,#78c04a,#4e8c2c);border:1.5px solid #a0e070;border-radius:11px;color:#fff;font-weight:800;font-size:12px;padding:9px 12px;cursor:pointer;white-space:nowrap;}
+.bldbtn:disabled{filter:grayscale(.8);opacity:.6;}
+.placebar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));background:rgba(20,26,14,.92);border:1.5px solid #8a7a48;border-radius:16px;padding:10px 12px;display:none;align-items:center;gap:10px;z-index:40;box-shadow:0 6px 18px rgba(0,0,0,.5);}
+.placebar.show{display:flex;}
+.placetxt{font-size:12px;color:#e8f4d8;max-width:180px;}
+.placeok{background:linear-gradient(180deg,#78c04a,#4e8c2c);border:1.5px solid #a0e070;border-radius:12px;color:#fff;font-weight:800;font-size:14px;padding:10px 14px;cursor:pointer;}
+.placeok:disabled{filter:grayscale(.8);opacity:.55;}
+.placeno{background:linear-gradient(180deg,#5c3a30,#402620);border:1.5px solid #a06858;border-radius:12px;color:#ffd8cc;font-weight:800;font-size:14px;padding:10px 14px;cursor:pointer;}
+.modstat{font-size:11px;color:#a8bc90;margin:2px 0 8px;}
+.modfx{background:rgba(120,192,74,.08);border:1px solid #4a5c38;border-radius:10px;padding:8px 10px;font-size:11.5px;color:#cfe6bd;margin-bottom:8px;}
+.modnext{background:rgba(90,176,255,.07);border:1px solid #3a4c5c;border-radius:10px;padding:8px 10px;font-size:11.5px;color:#bdd8ef;margin-bottom:10px;}
+.modbtns{display:flex;gap:8px;}
+.modbtns button{flex:1;}
 .wkbtn.show{display:block;}
 .wkbtn:active{transform:scale(0.94);}
 .wkcount{position:absolute;right:-6px;bottom:-6px;font-size:11px;font-weight:700;background:#22301a;border:1px solid #8fd96f;border-radius:9px;padding:1px 5px;color:#cfe8b8;pointer-events:none;}
@@ -176,6 +196,7 @@
 <button id="labbtn" class="labbtn">🧪</button>
 <button id="homebtn" class="homebtn">🏠</button>
 <button id="wkbtn" class="wkbtn">👷</button>
+<button id="modbtn" class="modbtn">🏗️</button>
 <div class="hint">Glisse · pince pour zoomer · touche une zone 🔒</div>
 <div id="seedbar" class="seedbar">
   <div class="seedtitle">Choisis une graine 🌱</div>
@@ -217,6 +238,23 @@
     <div class="modalhead"><span id="mhead">🎯 Mission</span><button id="mclose" class="modalx">✕</button></div>
     <div id="mbody"></div>
   </div>
+</div>
+<div id="bldmodal" class="modal">
+  <div class="modalbox">
+    <div class="modalhead"><span>🏗️ Construire</span><button id="bldclose" class="modalx">✕</button></div>
+    <div id="bldlist" class="lablist"></div>
+  </div>
+</div>
+<div id="modmodal" class="modal">
+  <div class="modalbox">
+    <div class="modalhead"><span id="modtitle">💧 Module</span><button id="modclose" class="modalx">✕</button></div>
+    <div id="modbody"></div>
+  </div>
+</div>
+<div id="placebar" class="placebar">
+  <span class="placetxt" id="placetxt">Touche une case libre</span>
+  <button id="placeok" class="placeok">✓ Construire</button>
+  <button id="placeno" class="placeno">✕</button>
 </div>
 <div id="homemodal" class="homefull">
   <div class="homehead"><div class="htitle"><div id="hometitle">🏠 Mon Domaine</div><div class="hsub" id="homesub"></div></div><span class="hcoin" id="homecoin"></span><button id="homeclose" class="modalx">✕</button></div>
@@ -536,6 +574,89 @@ const CAMP=[
   {k:'atl', spr:'atelier1',x:48,y:40,ico:'🛠️',name:'L\'Atelier',  lv:[{c:500000,hr:7}],
    desc:'Débloque les améliorations avancées de l\'équipe'}];
 const VEND_POS={x:46,y:44};   // l'étal du vendeur : devant la maison, sous l'allée Est
+// === 🏗️ MODULES v22 (GDD « L'Exploitation ») : bâtiments de gestion à placement LIBRE.
+// mods = source de vérité SAUVÉE ; modCells/cellMods = runtime recalculé aux 3 événements
+// pose/upgrade/load (pattern edge-flags v21), jamais par frame. x,y = coin NORD-OUEST de
+// l'emprise fp×fp ; l'ANCRE de dessin est le coin SUD (x+fp-1,y+fp-1) -> profondeur d=x+y
+// correcte, et le sprite reste centré sur l'emprise (offsets iso égaux : X s'annule,
+// Y remonte de (fp-1)/2·TH via decYOff).
+var mods=[];                 // [{k,lv,x,y,ci,inv}] ci = index de copie (prix ×1.5^ci), inv = investi cumulé
+var modCells={};             // "x,y" -> index mods (cases d'emprise : blocage + tap)
+var cellMods={};             // "x,y" -> {ir:lv,...} : meilleur niveau par type À PORTÉE (pas d'empilement)
+var placingMod=null;         // mode pose : {k,x0,y0,ok,has,keys}
+var rangeView=null;          // vue des portées : {keys:Set, t1}
+const MOD_RANGE=[3,4,4,5,6]; // portée Manhattan par niveau (§2) — depuis TOUTE case de l'emprise
+const MOD_GATE=[0,0,1600,8000,25000];   // portes transitoires v22-v24 : grammes de carrière SEULS (§15)
+const MODS_CFG={
+  ir:{name:'Irrigation',ico:'💧',hr:3,av:1,fp:[1,1,2,2,2],sc:[1.3,1.5,1.9,2.1,2.4],
+      cost:[800,4000,20000,120000,600000],cons:[0,10,25,50,90],
+      lvN:['Arrosoir','Pompe','Château d\'eau','Sprinklers','Hub auto'],
+      rate:[2,4,6,8,12],wcap:[60,80,100,120,140],
+      fx:['+2 💧/min aux champs à portée (cap 60)','+4 💧/min (cap 80)','+6 💧/min (cap 100) · réserve d\'eau',
+          '+8 💧/min (cap 120) · arrosage auto à la plantation','+12 💧/min (cap 140) · +15% de pousse à portée']},
+  nu:{name:'Nutriments',ico:'🌾',hr:4,av:0,fp:[2,2,2,3,3],sc:[1.7,1.9,2.2,2.6,3.1],cost:[2000,10000,50000,250000,1200000],cons:[0,10,25,50,90],lvN:['Table d\'engrais','Mixeur','Station N-P-K','Station auto','AgriLab Premium'],fx:[]},
+  en:{name:'Énergie',ico:'⚡',hr:5,av:0,fp:[1,1,2,2,2],sc:[1.2,1.4,1.6,2.1,2.4],cost:[5000,22000,90000,350000,1400000],cons:[0,0,0,0,0],lvN:['Générateur','Diesel','Éolienne','Solaire','Energy Core'],fx:[]},
+  lo:{name:'Logistique',ico:'📦',hr:6,av:0,fp:[2,2,3,3,3],sc:[2.2,2.4,2.6,2.9,3.2],cost:[8000,35000,140000,550000,2200000],cons:[0,10,25,50,90],lvN:['Atelier','Dépôt','Garage','Centre logistique','Hub auto'],fx:[]},
+  ce:{name:'Centre des employés',ico:'👷',hr:7,av:0,fp:[2,2,3,3,3],sc:[2.2,2.4,2.7,3.1,3.6],cost:[15000,65000,260000,1100000,4000000],cons:[0,10,25,50,90],lvN:['Poste','Bureau','Supervision','Opérations','AgriHQ'],fx:[]},
+  cl:{name:'Climat',ico:'🌡️',hr:8,av:0,fp:[1,1,2,2,2],sc:[1.3,1.5,1.7,1.6,1.8],cost:[12000,50000,220000,900000,3500000],cons:[0,10,25,50,90],lvN:['Ventilateur','Station météo','Tour capteurs','Tour climatique','AI Climate Core'],fx:[]},
+};
+const MOD_ORDER=['ir','nu','en','lo','ce','cl'];   // = l'ordre des portes Domaine (§8)
+function modCopies(k){return mods.filter(m=>m.k===k).length;}
+function modCopyCap(){return 2+Math.floor(houseLevel/3);}
+function modCost1(k){return Math.floor(MODS_CFG[k].cost[0]*Math.pow(1.5,modCopies(k)));}   // Lv1, escalade par copie (§11)
+function modUpCost(m){return Math.floor(MODS_CFG[m.k].cost[m.lv]*Math.pow(1.5,m.ci||0));}  // vers lv+1
+function modFp(k,lv){return MODS_CFG[k].fp[lv-1];}
+const MOD_CUT=['tree','treeC','bush','bushF','flower','stump','rock'];   // végétation dégageable
+function modCanPlace(k,lv,x0,y0,skip){   // skip = index à ignorer (upgrade d'emprise sur place)
+  const fp=modFp(k,lv);
+  for(let dy=0;dy<fp;dy++)for(let dx=0;dx<fp;dx++){
+    const x=x0+dx,y=y0+dy;
+    if(x<1||y<1||x>=MW-1||y>=MH-1)return false;
+    const g=W.ground[y]&&W.ground[y][x];
+    if(!g||g==='water'||g==='soil'||g==='path')return false;                       // ni eau, ni champ, ni route
+    if(Math.max(Math.abs(x-HOME_POS.x),Math.abs(y-HOME_POS.y))<=4)return false;    // esplanade de James (7x7+marge)
+    for(const b of CAMP)if(Math.abs(x-b.x)<=1&&Math.abs(y-b.y)<=1)return false;    // Dortoir/Atelier
+    if(Math.abs(x-VEND_POS.x)<=1&&Math.abs(y-VEND_POS.y)<=1)return false;          // l'étal du vendeur
+    for(const z of W.cropzones)if(x>=z.zx&&x<z.zx+z.n&&y>=z.zy&&y<z.zy+z.n)return false;   // parcelles (même futures)
+    const omi=modCells[x+','+y];if(omi!=null&&omi!==skip)return false;             // un autre module
+    const d=W.decor[y][x];
+    if(d&&!MOD_CUT.includes(d[0])&&omi!==skip)return false;                        // bâti/plan d'eau : intouchable (sauf le module lui-même en upgrade)
+  }
+  return true;
+}
+function placeMods(){   // idempotent (pattern placeCamp) : sol gravier + décor de TOUS les modules posés
+  for(const m of mods){const fp=modFp(m.k,m.lv);
+    for(let dy=0;dy<fp;dy++)for(let dx=0;dx<fp;dx++){const x=m.x+dx,y=m.y+dy;
+      if(!W.ground[y]||!W.decor[y])continue;
+      const g=W.ground[y][x];
+      if(g!=='water'&&g!=='soil')W.ground[y][x]='gravel';
+      W.decor[y][x]=null;}
+    const ax=m.x+fp-1,ay=m.y+fp-1;
+    if(W.decor[ay])W.decor[ay][ax]=['mod_'+m.k+'_'+m.lv];}
+}
+function rebuildModCells(){
+  modCells={};cellMods={};
+  mods.forEach((m,i)=>{const fp=modFp(m.k,m.lv),R=MOD_RANGE[m.lv-1];
+    for(let dy=0;dy<fp;dy++)for(let dx=0;dx<fp;dx++)modCells[(m.x+dx)+','+(m.y+dy)]=i;
+    for(let y=m.y-R;y<m.y+fp+R;y++)for(let x=m.x-R;x<m.x+fp+R;x++){
+      if(x<0||y<0||x>=MW||y>=MH)continue;
+      const ddx=Math.max(m.x-x,x-(m.x+fp-1),0),ddy=Math.max(m.y-y,y-(m.y+fp-1),0);
+      if(ddx+ddy>R)continue;                       // Manhattan à la case d'emprise la plus proche
+      const key=x+','+y,e=cellMods[key]||(cellMods[key]={});
+      if(!e[m.k]||e[m.k]<m.lv)e[m.k]=m.lv;         // deux modules identiques : seul le MEILLEUR compte
+    }});
+}
+function modRangeKeys(k,lv,x0,y0){   // les cases couvertes d'UN module (vue des portées / ghost)
+  const fp=modFp(k,lv),R=MOD_RANGE[lv-1],ks=new Set();
+  for(let y=y0-R;y<y0+fp+R;y++)for(let x=x0-R;x<x0+fp+R;x++){
+    if(x<0||y<0||x>=MW||y>=MH)continue;
+    const ddx=Math.max(x0-x,x-(x0+fp-1),0),ddy=Math.max(y0-y,y-(y0+fp-1),0);
+    if(ddx+ddy<=R)ks.add(x+','+y);}
+  return ks;
+}
+// — Irrigation (v22) : l'eau accélère la pousse (+15% à jauge pleine, +15% constant sous Hub Lv5) —
+function irLvAt(c){const e=cellMods[c.x+','+c.y];return (e&&e.ir)||0;}
+function irSpd(c){return 1+0.15*Math.min(200,c.water||0)/200+(irLvAt(c)===5?0.15:0);}
 // Répliques (bulles de dialogue) : par métier au travail, par personnalité en pause. Le random
 // runtime est OK (l'interdit déterministe ne porte que sur le load/offline).
 const WK_LINES={
@@ -734,6 +855,7 @@ function updateWorkers(now){   // LOGIQUE au tick 200ms — timers absolus => ro
     }else if(w.state==='plant'){
       if(now>=w.t1){
         if(c&&c.state==='empty'){c.state='growing';c.grow=0;c.water=0;c.sun=0;c.nute=0;c.quality=1;   // même variety (conservée)
+          const _il=irLvAt(c);if(_il>=4)c.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : le replant ouvrier aussi
           burst(isoX(c.x+.5,c.y+.5),isoY(c.x+.5,c.y+.5),'#9dffb8',6);}
         w.cyc++;wkGainXp(w.id,2);   // le cycle complet paie l'expérience
         if(_fm>1&&w.job!=='f'){_fmCyc++;if(_fmCyc%5===0){const fi=crew.findIndex(x=>x.j==='f');if(fi>=0)wkGainXp(fi,1);}}
@@ -799,15 +921,16 @@ function drawWorker(w,p,now){
 function wkOfflineGains(offMs){
   const out={grams:0,sold:0,coin:0,vName:''};
   if(workerCount<=0||offMs<=0)return out;
-  // v22 : débit PAR VARIÉTÉ (formule fermée conservée). fieldRate = Σ Nv/growSv ;
-  // gBar = rendement moyen pondéré PAR LE FLUX (les récoltes arrivent au rythme de chaque
-  // variété) ; growS = pousse moyenne harmonique (le 1er cycle non compté, comme avant).
-  const Nv=[0,0,0,0,0,0];let N=0;
-  for(const k in cropCells){const c=cropCells[k];if(c.state!=='empty'){Nv[c.variety||0]++;N++;}}
+  // v22 : débit PAR CASE (formule fermée conservée) — variété ET irrigation à l'équilibre.
+  // fieldRate = Σ spd/growSv ; gBar = rendement moyen pondéré PAR LE FLUX (les récoltes
+  // arrivent au rythme de chaque case) ; growS = pousse moyenne harmonique (1er cycle non
+  // compté, comme avant). Eau à l'équilibre : refill min 2/min > drain 1/min -> cap.
+  let N=0,fieldRate=0,gFlow=0;
+  for(const k in cropCells){const c=cropCells[k];if(c.state==='empty')continue;N++;
+    const l=irLvAt(c), spd=1+0.15*(l?MODS_CFG.ir.wcap[l-1]:0)/200+(l===5?0.15:0);
+    const gs=varT(c.variety)*speedMult()/1000/spd;
+    fieldRate+=1/gs;gFlow+=varG(c.variety)/gs;}
   if(N<=0)return out;
-  let fieldRate=0,gFlow=0;
-  for(let v=0;v<VAR.length;v++){if(!Nv[v])continue;const gs=varT(v)*speedMult()/1000;
-    fieldRate+=Nv[v]/gs;gFlow+=Nv[v]/gs*varG(v);}
   const gBar=gFlow/fieldRate, growS=N/fieldRate;
   const effS=Math.max(0,offMs/1000-growS);
   if(effS<=0)return out;
@@ -1041,8 +1164,11 @@ const HOME_SC=[
   {sc:4.62,oy: 0.25},{sc:4.63,oy:-0.11},{sc:4.62,oy: 0.00},{sc:4.60,oy: 0.72},
   {sc:4.60,oy: 0.03},{sc:4.60,oy: 0.00},{sc:4.62,oy: 0.16},{sc:4.60,oy:-0.05},
   {sc:4.60,oy: 0.41},{sc:4.60,oy:-0.23},{sc:4.70,oy: 0.06}];
-function decYOff(t){return 0.85+(t.startsWith('home_')?HOME_SC[(+t.slice(5))-1].oy:0);}   // ancre verticale — seuls les home_* sont calibrés
-function decScale(t){if(t.startsWith('rocriv'))return 6.0;if(t.startsWith('pont'))return 3.2;if(t==='pond_big'||t==='pond_mare'||t==='cascade')return 2.6;if(t==='house5')return 1.35;if(['house1','house2','house3','house4','cabin','atelier1'].includes(t))return 2.2;if(t.startsWith('serre'))return 2.0;if(t==='watertower')return 1.6;if(t==='forge')return 1.5;if(t==='well')return 1.0;if(t==='fountain')return 1.1;if(t==='tree'||t==='treeC')return 1.5;if(t==='rock')return 1.1;
+function decYOff(t){
+  if(t.startsWith('mod_')){const p=t.split('_');return 0.62-(MODS_CFG[p[1]].fp[(+p[2])-1]-1)*0.5;}   // base au bout SUD de l'emprise, sprite centré dessus
+  return 0.85+(t.startsWith('home_')?HOME_SC[(+t.slice(5))-1].oy:0);}   // ancre verticale — home_* et mod_* calibrés
+function decScale(t){if(t.startsWith('mod_')){const p=t.split('_');return MODS_CFG[p[1]].sc[(+p[2])-1];}
+  if(t.startsWith('rocriv'))return 6.0;if(t.startsWith('pont'))return 3.2;if(t==='pond_big'||t==='pond_mare'||t==='cascade')return 2.6;if(t==='house5')return 1.35;if(['house1','house2','house3','house4','cabin','atelier1'].includes(t))return 2.2;if(t.startsWith('serre'))return 2.0;if(t==='watertower')return 1.6;if(t==='forge')return 1.5;if(t==='well')return 1.0;if(t==='fountain')return 1.1;if(t==='tree'||t==='treeC')return 1.5;if(t==='rock')return 1.1;
   if(t.startsWith('home_'))return HOME_SC[(+t.slice(5))-1].sc;   // maison de James : échelle calibrée par niveau (largeur du socle constante)
   if(t==='lamp')return 0.7;   // mobilier de l'esplanade (les lanternes de champ fieldDeco ont leur sc:0.6 explicite)
   if(t==='arch')return 1.5;
@@ -1054,7 +1180,7 @@ function decScale(t){if(t.startsWith('rocriv'))return 6.0;if(t.startsWith('pont'
   if(t==='crate')return 0.55;
   if(t==='compost')return 0.6;
   return 0.95;}
-function isBig(t){return t.startsWith('house')||t.startsWith('serre')||t==='tree'||t==='treeC'||t==='cabin'||t==='atelier1'||t==='watertower'||t==='forge';}   // home_* volontairement EXCLU -> la maison de James ne s'estompe jamais
+function isBig(t){return t.startsWith('house')||t.startsWith('serre')||t.startsWith('mod_')||t==='tree'||t==='treeC'||t==='cabin'||t==='atelier1'||t==='watertower'||t==='forge';}   // home_* volontairement EXCLU -> la maison de James ne s'estompe jamais ; mod_* inclus (tours hautes, §14)
 function clampCam(){
   const xs=[isoX(0,0)-cam.x,isoX(MW,0)-cam.x,isoX(0,MH)-cam.x,isoX(MW,MH)-cam.x];
   const ys=[isoYb(0,0)-cam.y,isoYb(MW,0)-cam.y,isoYb(0,MH)-cam.y,isoYb(MW,MH)-cam.y];
@@ -1147,6 +1273,19 @@ function draw(){
         }
       }
     }
+    // VUE DES PORTÉES (v22) : halo losange bleu sur les cases couvertes (pattern selCell —
+    // perf prouvée). Les CHAMPS couverts s'illuminent plus fort : c'est eux qu'on arrose.
+    const rvk=x+','+y, rvOn=(rangeView&&rangeView.keys.has(rvk))||(placingMod&&placingMod.has&&placingMod.keys&&placingMod.keys.has(rvk));
+    if(rvOn){
+      const hx=isoX(x+0.5,y+0.5), hy=isoY(x+0.5,y+0.5), w2=TW()/2, h2=TH()/2;
+      const pulse=0.5+0.5*Math.sin(performance.now()/420);
+      const isCrop=!!cropCells[rvk];
+      ctx.save();ctx.beginPath();
+      ctx.moveTo(hx,hy-h2);ctx.lineTo(hx+w2,hy);ctx.lineTo(hx,hy+h2);ctx.lineTo(hx-w2,hy);ctx.closePath();
+      ctx.fillStyle='rgba(90,176,255,'+(isCrop?0.20+0.12*pulse:0.07+0.04*pulse)+')';ctx.fill();
+      if(isCrop){ctx.lineWidth=1.5;ctx.strokeStyle='rgba(140,205,255,'+(0.5+0.3*pulse)+')';ctx.stroke();}
+      ctx.restore();
+    }
     }
   // PASSE EAU : APRES le sol, AVANT ombres/objets -> mares/lacs poses sur le sol
   // et TOUJOURS sous les arbres/batiments (dessines ensuite dans la passe objets).
@@ -1178,6 +1317,12 @@ function draw(){
       const p=e.p,d=Math.round(p.x)+Math.round(p.y);
       const ix=isoX(p.x+.5,p.y+.5),iy=isoY(p.x+.5,p.y+.5)+TH()*0.18;
       fadeTg.push({d,x0:ix-TW()*0.29,x1:ix+TW()*0.29,y0:iy-TH()*1.40,y1:iy+TH()*0.20});}
+    for(const m of mods){   // v22 : les MODULES sont des cibles — un arbre devant s'estompe (§14 « la transparence gère »)
+      const fp=modFp(m.k,m.lv),ax=m.x+fp-1,ay=m.y+fp-1; if(!vis(ax,ay))continue;
+      const t='mod_'+m.k+'_'+m.lv,img=IMG[t]; if(!img||!img.naturalWidth)continue;
+      const w=TW()*decScale(t),h=w*img.naturalHeight/img.naturalWidth;
+      const ix=isoX(ax+.5,ay+.5),foot=isoY(ax+.5,ay+.5)+TH()*decYOff(t);
+      fadeTg.push({d:ax+ay,x0:ix-w*0.38,x1:ix+w*0.38,y0:foot-h*0.92,y1:foot-h*0.06});}
   }
   const fadeTgt={};                                       // "x,y" -> alpha CIBLE (absent = opaque)
   if(fadeS>0&&fadeTg.length){
@@ -1376,6 +1521,19 @@ function draw(){
       ctx.fillStyle=g;ctx.beginPath();ctx.arc(ix,iy,R,0,7);ctx.fill();
       ctx.globalAlpha=a;ctx.lineWidth=3;ctx.strokeStyle='#ffd84d';ctx.beginPath();ctx.arc(ix,iy,R*0.9,0,7);ctx.stroke();
       ctx.restore();}}
+  // GHOST DE POSE (v22) : sprite translucide + emprise verte/rouge, par-dessus tout (lisibilité)
+  if(placingMod&&placingMod.has){
+    const p=placingMod,fp=modFp(p.k,1),img=IMG['mod_'+p.k+'_1'];
+    for(let dy=0;dy<fp;dy++)for(let dx=0;dx<fp;dx++){
+      const hx=isoX(p.x0+dx+0.5,p.y0+dy+0.5),hy=isoY(p.x0+dx+0.5,p.y0+dy+0.5),w2=TW()/2,h2=TH()/2;
+      ctx.save();ctx.beginPath();
+      ctx.moveTo(hx,hy-h2);ctx.lineTo(hx+w2,hy);ctx.lineTo(hx,hy+h2);ctx.lineTo(hx-w2,hy);ctx.closePath();
+      ctx.fillStyle=p.ok?'rgba(120,220,120,0.22)':'rgba(230,80,60,0.28)';ctx.fill();
+      ctx.lineWidth=2;ctx.strokeStyle=p.ok?'rgba(160,255,160,0.85)':'rgba(255,120,100,0.9)';ctx.stroke();ctx.restore();}
+    if(img&&img.complete&&img.naturalWidth){
+      const ax=p.x0+fp-1,ay=p.y0+fp-1,t='mod_'+p.k+'_1';
+      drawSp(img,isoX(ax+0.5,ay+0.5),isoY(ax+0.5,ay+0.5)+TH()*decYOff(t),TW()*decScale(t),0.55);}
+  }
   requestAnimationFrame(draw);
 }
 draw();
@@ -1856,7 +2014,130 @@ function buyLandGroup(g,px,py){
 }
 // selCell est déclarée plus haut (avant draw) pour éviter le TDZ
 function showSeedbar(s){document.getElementById('seedbar').classList.toggle('show',s);}
-function onTap(px,py){const c=pickCrop(px,py);if(c){
+// === 🏗️ UI MODULES (v22) : menu de construction, pose libre, panneau, upgrade ===
+function tapCell(px,py){   // écran -> case : inverse iso plat + raffinage local (les collines existent)
+  const wx=(px-APP_W/2-cam.x)/(TW()/2), wy=(py-APP_H*0.28-cam.y)/(TH()/2);
+  const cx=Math.floor((wx+wy)/2), cy=Math.floor((wy-wx)/2);
+  let best=null,bd=1e9;
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+    const x=cx+dx,y=cy+dy;if(x<0||y<0||x>=MW||y>=MH)continue;
+    const d=Math.abs(px-isoX(x+0.5,y+0.5))/(TW()/2)+Math.abs(py-isoY(x+0.5,y+0.5))/(TH()/2);
+    if(d<bd){bd=d;best={x,y};}}
+  return best;
+}
+function updateModBtn(){const b=document.getElementById('modbtn');if(b)b.style.display=houseLevel>=3?'block':'none';}
+function openBld(){
+  const el=document.getElementById('bldlist');let h='';
+  for(const k of MOD_ORDER){const c=MODS_CFG[k];
+    const locked=houseLevel<c.hr, n=modCopies(k), cap=modCopyCap(), cost=modCost1(k);
+    let btn;
+    if(locked)btn='<button class="bldbtn" disabled>🔒 Domaine '+c.hr+'</button>';
+    else if(!c.av)btn='<button class="bldbtn" disabled>🚧 Bientôt</button>';
+    else if(n>=cap)btn='<button class="bldbtn" disabled>Max '+cap+' copies</button>';
+    else btn='<button class="bldbtn" data-bld="'+k+'"'+(coin<cost?' disabled':'')+'>'+money(cost)+' 💰</button>';
+    h+='<div class="bldrow'+(locked?' lock':'')+'"><span class="bldico">'+c.ico+'</span>'+
+       '<div class="bldtxt"><div class="bldnm">'+c.name+(n?' <span style="opacity:.65">×'+n+'</span>':'')+'</div>'+
+       '<div class="bldfx">'+(c.av?c.fx[0]:'Arrive avec une prochaine mise à jour !')+'</div></div>'+btn+'</div>';}
+  el.innerHTML=h;
+  el.querySelectorAll('[data-bld]').forEach(b=>b.onclick=()=>startPlacing(b.dataset.bld));
+  document.getElementById('bldmodal').classList.add('show');
+}
+function closeBld(){document.getElementById('bldmodal').classList.remove('show');}
+function startPlacing(k){
+  closeBld();placingMod={k,x0:0,y0:0,ok:false,has:false,keys:null};
+  document.getElementById('placetxt').textContent='Touche une case libre pour poser « '+MODS_CFG[k].lvN[0]+' »';
+  document.getElementById('placeok').disabled=true;
+  document.getElementById('placebar').classList.add('show');
+}
+function stopPlacing(){placingMod=null;document.getElementById('placebar').classList.remove('show');}
+function tryPlaceAt(x,y){
+  const p=placingMod;if(!p)return;
+  const fp=modFp(p.k,1);
+  p.x0=x-Math.floor((fp-1)/2);p.y0=y-Math.floor((fp-1)/2);
+  p.ok=modCanPlace(p.k,1,p.x0,p.y0);p.has=true;
+  p.keys=modRangeKeys(p.k,1,p.x0,p.y0);
+  const cost=modCost1(p.k);
+  document.getElementById('placetxt').textContent=p.ok
+    ?MODS_CFG[p.k].lvN[0]+' — '+money(cost)+' 💰'
+    :'❌ Impossible ici (eau, champ, route, bâtiment…)';
+  document.getElementById('placeok').disabled=!p.ok||coin<cost;
+}
+function confirmPlace(){
+  const p=placingMod;if(!p||!p.has||!p.ok||cine)return;
+  const cost=modCost1(p.k);
+  if(coin<cost){toast('Pas assez 💰');return;}
+  setCoin(coin-cost);
+  const m={k:p.k,lv:1,x:p.x0,y:p.y0,ci:modCopies(p.k),inv:cost};
+  mods.push(m);stopPlacing();save();   // état commité ATOMIQUEMENT au débit (règle buyCampBld)
+  modBuildCine(m);
+}
+function modBuildCine(m){   // pattern buyCampBld : chantier -> reveal (l'état est DÉJÀ commité)
+  cine=true;document.getElementById('cineblock').classList.add('show');
+  const fp=modFp(m.k,m.lv),bx=m.x+(fp-1)/2+0.5,by=m.y+(fp-1)/2+0.5;
+  glideCam(bx,by,Math.max(zoom,1.05),600,()=>{
+    let hits=0;
+    const iv=setInterval(()=>{
+      const ix=isoX(bx,by),iy=isoY(bx,by);
+      const ox=(Math.random()-0.5)*TW()*1.6,oy2=(Math.random()-0.5)*TH()*1.6-TH();
+      burst(ix+ox,iy+oy2,hits%2?'#c9b28a':'#8a6f4d',10);
+      if(hits%2===0)ft(ix+ox,iy+oy2-10,'🔨');
+      hits++;
+    },180);
+    setTimeout(()=>{clearInterval(iv);
+      placeMods();rebuildModCells();
+      const ix=isoX(bx,by),iy=isoY(bx,by);
+      burst(ix,iy-TH()*1.2,'#ffd84d',24);
+      revealFX={x:bx,y:by,t0:performance.now(),dur:900};
+      const fl=document.getElementById('flash');fl.classList.remove('go');void fl.offsetWidth;fl.classList.add('go');
+      toast(MODS_CFG[m.k].ico+' '+MODS_CFG[m.k].lvN[m.lv-1]+' — construit !');
+      save();
+      setTimeout(()=>{cine=false;document.getElementById('cineblock').classList.remove('show');},700);
+    },1500);
+  });
+}
+function pickMod(px,py){const c=tapCell(px,py);if(!c)return -1;const i=modCells[c.x+','+c.y];return i==null?-1:i;}
+function openModPanel(i){
+  const m=mods[i];if(!m)return;const c=MODS_CFG[m.k];
+  document.getElementById('modtitle').textContent=c.ico+' '+c.lvN[m.lv-1]+' · niv '+m.lv;
+  let h='<div class="modstat">'+c.name+' · portée '+MOD_RANGE[m.lv-1]+' cases · ⚡ '+c.cons[m.lv-1]+' (réseau : bientôt)</div>';
+  h+='<div class="modfx">✅ '+c.fx[m.lv-1]+'</div>';
+  const rangeBtn='<button class="bldbtn" id="modrange" style="background:linear-gradient(180deg,#4a7ec0,#2c5a94);border-color:#70a8e0">📡 Portée</button>';
+  if(m.lv<5){
+    const cost=modUpCost(m),gate=MOD_GATE[m.lv];
+    h+='<div class="modnext">⬆️ Niv '+(m.lv+1)+' « '+c.lvN[m.lv]+' » : '+c.fx[m.lv]+'</div>';
+    let up=(totalHarvest<gate)
+      ?'<button class="bldbtn" disabled>🌿 '+money(gate)+' g de carrière</button>'
+      :'<button class="bldbtn" id="modup"'+(coin<modUpCost(m)?' disabled':'')+'>⬆️ '+money(cost)+' 💰</button>';
+    h+='<div class="modbtns">'+up+rangeBtn+'</div>';
+  } else {
+    h+='<div class="modbtns"><button class="bldbtn" disabled>⭐ Niveau MAX</button>'+rangeBtn+'</div>';
+  }
+  document.getElementById('modbody').innerHTML=h;
+  const up=document.getElementById('modup');if(up)up.onclick=()=>upgradeMod(i);
+  document.getElementById('modrange').onclick=()=>{
+    rangeView={keys:modRangeKeys(m.k,m.lv,m.x,m.y),t1:performance.now()+7000};
+    closeModPanel();};
+  document.getElementById('modmodal').classList.add('show');
+}
+function closeModPanel(){document.getElementById('modmodal').classList.remove('show');}
+function upgradeMod(i){
+  const m=mods[i];if(!m||m.lv>=5||cine)return;
+  const gate=MOD_GATE[m.lv];
+  if(totalHarvest<gate){toast('🌿 Récolte '+money(gate)+' g au total pour ce niveau');return;}
+  if(!modCanPlace(m.k,m.lv+1,m.x,m.y,i)){toast('Pas la place pour agrandir — libère les cases autour !');return;}
+  const cost=modUpCost(m);
+  if(coin<cost){toast('Pas assez 💰');return;}
+  setCoin(coin-cost);m.lv++;m.inv=(m.inv||0)+cost;closeModPanel();save();
+  modBuildCine(m);
+}
+document.getElementById('modbtn').onclick=openBld;
+document.getElementById('bldclose').onclick=closeBld;
+document.getElementById('modclose').onclick=closeModPanel;
+document.getElementById('placeok').onclick=confirmPlace;
+document.getElementById('placeno').onclick=stopPlacing;
+function onTap(px,py){
+  if(placingMod){const tc=tapCell(px,py);if(tc)tryPlaceAt(tc.x,tc.y);return;}   // mode pose : le tap déplace le ghost
+  const c=pickCrop(px,py);if(c){
     if(c.state==='empty'){selCell=c;showSeedbar(true);showCarebar(false);}   // selectionner -> graines
     else if(c.state==='ready'){harvestCell(c);stats.ha++;selCell=null;showSeedbar(false);showCarebar(false);save();}   // stats.ha = récoltes À LA MAIN (pas les ouvriers)
     else if(c.state==='growing'){  // selectionner -> panneau de soins
@@ -1864,6 +2145,7 @@ function onTap(px,py){const c=pickCrop(px,py);if(c){
     return;}
   // tap ailleurs -> tout fermer
   selCell=null;showSeedbar(false);showCarebar(false);
+  const mI=pickMod(px,py);if(mI>=0){openModPanel(mI);return;}   // un module posé -> son panneau
   const z=pickZone(px,py);if(z){const cost=zoneCost();if(coin<cost){ft(px,py,'Pas assez 💰','#ff8080');return;}setCoin(coin-cost);z.owned=true;if(z.bonus)clearZoneLand(z);rebuildCrop();ft(px,py-20,'Parcelle débloquée ! 🌱','#9dffb8');save();return;}
   const g=pickLandGroup(px,py);if(g)buyLandGroup(g,px,py);}
 // boutons graines
@@ -1872,6 +2154,7 @@ document.querySelectorAll('.seed').forEach(btn=>{
     if(!selCell)return;
     const v=parseInt(btn.dataset.v);
     selCell.state='growing';selCell.grow=0;selCell.variety=v;selCell.water=0;selCell.sun=0;selCell.nute=0;selCell.quality=1;
+    const _il=irLvAt(selCell);if(_il>=4)selCell.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : arrosage à la plantation
     stats.pl++;stats.vm|=1<<v;   // missions : semis + variétés découvertes
     selCell=null;showSeedbar(false);save();
   });
@@ -1902,14 +2185,29 @@ cv.addEventListener('mousedown',e=>{ds=xy(e);cs={...cam};dm=false;md=true;});cv.
 cv.addEventListener('wheel',e=>{e.preventDefault();const m=xy(e);zoomAt(zoom*(e.deltaY<0?1.1:.9),m[0],m[1]);},{passive:false});
 document.getElementById('zin').onclick=()=>zoomAt(zoom*1.2,APP_W/2,APP_H/2);document.getElementById('zout').onclick=()=>zoomAt(zoom/1.2,APP_W/2,APP_H/2);
 // ===== FONDATIONS IDLE : temps réel, sauvegarde, offline, régén des soins =====
-function growCells(ms){let became=0;for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'){c.grow+=ms/(varT(c.variety)*speedMult());if(c.grow>=1){c.grow=1;c.state='ready';became++;}}}return became;}
+function growCells(ms){let became=0;for(const k in cropCells){const c=cropCells[k];if(c.state==='growing'){c.grow+=ms*irSpd(c)/(varT(c.variety)*speedMult());if(c.grow>=1){c.grow=1;c.state='ready';became++;}}}return became;}
+// v22 IRRIGATION : drain -1/min, remplissage par module vers son cap (batch 5s — perf).
+// L'eau est un levier de VITESSE (irSpd) + synergie soins ; la refonte qualité arrive en v24.
+var wtrAcc=0;
+function waterTick(ms){wtrAcc+=ms;if(wtrAcc<5000)return;const mn=wtrAcc/60000;wtrAcc=0;
+  for(const k in cropCells){const c=cropCells[k];if(c.state!=='growing')continue;
+    let w=(c.water||0)-1*mn;                       // drain -1/min (×3 en sécheresse : v26)
+    const l=irLvAt(c);
+    if(l){const cap=MODS_CFG.ir.wcap[l-1];if(w<cap)w=Math.min(cap,w+MODS_CFG.ir.rate[l-1]*mn);}
+    c.water=clamp(w,0,200);}}
+function waterSettle(offMs){   // OFFLINE analytique : l'eau saute à son ÉQUILIBRE (refill min 2/min > drain 1/min) — déterministe
+  for(const k in cropCells){const c=cropCells[k];if(c.state==='empty')continue;
+    const l=irLvAt(c);
+    if(l)c.water=Math.max(c.water||0,MODS_CFG.ir.wcap[l-1]);
+    else c.water=Math.max(0,(c.water||0)-offMs/60000);}}
 function regenCare(now){const iv=CARE_REFILL_MS/homeCareRegenMult();const n=Math.floor((now-careT)/iv);if(n<=0)return;for(const t in CARE_MAX)boosts[t]=Math.min(careMax(t),boosts[t]+n);careT+=n*iv;updateCareUI();}
 function save(){try{
   const crops={};for(const k in cropCells){const c=cropCells[k];if(c.state!=='empty')crops[k]={s:c.state,g:c.grow,vv:c.variety,w:c.water||0,su:c.sun||0,n:c.nute||0,q:c.quality||1};}
   const zones=[];W.cropzones.forEach((z,i)=>{if(z.owned)zones.push(i);});
   const land=[];(W.landgroups||[]).forEach((g,i)=>{if(g.owned)land.push(i);});
   localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,t:Date.now(),coin,stock,marketPrice,totalHarvest,houseLevel,boosts,careT,lab,
-    wk:{n:workerCount,up:wkUp,crew:crew.map(c=>[c.j,c.xp]),b:wkB,u2:wkU2,vs:wkVs},mt:mktT,mi,st:stats,zones,land,crops}));   // wk étendu v19 (additif) + horodatage marché
+    wk:{n:workerCount,up:wkUp,crew:crew.map(c=>[c.j,c.xp]),b:wkB,u2:wkU2,vs:wkVs},mt:mktT,mi,st:stats,zones,land,crops,
+    mods:mods.map(m=>[m.k,m.lv,m.x,m.y,m.ci||0,m.inv||0])}));   // wk étendu v19 + mods v22 (additifs) + horodatage marché
 }catch(e){}}
 function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){s=null;}
   if(!s||s.v!==1)return;
@@ -1930,11 +2228,17 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   mi=Math.min(s.mi||0,MISSIONS.length);if(s.st)stats={...stats,...s.st};   // vieux saves sans missions -> chaîne rétro-claimable
   if(W.landgroups&&s.land)for(const gi of s.land){if(W.landgroups[gi]){W.landgroups[gi].owned=true;applyClearing(gi);}}
   if(s.zones)for(const zi of s.zones){const z=W.cropzones[zi];if(z){z.owned=true;if(z.bonus)clearZoneLand(z);}}   // re-dégage le décor des parcelles bonus achetées
+  if(Array.isArray(s.mods)){   // v22 : lecture DÉFENSIVE des modules (clé inconnue -> ignorée)
+    mods=s.mods.map(e=>({k:(e&&MODS_CFG[e[0]])?e[0]:null,lv:clamp(Math.floor(+e[1])||1,1,5),
+      x:Math.floor(+e[2])||0,y:Math.floor(+e[3])||0,ci:Math.max(0,Math.floor(+e[4])||0),
+      inv:Math.max(0,Math.floor(+e[5])||0)})).filter(m=>m.k&&m.x>0&&m.y>0&&m.x<MW&&m.y<MH);
+    placeMods();rebuildModCells();
+  }
   unlockedShown=W.cropzones.filter(z=>z.bonus&&totalHarvest>=z.palier).length;   // ne pas re-toaster au retour
   rebuildCrop();
   if(s.crops)for(const k in s.crops){const c=cropCells[k];if(c){const d=s.crops[k];c.state=d.s;c.grow=d.g;c.variety=d.vv;c.water=d.w;c.sun=d.su;c.nute=d.n;c.quality=d.q;}}
   const off=Math.min(Math.max(0,Date.now()-(s.t||Date.now())),homeOfflineH()*3600*1000);   // OFFLINE (capé : 8h base + lits de la maison ; horloge reculée -> 0)
-  if(off>0)growCells(off);
+  if(off>0){waterSettle(off);growCells(off);}   // v22 : l'eau saute à l'équilibre AVANT la pousse (déterministe)
   const _g0=performance.now()+8000;   // anti-exploit reload : le F5 ne ré-arme PAS un burst de soins jardinier gratuits
   for(const k in cropCells)if(cropCells[k].state==='growing')cropCells[k].gcd=_g0;
   const wkO=wkOfflineGains(off);   // rendement des ouvriers pendant l'absence (analytique, ne double-compte pas growCells)
@@ -1942,7 +2246,7 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   if(wkO.coin>0)setCoin(coin+wkO.coin);   // les ventes offline du vendeur
   for(let i=0;i<workerCount;i++)spawnWorker(i);             // runtime : ils reprennent le boulot depuis la maison
   regenCare(Date.now());
-  updateStock();updateCareUI();updateHomeBadge();updateWkBtn();
+  updateStock();updateCareUI();updateHomeBadge();updateWkBtn();updateModBtn();
   let rc=0;for(const k in cropCells)if(cropCells[k].state==='ready')rc++;
   if(off>60000&&rc>0)setTimeout(()=>toast('Bon retour ! 🌿 '+rc+' plant'+(rc>1?'s':'')+' prêt'+(rc>1?'s':'')+' à récolter'),700);
   if(wkO.grams+wkO.sold>0)setTimeout(()=>toast('👷 Tes ouvriers ont récolté '+money(wkO.grams+wkO.sold)+' g !'),2600);   // séquencé après le « Bon retour »
@@ -1951,7 +2255,7 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   if(m0&&missionDone(m0)){_mNotif=true;setTimeout(()=>banner('🎯 Mission accomplie — réclame ta récompense !',true),4400);}
 }
 load(); updateMissionUI(); lastTick=Date.now();
-setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;growCells(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateMissionUI();},200);
+setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;growCells(dt);waterTick(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateMissionUI();if(rangeView&&performance.now()>rangeView.t1)rangeView=null;},200);
 setInterval(save,10000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
 window.addEventListener('pagehide',save);
