@@ -69,6 +69,7 @@
 .lablist{display:flex;flex-direction:column;gap:12px;}
 .labitem{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#33402a,#222c1c);border:1.5px solid #4a5c38;border-radius:16px;padding:12px;}
 .labemo{font-size:34px;}
+#sndbadge{flex-shrink:0;cursor:pointer;}   /* 🔊 v24 : un CONTRÔLE ne se compresse jamais (c'est « Mon Monde » qui cède) */
 .labspr{flex-shrink:0;width:30px;height:48px;background-repeat:no-repeat;background-size:96px 192px;
   background-position:-30px 0;image-rendering:pixelated;}   /* v23.5 : cellule 20×32 ×1.5 — col1/row0 = idle face */
 .labinfo{flex:1;}
@@ -339,7 +340,26 @@ var SND_LAYERS={mus:0.18,amb:0.30,sfx:0.55,wk:0.28,ui:0.40,stg:0.80};   // table
 // n=variations _1.._n · l=couche · v=×vol · p=jitter pitch ± · t=throttle ms · loop ·
 // stg=stinger (exclusif + ducking) · skipStg=zappe si stinger < X ms · vis=exige à l'écran · p1=prioritaire
 var SND_TAB={
-  sfx_harvest:{n:2,l:'sfx',p:0.05,t:80,p1:1},   // É1 — preuve de vie (récolte main du joueur)
+  // É1/É2 — boucle cœur (gestes du joueur)
+  sfx_harvest:{n:2,l:'sfx',p:0.05,t:80,p1:1},
+  sfx_harvest_big:{l:'sfx',t:300},              // grosse récolte (≥60 g)
+  sfx_tap_cell:{l:'sfx',v:0.7,p:0.05,t:90,p1:1},
+  sfx_plant_seed:{l:'sfx',p:0.05,t:90,p1:1},
+  sfx_sprinkler_splash:{l:'sfx',t:150},         // par-dessus plant_seed (Irrigation Lv4+)
+  sfx_care_water:{l:'sfx',p:0.05,t:90,p1:1},
+  sfx_care_sun:{l:'sfx',p:0.05,t:90,p1:1},
+  sfx_care_serum:{l:'sfx',p:0.05,t:90,p1:1},
+  sfx_combo_up:{n:3,l:'sfx',t:90},              // pitch montant via o.r (+2%/cran)
+  sfx_combo_max:{l:'sfx',t:2000},
+  sfx_plant_ready:{n:6,l:'sfx',v:0.8,t:400,p1:1},   // 1 son max même si 10 plants mûrissent ensemble
+  // É2 — économie
+  sfx_sell:{l:'sfx'},
+  sfx_coin_tick:{l:'sfx',v:0.55,t:60,p1:1},     // 0.55×0.55 = 0.30 effectif (table de mixage)
+  sfx_coins_fly:{l:'sfx',t:300},
+  sfx_buy:{l:'sfx',t:150},
+  ui_denied:{l:'ui',t:200},                     // doux, jamais punitif
+  sfx_zone_unlock:{l:'sfx',t:300},
+  sfx_palier_new:{l:'sfx',t:500},
 };
 var SND={ctx:null,master:null,g:{},buf:{},st:{},lastStgAt:-1e9,stgUntil:-1e9,
   on:localStorage.getItem('tinygrow_sound')!=='0',
@@ -385,8 +405,8 @@ function S(key,o){                               // play — les call sites rest
   const b=SND.buf[name];if(!b)return;            // pas (encore) chargé → silence
   st.t=now;
   const src=SND.ctx.createBufferSource();src.buffer=b;
-  if(e.loop)src.loop=true;                       // ⚠️ loop et p structurellement exclusifs
-  else if(e.p)src.playbackRate.value=1+(Math.random()*2-1)*e.p;
+  if(e.loop)src.loop=true;                       // ⚠️ loop et p/o.r structurellement exclusifs
+  else{const r=(e.p?1+(Math.random()*2-1)*e.p:1)*((o&&o.r)||1);if(r!==1)src.playbackRate.value=r;}   // o.r = pitch déterministe (combo)
   const g=SND.ctx.createGain();g.gain.value=(e.v||1)*((o&&o.v)||1);
   src.connect(g);g.connect(SND.g[e.l]||SND.master);
   if(e.stg){SND.stgUntil=now+b.duration*1000;SND.lastStgAt=now;sndDuck(b.duration);}
@@ -448,7 +468,7 @@ function initBonusZones(){   // génère les parcelles bonus collées au champ d
 }
 function checkPaliers(px,py){   // annonce quand un nouveau palier ouvre une parcelle à acheter
   const avail=W.cropzones.filter(z=>z.bonus&&totalHarvest>=z.palier).length;
-  if(avail>unlockedShown){unlockedShown=avail;toast('Nouvelle parcelle à acheter ! 🌱');if(px!=null)burst(px,py,'#9dffb8',20);}
+  if(avail>unlockedShown){unlockedShown=avail;S('sfx_palier_new');toast('Nouvelle parcelle à acheter ! 🌱');if(px!=null)burst(px,py,'#9dffb8',20);}
 }
 // === HISTOIRE : James Lucky hérite d'un petit lopin AU CENTRE d'une vallée 100% sauvage. ===
 const HOME_POS={x:44,y:43};                       // la maison de James = CENTRE de la map (88x88)
@@ -1296,6 +1316,7 @@ function setCoin(v){coin=v;if(_ccu){cancelAnimationFrame(_ccu);_ccu=0;}document.
 function coinCountUp(from,ms){   // anime le LABEL from -> coin (l'état réel est déjà commité)
   if(_ccu)cancelAnimationFrame(_ccu);const to=coin,t0=performance.now(),el=document.getElementById('coin');
   (function st(){const k=Math.min(1,(performance.now()-t0)/(ms||700)),e=1-Math.pow(1-k,3);
+    S('sfx_coin_tick');   // 🔊 v24 : throttle 60 ms déclaratif dans SND_TAB
     el.textContent=Math.floor(from+(to-from)*e).toLocaleString('fr-FR');
     if(k<1)_ccu=requestAnimationFrame(st);else _ccu=0;})();
 }
@@ -1876,8 +1897,8 @@ function renderLab(){
 }
 function money(n){return Math.floor(n).toLocaleString('fr-FR');}
 function buyLab(k){const u=LAB.find(x=>x.key===k),l=lab[k];if(l>=u.max)return;const cost=labCost(u);
-  if(coin<cost){toast('Pas assez 💰');return;}
-  setCoin(coin-cost);lab[k]=l+1;coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderLab();updateStock();save();}
+  if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
+  S('sfx_buy');setCoin(coin-cost);lab[k]=l+1;coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderLab();updateStock();save();}
 function openLab(){document.getElementById('labmodal').classList.add('show');renderLab();}
 function closeLab(){document.getElementById('labmodal').classList.remove('show');}
 document.getElementById('labbtn').addEventListener('click',openLab);
@@ -2007,27 +2028,27 @@ function openWk(){document.getElementById('wkmodal').classList.add('show');rende
 function closeWk(){document.getElementById('wkmodal').classList.remove('show');}
 function buyWorker(){
   if(workerCount>=WK_CFG.HIRE.length)return;
-  if(workerCount>=wkMax()){toast('🛏️ Construis le Dortoir pour loger plus d\'ouvriers !');return;}
-  if(houseLevel<wkHouseReq()){toast('🏠 Améliore ta maison (niv '+wkHouseReq()+') !');return;}
-  const cost=wkHireCost();if(coin<cost){toast('Pas assez 💰');return;}
+  if(workerCount>=wkMax()){S('ui_denied');toast('🛏️ Construis le Dortoir pour loger plus d\'ouvriers !');return;}
+  if(houseLevel<wkHouseReq()){S('ui_denied');toast('🏠 Améliore ta maison (niv '+wkHouseReq()+') !');return;}
+  const cost=wkHireCost();if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
   setCoin(coin-cost);crew.push({j:'r',xp:0});workerCount=crew.length;spawnWorker(workerCount-1);save();   // débit + état + save ATOMIQUES
   coinPulse();toast('👷 '+(WK_ID[workerCount-1]||{}).n+' rejoint l\'équipe !');renderWk();updateWkBtn();
   const w=workers[workers.length-1];burst(isoX(w.x+.5,w.y+.5),isoY(w.x+.5,w.y+.5),'#ffd84d',14);
 }
 function buyWkUp(k){const u=WK_UP.find(x=>x.key===k),l=wkUp[k];if(l>=u.max||workerCount===0)return;
-  const cost=wkUpCost(u);if(coin<cost){toast('Pas assez 💰');return;}
-  setCoin(coin-cost);wkUp[k]=l+1;save();coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderWk();}
+  const cost=wkUpCost(u);if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
+  S('sfx_buy');setCoin(coin-cost);wkUp[k]=l+1;save();coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderWk();}
 function buyWkUp2(k){const u=WK_UP2.find(x=>x.key===k),l=wkU2[k];
   if(!u||!wkB.atl||l>=u.max||workerCount===0)return;
-  const cost=wkUp2Cost(u);if(coin<cost){toast('Pas assez 💰');return;}
-  setCoin(coin-cost);wkU2[k]=l+1;if(k==='sif')fmRecalc();save();coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderWk();}
+  const cost=wkUp2Cost(u);if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
+  S('sfx_buy');setCoin(coin-cost);wkU2[k]=l+1;if(k==='sif')fmRecalc();save();coinPulse();toast(u.name+' · niveau '+(l+1)+' !');renderWk();}
 // Achat d'un bâtiment du camp : même mise en scène de chantier que la maison (pattern buyHouse)
 function buyCampBld(k){
   const b=CAMP.find(x=>x.k===k);if(!b||cine)return;
   const lvl=wkB[k]||0;if(lvl>=b.lv.length)return;
   const spec=b.lv[lvl];
-  if(houseLevel<spec.hr){toast('🏠 Améliore ta maison (niv '+spec.hr+') !');return;}
-  if(coin<spec.c){toast('Pas assez 💰');return;}
+  if(houseLevel<spec.hr){S('ui_denied');toast('🏠 Améliore ta maison (niv '+spec.hr+') !');return;}
+  if(coin<spec.c){S('ui_denied');toast('Pas assez 💰');return;}
   setCoin(coin-spec.c);wkB[k]=lvl+1;save();   // état commité ATOMIQUEMENT au débit
   cine=true;closeWk();
   document.getElementById('cineblock').classList.add('show');
@@ -2119,7 +2140,7 @@ function claimMission(){
 }
 // pièces 💰 DOM qui volent en ARC vers le compteur : div externe = translateX ease-in,
 // span interne = translateY ease-out -> courbe naturelle, zéro rAF par frame
-function flyCoins(fromX,fromY,n,done){
+function flyCoins(fromX,fromY,n,done){S('sfx_coins_fly');   // 🔊 v24
   const app=document.getElementById('app'),ce=document.getElementById('coin');
   const ar=app.getBoundingClientRect(),cr=ce.getBoundingClientRect();
   const tx=cr.left-ar.left+cr.width*0.35, ty=cr.top-ar.top+cr.height*0.5;
@@ -2217,8 +2238,8 @@ function glideCam(tx,ty,tz,ms,done){
 let cine=false;   // cinématique en cours -> l'overlay #cineblock gèle les inputs
 function buyHouse(){
   const h=homeNext();if(!h||cine)return;
-  if(totalHarvest<h.grams){toast('🌿 Encore '+money(Math.ceil(h.grams-totalHarvest))+' g à récolter !');return;}
-  if(coin<h.cost){toast('Pas assez 💰');return;}
+  if(totalHarvest<h.grams){S('ui_denied');toast('🌿 Encore '+money(Math.ceil(h.grams-totalHarvest))+' g à récolter !');return;}
+  if(coin<h.cost){S('ui_denied');toast('Pas assez 💰');return;}
   setCoin(coin-h.cost);
   homeShownLevel=houseLevel;houseLevel++;save();   // état commité ATOMIQUEMENT au débit : un refresh/app-switch
   cine=true;closeHome();                           // pendant la cinématique ne peut plus perdre l'achat
@@ -2276,7 +2297,7 @@ function updateCareUI(){
 }
 function applyCare(type){
   if(!selCell||selCell.state!=='growing'){showCarebar(false);return;}
-  if(boosts[type]<=0){toast('Plus de '+(type==='water'?'💧 eau':type==='sun'?'☀️ soleil':'🧪 sérum')+' !');return;}
+  if(boosts[type]<=0){S('ui_denied');toast('Plus de '+(type==='water'?'💧 eau':type==='sun'?'☀️ soleil':'🧪 sérum')+' !');return;}
   boosts[type]--;stats.ca++;   // missions : soins donnés
   // combo
   const now=performance.now();
@@ -2284,13 +2305,15 @@ function applyCare(type){
   combo.last=now;
   const c=combo.count, mult=1+Math.min(c,30)*0.05;
   if(c>stats.cb)stats.cb=c;   // missions : meilleur combo
+  S({water:'sfx_care_water',sun:'sfx_care_sun',nute:'sfx_care_serum'}[type]);   // 🔊 v24
+  if(c>=10)S('sfx_combo_max');else if(c>=2)S('sfx_combo_up',{r:1+0.02*Math.min(c,10)});   // pitch monte avec le combo
   const amt=34*mult;
   selCell[type]=clamp((selCell[type]||0)+amt,0,200);
   // qualité = moyenne des 3 jauges (influence le rendement)
   selCell.quality=1+((selCell.water+selCell.sun+selCell.nute)/600)*1.5;  // 1 -> 2.5x
   // boost de pousse leger
   selCell.grow=Math.min(1,selCell.grow+0.015*mult);
-  if(selCell.grow>=1){selCell.grow=1;selCell.state='ready';}
+  if(selCell.grow>=1){selCell.grow=1;selCell.state='ready';S('sfx_plant_ready');}
   // feedback
   const ix=isoX(selCell.x+0.5,selCell.y+0.5),iy=isoY(selCell.x+0.5,selCell.y+0.5);
   const fx={water:'#5ab0ff',sun:'#ffd84d',nute:'#b86bff'}[type];
@@ -2303,7 +2326,7 @@ function applyCare(type){
 }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),1800);}
 function updateStock(){const el=document.getElementById('stockval');if(el)el.textContent=stock+' g';const bar=document.getElementById('sellbar');if(bar)bar.classList.toggle('show',stock>0);const pe=document.getElementById('sellprice');if(pe)pe.textContent='≈ '+Math.floor(stock*marketPrice*valueMult()*homeSellMult())+' 💰';}
-function sellAll(){if(stock<=0)return;const earned=Math.floor(stock*marketPrice*valueMult()*homeSellMult());setCoin(coin+earned);coinPulse();
+function sellAll(){if(stock<=0)return;S('sfx_sell');const earned=Math.floor(stock*marketPrice*valueMult()*homeSellMult());setCoin(coin+earned);coinPulse();
   stats.se++;stats.ea+=earned;   // missions : ventes + total gagné (jamais alimenté par les récompenses)
   toast('Vendu '+stock+' g · +'+earned+' 💰');stock=0;updateStock();
   // fluctuation du prix apres vente
@@ -2325,7 +2348,7 @@ function applyClearing(gi){const g=W.landgroups&&W.landgroups[gi];if(!g)return;c
       W.ground[y][x]='soil';}}
 }
 function buyLandGroup(g,px,py){
-  if(coin<g.cost){ft(px,py,'Pas assez 💰','#ff8080');return;}
+  if(coin<g.cost){S('ui_denied');ft(px,py,'Pas assez 💰','#ff8080');return;}
   setCoin(coin-g.cost);g.owned=true;coinPulse();
   const gi=W.landgroups.indexOf(g),CUT=['tree','treeC','bush','bushF','flower','stump'];
   for(let y=g.gy;y<g.gy+g.gh;y++)for(let x=g.gx;x<g.gx+g.gw;x++){   // FX de coupe (avant retrait)
@@ -2439,7 +2462,7 @@ function tryPlaceAt(x,y){
 function confirmPlace(){
   const p=placingMod;if(!p||!p.has||!p.ok||cine)return;
   const cost=modCost1(p.k);
-  if(coin<cost){toast('Pas assez 💰');return;}
+  if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
   setCoin(coin-cost);
   const m={k:p.k,lv:1,x:p.x0,y:p.y0,ci:modCopies(p.k),inv:cost};
   mods.push(m);stopPlacing();save();   // état commité ATOMIQUEMENT au débit (règle buyCampBld)
@@ -2516,10 +2539,10 @@ function closeModPanel(){document.getElementById('modmodal').classList.remove('s
 function upgradeMod(i){
   const m=mods[i];if(!m||m.lv>=5||cine)return;
   const gate=MOD_GATE[m.lv];
-  if(totalHarvest<gate){toast('🌿 Récolte '+money(gate)+' g au total pour ce niveau');return;}
-  if(!modCanPlace(m.k,m.lv+1,m.x,m.y,i)){toast('Pas la place pour agrandir — libère les cases autour !');return;}
+  if(totalHarvest<gate){S('ui_denied');toast('🌿 Récolte '+money(gate)+' g au total pour ce niveau');return;}
+  if(!modCanPlace(m.k,m.lv+1,m.x,m.y,i)){S('ui_denied');toast('Pas la place pour agrandir — libère les cases autour !');return;}
   const cost=modUpCost(m);
-  if(coin<cost){toast('Pas assez 💰');return;}
+  if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
   setCoin(coin-cost);m.lv++;m.inv=(m.inv||0)+cost;closeModPanel();save();
   modBuildCine(m);
 }
@@ -2531,24 +2554,26 @@ document.getElementById('placeno').onclick=stopPlacing;
 function onTap(px,py){
   if(placingMod){const tc=tapCell(px,py);if(tc)tryPlaceAt(tc.x,tc.y);return;}   // mode pose : le tap déplace le ghost
   const c=pickCrop(px,py);if(c){
-    if(c.state==='empty'){selCell=c;showSeedbar(true);showCarebar(false);}   // selectionner -> graines
-    else if(c.state==='ready'){S('sfx_harvest');harvestCell(c);stats.ha++;selCell=null;showSeedbar(false);showCarebar(false);save();}   // stats.ha = récoltes À LA MAIN (pas les ouvriers) · 🔊 v24
+    if(c.state==='empty'){S('sfx_tap_cell');selCell=c;showSeedbar(true);showCarebar(false);}   // selectionner -> graines
+    else if(c.state==='ready'){const _g=harvestCell(c);S(_g>=60?'sfx_harvest_big':'sfx_harvest');stats.ha++;selCell=null;showSeedbar(false);showCarebar(false);save();}   // stats.ha = récoltes À LA MAIN (pas les ouvriers) · 🔊 v24
     else if(c.state==='growing'){  // selectionner -> panneau de soins
       selCell=c;showCarebar(true);showSeedbar(false);}
     return;}
   // tap ailleurs -> tout fermer
   selCell=null;showSeedbar(false);showCarebar(false);
   const mI=pickMod(px,py);if(mI>=0){openModPanel(mI);return;}   // un module posé -> son panneau
-  const z=pickZone(px,py);if(z){const cost=zoneCost();if(coin<cost){ft(px,py,'Pas assez 💰','#ff8080');return;}setCoin(coin-cost);z.owned=true;if(z.bonus)clearZoneLand(z);rebuildCrop();ft(px,py-20,'Parcelle débloquée ! 🌱','#9dffb8');save();return;}
+  const z=pickZone(px,py);if(z){const cost=zoneCost();if(coin<cost){S('ui_denied');ft(px,py,'Pas assez 💰','#ff8080');return;}setCoin(coin-cost);z.owned=true;if(z.bonus)clearZoneLand(z);rebuildCrop();S('sfx_zone_unlock');ft(px,py-20,'Parcelle débloquée ! 🌱','#9dffb8');save();return;}
   const g=pickLandGroup(px,py);if(g)buyLandGroup(g,px,py);}
 // boutons graines
 document.querySelectorAll('.seed').forEach(btn=>{
   btn.addEventListener('click',()=>{
     if(!selCell)return;
     const v=parseInt(btn.dataset.v);
+    S('sfx_plant_seed');   // 🔊 v24
     selCell.state='growing';selCell.grow=0;selCell.variety=v;selCell.water=0;selCell.sun=0;selCell.nute=0;selCell.quality=1;
     const _il=irLvAt(selCell);
     if(_il>=4){selCell.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : arrosage à la plantation
+      S('sfx_sprinkler_splash');   // 🔊 v24 : par-dessus plant_seed
       burst(isoX(selCell.x+0.5,selCell.y+0.5),isoY(selCell.x+0.5,selCell.y+0.5)-TH()*0.2,'#6fc8ff',10);}   // v22.5 : éclaboussure
     const _nl=nuLvAt(selCell);
     if(_nl)selCell.nute=Math.max(selCell.nute||0,MODS_CFG.nu.nfill[_nl-1]);   // v23 : engrais au semis (plafonné §4)
@@ -2666,7 +2691,7 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   if(m0&&missionDone(m0)){_mNotif=true;setTimeout(()=>banner('🎯 Mission accomplie — réclame ta récompense !',true),4400);}
 }
 load(); updateMissionUI(); lastTick=Date.now();
-setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;growCells(dt);waterTick(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateMissionUI();if(rangeView&&performance.now()>rangeView.t1)rangeView=null;
+setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;if(growCells(dt))S('sfx_plant_ready');waterTick(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateMissionUI();if(rangeView&&performance.now()>rangeView.t1)rangeView=null;
   if(mods.some(m=>m.k==='en'&&m.lv===5)&&ovReady())fireOverdrive(true);   // v23 : Energy Core = Overdrive AUTO
   if(enOn())updateEnBadge();updateDiag();},200);
 setInterval(save,10000);
