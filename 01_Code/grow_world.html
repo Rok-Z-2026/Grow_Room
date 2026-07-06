@@ -423,6 +423,7 @@ const TW0=64,TH0=32,EH0=26; let zoom=0.7;
 var WATER_FR=[];   // M1 : frames d'eau vivante générées par waterGen() (fin de script) — vide = fallback water_f0..f3 (règle 5 : var global, assigné AVANT le 1er draw)
 function TW(){return TW0*zoom;}function TH(){return TH0*zoom;}function EH(){return EH0*zoom;}
 let cam={x:0,y:0},coin=300,stock=0,marketPrice=8;  // stock en grammes, prix/g
+let _seedBrokeFx=0;   // M4 : throttle de l'indice « ouvrier fauché -> rétrograde Verte » (performance.now)
 let totalHarvest=0;  // grammes TOTAUX récoltés depuis le début -> débloque les parcelles bonus de palier
 let unlockedShown=0; // nb de parcelles bonus déjà annoncées comme débloquées (évite de re-toaster)
 let boosts={water:20,sun:15,nute:10};  // stocks de soins limités
@@ -1405,7 +1406,12 @@ function updateWorkers(now){   // LOGIQUE au tick 200ms — timers absolus => ro
       if(now>=w.t1){wkApplyCare(c,w);wkRelease(w);}
     }else if(w.state==='plant'){
       if(now>=w.t1){
-        if(c&&c.state==='empty'){S('sfx_wk_plant',{at:c});c.state='growing';c.grow=0;c.water=0;c.sun=0;c.nute=0;c.quality=1;   // même variety (conservée)
+        if(c&&c.state==='empty'){
+          const _sc=varC(c.variety);   // M4 : l'ouvrier paie la graine qu'il replante
+          if(_sc>coin){c.variety=0;   // fauché -> rétrograde en Verte gratuite : idle jamais coupé, coin jamais < 0
+            if(vis(c.x,c.y)&&now-_seedBrokeFx>8000){_seedBrokeFx=now;ft(isoX(c.x+.5,c.y+.5),isoY(c.x+.5,c.y+.5)-TH()*0.35,'🌿 fauché','#9dffb8');}   // indice discret, throttlé 8s
+          }else if(_sc>0)setCoin(coin-_sc);
+          S('sfx_wk_plant',{at:c});c.state='growing';c.grow=0;c.water=0;c.sun=0;c.nute=0;c.quality=1;   // variety conservée (ou 0 si rétrogradée)
           const _il=irLvAt(c);
           if(_il>=4){c.water=MODS_CFG.ir.wcap[_il-1];   // Sprinklers Lv4+ : le replant ouvrier aussi
             if(vis(c.x,c.y))burst(isoX(c.x+0.5,c.y+0.5),isoY(c.x+0.5,c.y+0.5)-TH()*0.2,'#6fc8ff',6);}   // v22.5 : petite éclaboussure (visible only)
