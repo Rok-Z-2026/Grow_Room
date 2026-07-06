@@ -94,4 +94,4 @@ Le jeu est déployé via **GitHub Pages** (branche `main`, dossier racine) :
 > ⚠️ L'upload via l'interface web de GitHub **n'applique pas** le filtre LFS : pour
 > ajouter les atlas en LFS, passer par `git` en ligne de commande (PC), pas par le web.
 
-> 🚀 Déployé : v24 + TINY 6 (M2 machines · M5 employés · M8 ouverture · M6 réglages · M7 spatial) — 2026-07-06.
+> 🚀 Déployé : v24 + TINY 6 (M2 machines · M5 employés · M8 ouverture · M6 réglages · M7 spatial) — 2026-07-06 (relance n°3).
