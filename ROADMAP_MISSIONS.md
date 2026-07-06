@@ -38,7 +38,7 @@ décisions finales, il ne reste que le diagnostic technique et le GO de Nano par
 | 🎧 | Sprint audio de base (`AUDIO_HANDOFF.md`) | M | ✅ Terminée | 2026-07-05 | v24 É0-É7 « La Vallée qui chante » — 82/88 MP3 câblés (commits `ce00f26..ec58645`) |
 | M8 | Menu principal & menu pause | M/L | ✅ Terminée | 2026-07-06 | Intro 8s skippable (partition exacte, respiration, préchargement séquentiel masqué) · menu principal Ken Burns 40s + 15 lucioles + 🌱 Cultiver pulsant · musique titre `mus_menu_home` (porte sndAmbTick : la vallée ne démarre JAMAIS sous le titre) · welcome-back différé à l'entrée (les stingers de retour s'entendent enfin) · glideCam d'arrivée · menu pause bois/rebond/luciole 4 rows · hook `#nointro` · garde-fou LFS — journal détaillé section M8 |
 | M6 | Menu du jeu + réglages son | M | ✅ Terminée | 2026-07-06 | Sous-écran ⚙️ du menu pause : mute + 4 sliders par famille (🎵🌿✨🖱️, live + persistés JSON rétro-compat) + toggle 👷 + À propos + zone danger double-confirmée · source unique `SND_VOL`/`sndVol()` (le ducking et le menuDim restaurent le volume JOUEUR, plus jamais la constante) — journal détaillé section M6 |
-| M7 | Mixage spatial | M→S/M | ⬜ À faire | — | ~70% couvert par v24 : gain-distance rivière/pompe/feu (`sndProx`/`sndAmbTick`), gating hors-écran `vis:1`, grillons zoom≤0.62. Reste : courbe musique↔zoom, gain graduel des sfx ouvriers (aujourd'hui binaire), pan stéréo optionnel |
+| M7 | Mixage spatial | M→S/M | ✅ Terminée | 2026-07-06 | Le son vit avec la caméra : musique 1.0→0.35 au zoom (ambiances inverses 0.7→1.0, rampes 0.4s, plié dans `sndVol` → compose avec sliders M6 + ducking) · gain graduel `1−(d/R)²` des one-shots positionnés (hors rayon = pas joué) · pan stéréo ±0.4 fallback-safe · boucles rivière/pompe/feu volontairement conservées telles quelles (déjà graduées, tuning v24) — journal détaillé section M7 |
 | M1 | Eau vivante (fake shader) | M/L | ⬜ À faire | — | Prérequis LEVÉ : `Water_Dif_1/2` + `Water_NRM_1/2` présents dans `02_Asset/` (⚠️ en **.jpg**, pas .png) |
 | M4 | Graines payantes | L | ⬜ À faire | — | — |
 | M3 | Chemin des livraisons (véhicules) | L/XL | ⬜ À faire | — | — |
@@ -383,6 +383,21 @@ Que le volume **réagisse à la caméra** :
 ## ✅ Validation
 En dézoomant, la musique enveloppe ; en zoomant sur un ouvrier, on l'entend travailler ;
 un ouvrier à l'autre bout de la vallée est inaudible ; rien ne « saute ». **Effort : M**
+
+## 📓 Journal de bord M7 (mis à jour à CHAQUE étape — on ne se perd jamais)
+> Décisions gravées : zoom-mix PLIÉ dans `sndVol()` (source unique M6 → compose
+> automatiquement avec sliders + ducking + menuDim, zéro site supplémentaire) · calcul
+> dans le tick 1s existant, rampe 0.4s, pas de retarget mid-duck (le restore lit le
+> sndVol à jour) · gain graduel `1−(d/R)²` avec R=0.9·APP_H, skip ≤0.02 (économie CPU) ·
+> pan stéréo ±0.4 fallback-safe (pas de createStereoPanner → chaîne inchangée) ·
+> ⚠️ boucles rivière/pompe/feu **volontairement NON migrées** vers le système commun
+> (déjà graduées par distance, tuning v24 validé — la migration serait du churn sans
+> gain audible) · jamais spatialisés : gestes joueur, UI, stingers, musique.
+
+✅ É1 Zoom-mix musique↔ambiances — asserts : zoom 1.7 → mus .063/amb .30 ; zoom 0.4 → mus .18/amb .21 ; composition slider 50% → .0315 ; duck → restore composite exact
+✅ É2 Gain graduel + pan stéréo — asserts : centre sp=1/pan=0 ; décalé sp=.91/pan=+.4 (clamp) ; hors rayon = PAS joué ; ui_btn sans `at` = chaîne intacte
+✅ É3 Régression complète — boot #nointro, panneau M5, flux intro→menu→jeu→pause→réglages, zéro pageerror
+✅ É4 Clôture (journal ✅ · table ✅ · GAME_BIBLE · CLAUDE.md · commit + push)
 
 ---
 

@@ -532,8 +532,10 @@ var SND_VOL={on:1,mus:1,amb:1,fx:1,ui:1,wk:1};
     SND_VOL.on=j.on?1:0;
     if(j.v)for(const k of ['mus','amb','fx','ui','wk'])if(typeof j.v[k]==='number')SND_VOL[k]=Math.max(0,Math.min(1,j.v[k]));}}
 }catch(e){}})();
+var SND_ZMIX={mus:1,amb:1};   // M7 : mixage caméra (runtime, jamais sauvé) — musique 1.0 (vue large) → 0.35 (près du sol), ambiances inverse léger 0.7 → 1.0
 function sndVol(l){const m=(l==='sfx'||l==='stg')?SND_VOL.fx:(SND_VOL[l]!=null?SND_VOL[l]:1);
-  return SND_LAYERS[l]*m;}   // ✨ Effets pilote sfx ET stg ; mus/amb/ui/wk directs
+  const z=(l==='mus')?SND_ZMIX.mus:(l==='amb')?SND_ZMIX.amb:1;   // M7 : le zoom-mix compose avec les sliders M6 ET les restores duck/menuDim
+  return SND_LAYERS[l]*m*z;}   // ✨ Effets pilote sfx ET stg ; mus/amb/ui/wk directs
 function sndSaveVol(){try{localStorage.setItem('tinygrow_sound',JSON.stringify({on:SND_VOL.on,
   v:{mus:SND_VOL.mus,amb:SND_VOL.amb,fx:SND_VOL.fx,ui:SND_VOL.ui,wk:SND_VOL.wk}}));}catch(e){}}
 var SND={ctx:null,master:null,g:{},buf:{},st:{},lastStgAt:-1e9,stgUntil:-1e9,lastPlayAt:-1e9,
@@ -576,7 +578,15 @@ function S(key,o){                               // play — les call sites rest
   if(e.stg&&now<SND.stgUntil)return;             // jamais 2 stingers (règle : SKIP)
   if(e.skipStg&&now-SND.lastStgAt<e.skipStg)return;
   if(e.skipAny&&now-SND.lastPlayAt<e.skipAny)return;   // É4 : anti-doublon (toast/bannière qui co-tirent avec un son dédié)
-  if(e.vis&&o&&o.at&&!vis(o.at.x,o.at.y))return; // ouvriers hors écran (É6)
+  // M7 : SPATIALISATION graduelle des one-shots positionnés — proche du centre = net,
+  // bord = discret, hors rayon = pas joué du tout (économie CPU). Remplace le gate
+  // binaire vis(). Jamais pour les sons SANS o.at (gestes joueur, UI, stingers, musique).
+  let _sp=1,_px=0;
+  if(e.vis&&o&&o.at){const _sx=isoX(o.at.x+0.5,o.at.y+0.5),_sy=isoY(o.at.x+0.5,o.at.y+0.5);
+    const _d=Math.hypot(_sx-APP_W/2,_sy-APP_H/2),_R=APP_H*0.9;
+    _sp=Math.max(0,1-(_d/_R)*(_d/_R));
+    if(_sp<=0.02)return;
+    _px=Math.max(-0.4,Math.min(0.4,(_sx/APP_W-0.5)*0.8));}   // pan stéréo léger (spec ±0.4 max)
   let name=key;
   if(e.n){let v=1+Math.floor(Math.random()*e.n);if(e.n>1&&v===st.v)v=v%e.n+1;st.v=v;name=key+'_'+v;}   // anti-répétition
   const b=SND.buf[name];if(!b)return;            // pas (encore) chargé → silence
@@ -584,8 +594,11 @@ function S(key,o){                               // play — les call sites rest
   const src=SND.ctx.createBufferSource();src.buffer=b;
   if(e.loop)src.loop=true;                       // ⚠️ loop et p/o.r structurellement exclusifs
   else{const r=(e.p?1+(Math.random()*2-1)*e.p:1)*((o&&o.r)||1);if(r!==1)src.playbackRate.value=r;}   // o.r = pitch déterministe (combo)
-  const g=SND.ctx.createGain();g.gain.value=(e.v||1)*((o&&o.v)||1);
-  src.connect(g);g.connect(SND.g[e.l]||SND.master);
+  const g=SND.ctx.createGain();g.gain.value=(e.v||1)*((o&&o.v)||1)*_sp;   // M7 : × gain spatial
+  src.connect(g);
+  if(_px&&SND.ctx.createStereoPanner){const pn=SND.ctx.createStereoPanner();pn.pan.value=_px;g.connect(pn);pn.connect(SND.g[e.l]||SND.master);}   // M7 : pan léger, fallback = chaîne inchangée
+  else g.connect(SND.g[e.l]||SND.master);
+  SND.dbg.sp={g:_sp,pan:_px};   // hook harnais
   if(e.stg){SND.stgUntil=now+b.duration*1000;SND.lastStgAt=now;sndDuck(b.duration);}
   SND.lastPlayAt=now;
   src.start();
@@ -643,6 +656,12 @@ function sndHomeMus(on){                         // É7 : crossfade musique prin
 function sndAmbTick(){                           // 1×/s (armé par sndBoot) : boucles, proximités, vent, batterie
   if(!SND.ctx||SND.ctx.state!=='running')return; // rien avant l'unlock
   if(INTRO.menuOn){if(!SND.musHome)sndHomeMus(true);return;}   // M8 : PORTE menu — la vallée ne démarre JAMAIS sous le titre ; retry 1×/s de la musique du menu (décodage/unlock tardifs)
+  {const k=Math.max(0,Math.min(1,(zoom-0.4)/1.3));   // M7 : le son vit avec la caméra — musique 1→0.35, ambiances 0.7→1 (rampe 0.4s, bascule imperceptible)
+    const zm=1-0.65*k,za=0.7+0.3*k;
+    if(Math.abs(zm-SND_ZMIX.mus)>0.01||Math.abs(za-SND_ZMIX.amb)>0.01){
+      SND_ZMIX.mus=zm;SND_ZMIX.amb=za;
+      if(performance.now()>=SND.stgUntil){const t=SND.ctx.currentTime;   // mid-duck : on ne retarge pas, le restore du duck lira le sndVol à jour
+        for(const l of ['mus','amb'])if(SND.g[l])SND.g[l].gain.setTargetAtTime(sndVol(l),t,0.4);}}}
   if(!SND_AMBON){SND_AMBON=true;sndAmbCycle();}
   const nw=performance.now();                    // É6 : une rafale de vent toutes les 20-60 s
   if(!SND.windT)SND.windT=nw+8000+Math.random()*20000;   // la 1re arrive vite (8-28 s)

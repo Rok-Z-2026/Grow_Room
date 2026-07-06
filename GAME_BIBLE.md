@@ -444,6 +444,15 @@ plus jamais la constante d'usine. **Zone danger** : « 🧨 Réinitialiser la pa
 double-tap armé (« ✔ SÛR ? », désarmement 4 s) → purge save + réglages son, partie neuve.
 À propos : 🌱 TINY GROW · 🏮 v24 · Nano Studio.
 
+**📡 Mixage spatial (M7/TINY 6 ✅) — le son vit avec la caméra** : dézoomé au-dessus de la
+vallée, la musique porte (×1,0) ; zoomé près du sol, elle s'efface (×0,35) et laisse la
+place aux sons du monde (ambiances inverses ×0,7→×1,0, rampes 0,4 s — bascule
+imperceptible). Les sons **positionnés** (ouvriers…) ont un gain graduel `1−(d/R)²` :
+proche du centre = net, bord = discret, hors rayon = pas joué du tout (économie CPU) +
+**pan stéréo léger** ±0,4 selon la position à l'écran (fallback mono propre). Jamais
+spatialisés : les gestes du joueur, l'UI, les stingers, la musique. Les boucles
+rivière/pompe/feu gardent leur spatialisation v24 dédiée (déjà graduée par distance).
+
 ---
 
 ## 9. 🗺️ État du projet (résumé)

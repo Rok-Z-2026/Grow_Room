@@ -209,7 +209,15 @@
   `'tinygrow_sound'` en JSON `{"on":1,"v":{…}}`, parse défensif ('1'/'0' hérités OK),
   écrite par `sndSaveVol()`. UI = sous-écran `#setpanel` du pause (`#pausewrap.set`),
   sliders live via `sndApplyVol(keys)`, toggle 👷 = multiplicateur wk 0/1, zone danger =
-  `gameReset()` (purge les 2 SEULES clés du jeu) en double-tap armé (pattern perks). ~110 Mo de PCM décodé (mus 120s ≈ 42 Mo) — échappatoire
+  `gameReset()` (purge les 2 SEULES clés du jeu) en double-tap armé (pattern perks).
+  **Mixage spatial M7 (TINY 6 ✅)** : `SND_ZMIX{mus,amb}` (runtime) PLIÉ dans `sndVol(l)`
+  → compose partout gratuitement (sliders/duck/menuDim). Courbes dans `sndAmbTick` (après
+  la porte menu) : k=(zoom−0.4)/1.3 → mus 1−0.65k · amb 0.7+0.3k, retarget 0.4s si Δ>0.01
+  ET hors-duck (mid-duck : le restore lit le sndVol à jour). One-shots positionnés dans
+  `S()` : gain `1−(d/R)²` (R=0.9·APP_H, skip ≤0.02) + StereoPanner ±0.4 (fallback = chaîne
+  inchangée), `SND.dbg.sp={g,pan}` pour les harnais. ⚠️ Jamais de spatialisation sans
+  `o.at` (gestes joueur/UI/stingers/musique). ⚠️ Boucles rivière/pompe/feu volontairement
+  NON migrées (déjà graduées par distance, tuning v24 validé). ~110 Mo de PCM décodé (mus 120s ≈ 42 Mo) — échappatoire
   décodage-à-la-demande si un mobile souffre. Harnais : verify_audio.js 48/48.
 - **Missions** : chaîne `MISSIONS[53]` (8 chapitres — **append strict**, indices historiques gravés
   dans les saves) + compteurs `stats{}`, tracker `.mtrack` + modal `#mmodal`, claim atomique,
