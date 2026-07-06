@@ -413,6 +413,7 @@ resize();
 
 const W=WORLD,MW=W.MW,MH=W.MH;
 const TW0=64,TH0=32,EH0=26; let zoom=0.7;
+var WATER_FR=[];   // M1 : frames d'eau vivante générées par waterGen() (fin de script) — vide = fallback water_f0..f3 (règle 5 : var global, assigné AVANT le 1er draw)
 function TW(){return TW0*zoom;}function TH(){return TH0*zoom;}function EH(){return EH0*zoom;}
 let cam={x:0,y:0},coin=300,stock=0,marketPrice=8;  // stock en grammes, prix/g
 let totalHarvest=0;  // grammes TOTAUX récoltés depuis le début -> débloque les parcelles bonus de palier
@@ -1902,14 +1903,17 @@ function draw(){
       // 2) ANIMATION : cycle des 4 frames d'eau avec fondu enchaine -> surface qui ondule en continu
       const fps=2.2;                      // vitesse du cycle (frames/sec)
       const cellPhase=((x*7+y*13)%10)/10; // decalage par case -> casse la repetition du motif
+      // M1 : les frames GÉNÉRÉES (eau vivante) prennent le relais dès prêtes ; sinon fallback v24
+      const NW=WATER_FR.length||4;
       const fT=T*fps+cellPhase;
-      const cur=Math.floor(fT)%4, nxt=(cur+1)%4, blend=fT-Math.floor(fT);
-      const f1=IMG['water_f'+cur], f2=IMG['water_f'+nxt];
+      const cur=Math.floor(fT)%NW, nxt=(cur+1)%NW, blend=fT-Math.floor(fT);
+      const f1=WATER_FR.length?WATER_FR[cur]:IMG['water_f'+cur], f2=WATER_FR.length?WATER_FR[nxt]:IMG['water_f'+nxt];
+      const okW=im=>im&&(im.naturalWidth===undefined?im.width>0:(im.complete&&im.naturalWidth));   // canvas OU image
       // leger decalage de la texture par case (variation spatiale du motif)
       const ox=((x*37+y*19)%24)-12, oy=((x*23+y*41)%24)-12;
       const dw=w*1.5,dh=hh*1.5,dx=ix-w*0.75+ox,dy=iy-hh*0.75+oy;
-      if(f1&&f1.complete&&f1.naturalWidth){ctx.globalAlpha=0.78;ctx.drawImage(f1,dx,dy,dw,dh);}
-      if(f2&&f2.complete&&f2.naturalWidth){ctx.globalAlpha=0.78*blend;ctx.drawImage(f2,dx,dy,dw,dh);}
+      if(okW(f1)){ctx.globalAlpha=0.78;ctx.drawImage(f1,dx,dy,dw,dh);}
+      if(okW(f2)){ctx.globalAlpha=0.78*blend;ctx.drawImage(f2,dx,dy,dw,dh);}
       ctx.globalAlpha=1;
       ctx.restore();}
     }
@@ -3254,5 +3258,40 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
 window.addEventListener('pagehide',save);
 const _sb=document.getElementById('sndbadge');_sb.textContent=SND.on?'🔊':'🔇';_sb.addEventListener('click',sndToggle);   // 🔊 v24
 requestAnimationFrame(()=>setTimeout(sndBoot,0));   // audio : RIEN avant la 1re frame peinte (draw() intouché)
+// ═══ M1 « L'EAU VIVANTE » : fake shader — 10 frames générées au boot (LAZY, 1 frame par
+// tranche de 16ms : zéro jank) à partir de Water_Dif_1 déformée par sa normal map
+// (dx=(r−128)·amp). Scroll + amplitude sinusoïdaux sur le cycle → boucle PARFAITE.
+// Les frames remplacent water_f0..f3 dans le cycle (%N) — clip losange et crossfade
+// INTOUCHÉS. Panne (404/CORS/mémoire) = no-op : l'eau v24 reste le fallback à vie.
+function waterGen(){
+  const S=256,N=10,AMP=7;
+  const dif=new Image(),nrm=new Image();let got=0;
+  const go=()=>{try{
+    const cD=document.createElement('canvas');cD.width=cD.height=S;
+    const cN=document.createElement('canvas');cN.width=cN.height=S;
+    cD.getContext('2d').drawImage(dif,0,0,S,S);cN.getContext('2d').drawImage(nrm,0,0,S,S);
+    const dD=cD.getContext('2d').getImageData(0,0,S,S).data,dN=cN.getContext('2d').getImageData(0,0,S,S).data;
+    const frames=[];let f=0;
+    const step=()=>{try{
+      const ph=2*Math.PI*f/N,scroll=Math.round(S*f/N),amp=AMP*(0.6+0.4*Math.sin(ph));
+      const cv=document.createElement('canvas');cv.width=cv.height=S;
+      const cx=cv.getContext('2d'),im=cx.createImageData(S,S),o=im.data;
+      for(let y=0;y<S;y++)for(let x=0;x<S;x++){
+        const ni=(((y+scroll)%S)*S+((x+(scroll>>1))%S))*4;
+        const nx=(dN[ni]-128)/128,ny=(dN[ni+1]-128)/128;
+        let sx=Math.round(x+nx*amp),sy=Math.round(y+ny*amp);
+        sx=((sx%S)+S)%S;sy=((sy%S)+S)%S;
+        const di=(sy*S+sx)*4,oi=(y*S+x)*4;
+        o[oi]=dD[di]*0.62;o[oi+1]=dD[di+1]*0.94;o[oi+2]=dD[di+2]*0.90;o[oi+3]=255;}   // grading émeraude (DA v24 : le blanc mousse -> cyan, jamais de blanc pur)
+      cx.putImageData(im,0,0);frames.push(cv);
+      if(++f<N)setTimeout(step,16);else WATER_FR=frames;   // swap ATOMIQUE en fin de génération
+    }catch(e){}};
+    setTimeout(step,16);
+  }catch(e){}};
+  dif.onload=nrm.onload=()=>{if(++got===2)go();};
+  dif.onerror=nrm.onerror=()=>{};   // 404 → fallback v24
+  dif.src='../02_Asset/Water_Dif_2.jpg';nrm.src='../02_Asset/Water_NRM_2.jpg';   // Dif_2 = la variante sombre (DA émeraude)
+}
+requestAnimationFrame(()=>setTimeout(waterGen,400));   // après la 1re frame ET le kick audio
 window.__wipe=()=>{localStorage.removeItem(SAVE_KEY);location.reload();};
 </script></body></html>

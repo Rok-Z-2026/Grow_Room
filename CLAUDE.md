@@ -72,7 +72,13 @@
 ## ⚙️ Systèmes du moteur (tous présents et câblés)
 
 - **Clip losange** ✓
-- **Eau animée** 4 frames (`water_f0`–`water_f3`) ✓
+- **Eau VIVANTE (M1/TINY 6 ✅)** : `waterGen()` (fin de script) génère 10 frames 256² au boot
+  (LAZY post-1re-frame, 1 frame/16ms — zéro jank) : `Water_Dif_2.jpg` déformée par sa normal
+  map (`dx=(r−128)·amp`), scroll+amplitude sinusoïdaux sur le cycle → boucle PARFAITE,
+  grading émeraude in-gen (r×.62 g×.94 b×.90). `WATER_FR[]` global (déclaré AVANT le 1er
+  draw), cycle `%N` dans le rendu, guard `okW()` (canvas OU image). ⚠️ Panne (404/CORS) =
+  no-op : les `water_f0–f3` v24 restent le fallback À VIE — ne jamais les retirer du PACK.
+  Clip losange + crossfade + dégradé de profondeur INTOUCHÉS ✓
 - **Vent** (`drawSpWind`) ✓
 - **Ombres** (`function shadow`) ✓
 - **Fondu d'occlusion 2.0** : un gros objet (`isBig`, `home_*` ET `mod_*` exclus — M2/TINY 6 :

@@ -39,7 +39,7 @@ décisions finales, il ne reste que le diagnostic technique et le GO de Nano par
 | M8 | Menu principal & menu pause | M/L | ✅ Terminée | 2026-07-06 | Intro 8s skippable (partition exacte, respiration, préchargement séquentiel masqué) · menu principal Ken Burns 40s + 15 lucioles + 🌱 Cultiver pulsant · musique titre `mus_menu_home` (porte sndAmbTick : la vallée ne démarre JAMAIS sous le titre) · welcome-back différé à l'entrée (les stingers de retour s'entendent enfin) · glideCam d'arrivée · menu pause bois/rebond/luciole 4 rows · hook `#nointro` · garde-fou LFS — journal détaillé section M8 |
 | M6 | Menu du jeu + réglages son | M | ✅ Terminée | 2026-07-06 | Sous-écran ⚙️ du menu pause : mute + 4 sliders par famille (🎵🌿✨🖱️, live + persistés JSON rétro-compat) + toggle 👷 + À propos + zone danger double-confirmée · source unique `SND_VOL`/`sndVol()` (le ducking et le menuDim restaurent le volume JOUEUR, plus jamais la constante) — journal détaillé section M6 |
 | M7 | Mixage spatial | M→S/M | ✅ Terminée | 2026-07-06 | Le son vit avec la caméra : musique 1.0→0.35 au zoom (ambiances inverses 0.7→1.0, rampes 0.4s, plié dans `sndVol` → compose avec sliders M6 + ducking) · gain graduel `1−(d/R)²` des one-shots positionnés (hors rayon = pas joué) · pan stéréo ±0.4 fallback-safe · boucles rivière/pompe/feu volontairement conservées telles quelles (déjà graduées, tuning v24) — journal détaillé section M7 |
-| M1 | Eau vivante (fake shader) | M/L | ⬜ À faire | — | Prérequis LEVÉ : `Water_Dif_1/2` + `Water_NRM_1/2` présents dans `02_Asset/` (⚠️ en **.jpg**, pas .png) |
+| M1 | Eau vivante (fake shader) | M/L | ✅ Terminée | 2026-07-06 | Option A livrée : 10 frames 256² générées au boot (lazy 1/16ms, 77ms total) — Dif_2 déformée par sa NRM (dx=(r−128)·amp), scroll+amp sinusoïdaux = boucle parfaite, grading émeraude in-gen, cycle %10 avec fallback v24 à vie (panne=no-op), clip losange intouché, différentiel perf nul — journal détaillé section M1 |
 | M4 | Graines payantes | L | ⬜ À faire | — | — |
 | M3 | Chemin des livraisons (véhicules) | L/XL | ⬜ À faire | — | — |
 
@@ -97,6 +97,20 @@ zoom, risques de perf sur mobile bas de gamme, complexité ×3.
 ## ✅ Validation
 Captures avant/après sur la rivière + l'étang, FPS stable, l'eau « vit » même caméra immobile.
 **Effort : M/L**
+
+## 📓 Journal de bord M1 (mis à jour à CHAQUE étape — on ne se perd jamais)
+> Décisions gravées : Option A « fake shader » canvas 2D (décidée dans ce doc) · génération
+> LAZY après la 1re frame peinte (pattern sndBoot — le boot reste instantané, l'eau v24 sert
+> de fallback pendant la génération) · les frames générées remplacent water_f0..f3 dans IMG
+> (zéro changement du clip losange), le cycle passe de %4 à %N · déformation UV par la NRM
+> (dx=(r−128)·amp, dy=(g−128)·amp, amp sinusoïdal sur le cycle → boucle PARFAITE) ·
+> reflets = highlights NRM en scroll lent additif.
+
+✅ É1 Vérif textures — 4× 1024² RGB, quasi-tileables (diff bords 2-6/255), NRM plate en moyenne (128/128/~248 ✓) ; pipeline lu : clip losange → dégradé → crossfade f0..f3 à 2.2fps phase/case, alpha .78 (L1895-1915)
+✅ É2 Prototype offscreen — 10 frames 256² générées en 77 ms, look caustiques validé (capture m1_proto) ; bug de précédence `x+scroll>>1` repéré, corrigé pour l'intégration
+✅ É3 Génération boot — 10 frames 256², lazy post-1re-frame (1 frame/16ms, zéro jank), `WATER_FR` global assigné avant le 1er draw, cycle %N avec fallback v24 pendant/si-panne — capture m1_eau_vivante
+✅ É4 Tuning — bascule sur Dif_2/NRM_2 (variante sombre) + grading émeraude in-gen (r×.62 g×.94 b×.90 : le blanc mousse → cyan, DA respectée) ; animation caméra immobile PROUVÉE (2 captures ≠) ; reflets = les highlights de la caustique elle-même (couche additive séparée jugée superflue — documenté)
+✅ É5 Perf — différentiel mesuré NUL au zoom 0.4 (frames générées 4-5 FPS vs eau v24 5 FPS en headless SANS GPU — le coût vient du nombre de tuiles, pas de M1 ; drawImage(canvas) = drawImage(image)) ; régression boot OK ; docs + commit + push
 
 ---
 

@@ -467,7 +467,9 @@ rivière/pompe/feu gardent leur spatialisation v24 dédiée (déjà graduée par
   jamais estompée. **Système « Mon Domaine » branché** : galerie de collection plein écran,
   conditions doubles (💰 + grammes totaux), bonus uniques cumulatifs par niveau, cinématique de
   chantier à l'achat (caméra + poussière + reveal doré) — voir section 1.
-- Rendu : clip losange, eau animée 4 frames, effet vent sur la végétation, ombres (les ombres des
+- Rendu : clip losange, **eau VIVANTE (M1/TINY 6 ✅ — fake shader : 10 frames générées au
+  boot depuis `Water_Dif_2` déformée par sa normal map, boucle parfaite, grading émeraude ;
+  l'eau ondule même caméra immobile ; fallback 4 frames v24 à vie)**, effet vent sur la végétation, ombres (les ombres des
   arbres fondent avec leur arbre au zoom).
 - Champs : terre labourée à sillons (`parc1..4`), touffes de 5 plants/case centrées, lanternes aux
   coins des parcelles owned ; **parcelles bonus de palier** (`PALIERS`, débloquées aux grammes
