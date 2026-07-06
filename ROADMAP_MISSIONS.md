@@ -36,7 +36,7 @@ décisions finales, il ne reste que le diagnostic technique et le GO de Nano par
 | M2 | Machines : visibilité, guidage, utilité | S/M | ✅ Terminée | 2026-07-06 | Machines 100% opaques (isBig) · cases vertes recommandées + hint 1re pose · bandeau bénéfice ghost (N champs vivant, % réel par niveau) · liseré bleu permanent champs couverts (cmAt, recule en pénurie ⚡) · « couvre X champs · +Y% effectif » au panneau · toast pédagogique 1re construction |
 | M5 | Employés : évolution visible | M | ✅ Terminée | 2026-07-06 | Cartes enrichies (palier suivant chiffré, carrières 🌿/🧺, synergies Camp) · fête du level-up (banner+son, 🏆 au MAX) · badge ⭐ persistant · rapport de fierté offline · 8 perks niv 5 à personnalité (save additive `[j,xp,pk,hg,sg]`, garde-fous intacts) — journal détaillé dans la section M5 |
 | 🎧 | Sprint audio de base (`AUDIO_HANDOFF.md`) | M | ✅ Terminée | 2026-07-05 | v24 É0-É7 « La Vallée qui chante » — 82/88 MP3 câblés (commits `ce00f26..ec58645`) |
-| M8 | Menu principal & menu pause | M/L | ⬜ À faire | — | Prérequis LEVÉ : `Fond_1/2/3.png` présents dans `02_Asset/` |
+| M8 | Menu principal & menu pause | M/L | ✅ Terminée | 2026-07-06 | Intro 8s skippable (partition exacte, respiration, préchargement séquentiel masqué) · menu principal Ken Burns 40s + 15 lucioles + 🌱 Cultiver pulsant · musique titre `mus_menu_home` (porte sndAmbTick : la vallée ne démarre JAMAIS sous le titre) · welcome-back différé à l'entrée (les stingers de retour s'entendent enfin) · glideCam d'arrivée · menu pause bois/rebond/luciole 4 rows · hook `#nointro` · garde-fou LFS — journal détaillé section M8 |
 | M6 | Menu du jeu + réglages son | M | ⬜ À faire | — | Dépendance levée : AudioManager v24 en place (`SND_LAYERS`) |
 | M7 | Mixage spatial | M→S/M | ⬜ À faire | — | ~70% couvert par v24 : gain-distance rivière/pompe/feu (`sndProx`/`sndAmbTick`), gating hors-écran `vis:1`, grillons zoom≤0.62. Reste : courbe musique↔zoom, gain graduel des sfx ouvriers (aujourd'hui binaire), pan stéréo optionnel |
 | M1 | Eau vivante (fake shader) | M/L | ⬜ À faire | — | Prérequis LEVÉ : `Water_Dif_1/2` + `Water_NRM_1/2` présents dans `02_Asset/` (⚠️ en **.jpg**, pas .png) |
@@ -462,6 +462,24 @@ donner le frisson et annoncer la qualité de toute l'expérience.
 ## ✅ Validation
 La première seconde donne envie de faire une capture d'écran ; la transition vers le jeu
 est fluide sur mobile ; le pause est beau, lisible, et on en sort en un tap. **Effort : M/L**
+
+## 📓 Journal de bord M8 (mis à jour à CHAQUE étape — on ne se perd jamais)
+> Décisions gravées : DOM statique dans le body (1er paint instantané, `if1` avant le storm
+> des 256 PNG) · machine à états setTimeout unique + transitions CSS (zéro rAF ajouté) ·
+> `#intro` z70 / `#menuwrap` z65 / `#pausewrap` z61 · musique titre = `sndHomeMus` réutilisé
+> + PORTE `INTRO.menuOn` dans `sndAmbTick` (sinon la vallée démarre sous le titre) ·
+> welcome-back différé via closure `_welcome` (les stingers de retour s'entendront enfin) ·
+> glideCam d'arrivée au boot uniquement · hook `#nointro` (harnais + debug) · garde-fou
+> LFS `.gitattributes` pour `Fond_?.png` (blobs sains mais pattern LFS latent).
+
+✅ É1 Assets & garde-fou LFS — règle `!filter` posée (check-attr : unspecified), 3×HTTP 200, transparences validées sur fond sombre (capture m8_e1_fonds)
+✅ É2 Squelette intro + Fond_1 — machine à états complète, capture m8_e2_f1hold, régression #nointro OK (harnais m2_shot passé en #nointro, m8_shot créé)
+✅ É3 Fond_2 + partition complète — capture m8_e3_f2hold ; skip f1hold→menux→DOM nettoyé ; reload mi-intro → repart à f1in ; zéro pageerror
+✅ É4 Menu principal — cascade validée (3 frames), dérive KB prouvée (transform −720→−811px/5s), captures m8_e4_* ; `menuShow(bool)` factorisé
+✅ É5 Lucioles violettes — 15 divs GPU purs (transform/opacity, zéro filter), dérives déterministes, capture m8_e5_lucioles
+✅ É6 Entrée en jeu — asserts : titre = musHome SEULE (jamais la vallée sous le menu), Cultiver → crossfade + glide (zoom 0.52→0.7) + cascade bon-retour audible à l'entrée ; `p1` sur mus_menu_home vérifié (décodée en tête) ; musique vallée à retard de décodage = comportement v24 pré-existant (non-régression prouvée en baseline)
+✅ É7 Menu pause — panneau bois + rebond + luciole posée sur le coin, 4 rows câblées et testées (toggle son ↔ sndbadge, Mon Domaine, retour titre sans splashs, re-Cultiver sans re-glide), vallée vivante derrière le voile ; fix : câblage sorti du early-return #nointro ; captures m8_e7_*
+✅ É8 Crible & edges — Fond_3 en 404 → le menu tient (dégradé+logo+bouton, zéro crash) ; paysage court OK ; régression scenes M2/M5 en #nointro OK ; mémoire : if1/if2/#intro retirés du DOM après l'intro
 
 ---
 

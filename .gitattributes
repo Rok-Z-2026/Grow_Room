@@ -37,3 +37,12 @@ grow_world.html -text -diff
 #  Règle placée APRÈS le bloc LFS : la dernière règle qui matche gagne.
 # ──────────────────────────────────────────────
 02_Asset/runtime/*.png !filter !diff !merge -text
+
+# ──────────────────────────────────────────────
+#  Assets MENUS servis par GitHub Pages (M8) — PNG normaux (SURTOUT PAS LFS)
+#  Fond_1/2/3 = splash + logo + fond du menu principal, chargés par grow_world.html
+#  via ../02_Asset/Fond_N.png. Uploadés via l'UI web (blobs sains), mais matchés par
+#  le pattern LFS ci-dessus : sans cette règle, tout re-commit local les convertirait
+#  en pointeurs LFS que Pages ne sert pas. Dernière règle qui matche gagne.
+# ──────────────────────────────────────────────
+02_Asset/Fond_?.png    !filter !diff !merge -text

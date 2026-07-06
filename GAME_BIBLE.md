@@ -409,6 +409,32 @@ Le but ultime, c'est de réunir les quatre : le territoire, le domaine, les homm
 
 ---
 
+## 8bis. 🎬 L'Ouverture — Menu Principal & Pause ✅ *(M8/TINY 6)*
+
+**La première seconde donne le frisson** : à chaque lancement, noir 0,4 s → fondu
+« Cultivate Your Fortune! » (respiration scale 1,00→1,04) → logo « GROW ROOM » → fondu
+croisé vers le **menu principal** : la salle au trésor (`Fond_3`) en **dérive Ken Burns**
+(aller-retour 40 s, amplitude 12 %, jamais figée), vignette sombre, logo réduit,
+15 **lucioles violettes** (GPU pur), bouton « 🌱 Cultiver » pulsant or/violet, crédit
+« 🏮 v24 · Nano Studio ». **Skip au tap à tout instant** (la cascade d'entrée joue quand
+même). Préchargement séquentiel : `Fond_1` part avant le storm des 256 PNG, `Fond_2/3` se
+chargent sous le premier fondu. Splashs retirés du DOM après l'intro (mémoire).
+
+**Le son naît avec le joueur** : le tap (skip ou Cultiver) débloque l'AudioContext →
+`mus_menu_home` (téléchargée en priorité `p1`) enveloppe le titre ; une **porte dans
+`sndAmbTick`** garantit que la vallée ne démarre JAMAIS sous le menu. Au tap Cultiver :
+crossfade musique, **glideCam d'arrivée sur la ferme** (au boot uniquement), et la cascade
+« bon retour » (toasts + stingers offline, différée via `_welcome`) se joue enfin
+AUDIBLE — avant M8 elle partait sous le boot, muette.
+
+**Menu pause** (⏸️ topbar) : voile + vignette (zéro blur canvas — interdit perf), panneau
+bois DA avec entrée rebond et une luciole qui se pose sur son coin. Reprendre · 🔊 Son
+(toggle réel, M6 le complètera) · Mon Domaine · Menu principal (retour au titre SANS
+rejouer les splashs, la vallée continue de vivre derrière — **le pause ne fige jamais le
+temps**, c'est un idle). Hook debug/harnais : `#nointro` = boot direct.
+
+---
+
 ## 9. 🗺️ État du projet (résumé)
 
 **Déjà en place (moteur iso) :**

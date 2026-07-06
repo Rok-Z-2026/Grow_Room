@@ -206,6 +206,23 @@
 - **Missions** : chaîne `MISSIONS[53]` (8 chapitres — **append strict**, indices historiques gravés
   dans les saves) + compteurs `stats{}`, tracker `.mtrack` + modal `#mmodal`, claim atomique,
   save `{mi,st}` additif ✓
+- **🎬 L'Ouverture (M8/TINY 6)** : intro splash → menu principal → jeu. Markup STATIQUE dans
+  le body (1er paint = noir-violet, `if1` part avant le storm PACK) ; machine à états
+  `INTRO{st,boot,menuOn,tmr,entering}` + `introGo()` = setTimeout UNIQUE chaîné + transitions
+  CSS (zéro rAF ajouté) ; partition gravée : noir 400 → f1 800/2000/700 → f2 800/2400 →
+  menux 1200 (cascade .menuin délais 0/.15/.3s) ; skip = click #intro → menux. Z-index :
+  `#intro` 70 · `#menuwrap` 65 · `#pausewrap` 61 (au-dessus du z60 flash/fcoin). Ken Burns =
+  `kbpan` 20s ease-in-out alternate (±6% translate). Lucioles = 15 divs GPU (transform/opacity,
+  JAMAIS de filter/blur). ⚠️ PORTE `INTRO.menuOn` en tête de `sndAmbTick` : la vallée ne
+  démarre JAMAIS sous le titre (et sert de retry 1×/s pour `mus_menu_home`, `p1:1`).
+  ⚠️ La cascade « bon retour » de `load()` est enveloppée dans `_welcome` et part à
+  `enterGame()` (glideCam d'arrivée = `INTRO.boot` une seule fois). `menuShow(bool)` =
+  aussi le retour titre depuis le pause (jamais les splashs). Pause : `openPause/closePause`,
+  la simu ne se fige JAMAIS (intervals wall-clock). ⚠️ Câblage des boutons AVANT le
+  early-return `#nointro` (hook harnais : boot direct strictement v24 — toutes les scenes
+  Playwright l'utilisent sauf m8). ⚠️ `Fond_?.png` exclus du LFS par règle .gitattributes
+  dédiée (blobs web sains, mais le pattern `02_Asset/**/*.png` les matcherait au re-commit).
+  ⚠️ Le bouton Cultiver pulse en boucle → `tap(force=True)` dans les tests Playwright.
 
 ---
 
