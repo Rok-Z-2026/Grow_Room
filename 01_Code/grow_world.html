@@ -3024,6 +3024,9 @@ document.querySelectorAll('.seed').forEach(btn=>{
   btn.addEventListener('click',()=>{
     if(!selCell)return;
     const v=parseInt(btn.dataset.v);
+    const cost=varC(v);   // M4 : coût à la plantation (Verte = 0, gratuite à vie)
+    if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}   // garde (les boutons .poor sont déjà non-cliquables)
+    if(cost)setCoin(coin-cost);   // débit avant de muter la case
     S('sfx_plant_seed');   // 🔊 v24
     selCell.state='growing';selCell.grow=0;selCell.variety=v;selCell.water=0;selCell.sun=0;selCell.nute=0;selCell.quality=1;
     const _il=irLvAt(selCell);
