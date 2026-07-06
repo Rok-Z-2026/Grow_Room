@@ -428,10 +428,21 @@ crossfade musique, **glideCam d'arrivée sur la ferme** (au boot uniquement), et
 AUDIBLE — avant M8 elle partait sous le boot, muette.
 
 **Menu pause** (⏸️ topbar) : voile + vignette (zéro blur canvas — interdit perf), panneau
-bois DA avec entrée rebond et une luciole qui se pose sur son coin. Reprendre · 🔊 Son
-(toggle réel, M6 le complètera) · Mon Domaine · Menu principal (retour au titre SANS
-rejouer les splashs, la vallée continue de vivre derrière — **le pause ne fige jamais le
-temps**, c'est un idle). Hook debug/harnais : `#nointro` = boot direct.
+bois DA avec entrée rebond et une luciole qui se pose sur son coin. Reprendre · ⚙️ Réglages ·
+Mon Domaine · Menu principal (retour au titre SANS rejouer les splashs, la vallée continue
+de vivre derrière — **le pause ne fige jamais le temps**, c'est un idle). Hook
+debug/harnais : `#nointro` = boot direct.
+
+**⚙️ Réglages (M6/TINY 6 ✅)** : sous-écran du pause. Mute global 🔊/🔇 + **4 sliders par
+famille** (🎵 Musique · 🌿 Ambiances · ✨ Effets [sfx+stingers] · 🖱️ Interface), audibles
+en direct (rampe 50 ms en glissant, blip témoin au relâcher), + toggle « 👷 Sons des
+ouvriers » (couche wk dédiée). Persistance : clé `'tinygrow_sound'` en JSON rétro-compatible
+(`{"on":1,"v":{mus,amb,fx,ui,wk}}` — les vieux `'1'/'0'` donnent on/off + défauts),
+appliquée au boot. **Source unique `SND_VOL`/`sndVol(l)`** = constante de mixage × réglage
+joueur : le ducking des stingers et le dim du menu titre restaurent le volume DU JOUEUR,
+plus jamais la constante d'usine. **Zone danger** : « 🧨 Réinitialiser la partie » en
+double-tap armé (« ✔ SÛR ? », désarmement 4 s) → purge save + réglages son, partie neuve.
+À propos : 🌱 TINY GROW · 🏮 v24 · Nano Studio.
 
 ---
 

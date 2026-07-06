@@ -37,7 +37,7 @@ décisions finales, il ne reste que le diagnostic technique et le GO de Nano par
 | M5 | Employés : évolution visible | M | ✅ Terminée | 2026-07-06 | Cartes enrichies (palier suivant chiffré, carrières 🌿/🧺, synergies Camp) · fête du level-up (banner+son, 🏆 au MAX) · badge ⭐ persistant · rapport de fierté offline · 8 perks niv 5 à personnalité (save additive `[j,xp,pk,hg,sg]`, garde-fous intacts) — journal détaillé dans la section M5 |
 | 🎧 | Sprint audio de base (`AUDIO_HANDOFF.md`) | M | ✅ Terminée | 2026-07-05 | v24 É0-É7 « La Vallée qui chante » — 82/88 MP3 câblés (commits `ce00f26..ec58645`) |
 | M8 | Menu principal & menu pause | M/L | ✅ Terminée | 2026-07-06 | Intro 8s skippable (partition exacte, respiration, préchargement séquentiel masqué) · menu principal Ken Burns 40s + 15 lucioles + 🌱 Cultiver pulsant · musique titre `mus_menu_home` (porte sndAmbTick : la vallée ne démarre JAMAIS sous le titre) · welcome-back différé à l'entrée (les stingers de retour s'entendent enfin) · glideCam d'arrivée · menu pause bois/rebond/luciole 4 rows · hook `#nointro` · garde-fou LFS — journal détaillé section M8 |
-| M6 | Menu du jeu + réglages son | M | ⬜ À faire | — | Dépendance levée : AudioManager v24 en place (`SND_LAYERS`) |
+| M6 | Menu du jeu + réglages son | M | ✅ Terminée | 2026-07-06 | Sous-écran ⚙️ du menu pause : mute + 4 sliders par famille (🎵🌿✨🖱️, live + persistés JSON rétro-compat) + toggle 👷 + À propos + zone danger double-confirmée · source unique `SND_VOL`/`sndVol()` (le ducking et le menuDim restaurent le volume JOUEUR, plus jamais la constante) — journal détaillé section M6 |
 | M7 | Mixage spatial | M→S/M | ⬜ À faire | — | ~70% couvert par v24 : gain-distance rivière/pompe/feu (`sndProx`/`sndAmbTick`), gating hors-écran `vis:1`, grillons zoom≤0.62. Reste : courbe musique↔zoom, gain graduel des sfx ouvriers (aujourd'hui binaire), pan stéréo optionnel |
 | M1 | Eau vivante (fake shader) | M/L | ⬜ À faire | — | Prérequis LEVÉ : `Water_Dif_1/2` + `Water_NRM_1/2` présents dans `02_Asset/` (⚠️ en **.jpg**, pas .png) |
 | M4 | Graines payantes | L | ⬜ À faire | — | — |
@@ -321,6 +321,21 @@ de chaque famille de sons, réglages persistés.
 ## ✅ Validation
 Le menu s'ouvre/ferme proprement sur mobile ; chaque slider s'entend immédiatement ;
 un kill de l'app puis relance conserve les réglages. **Effort : M**
+
+## 📓 Journal de bord M6 (mis à jour à CHAQUE étape — on ne se perd jamais)
+> Décisions gravées : M8 livrée → les Réglages = SOUS-ÉCRAN du menu pause (`#setpanel`
+> frère de `#pausepanel`, z61 — jamais le pattern .modal z50 qui passerait sous le voile) ·
+> source unique `SND_VOL`/`sndVol(l)` = constante × réglage joueur (⚠️ sndDuck et
+> sndMenuDim restauraient vers les CONSTANTES — le piège) · clé `'tinygrow_sound'` passe
+> en JSON rétro-compatible ('1'/'0' hérités → défauts) · ✨ Effets pilote sfx ET stg ·
+> toggle 👷 = multiplicateur 0/1 sur la couche wk (exclusive aux 6 sons ouvriers) ·
+> reset = purge SAVE_KEY + tinygrow_sound (les 2 seules clés du jeu).
+
+✅ É1 Plomberie SND_VOL/sndVol + repointage des 4 sites — asserts : legacy '0' → muet+défauts ; JSON {mus:.3,amb:.5} → gains exacts .054/.15 au boot ; toggle réécrit le JSON en préservant v{}
+✅ É2 Panneau ⚙️ Réglages (sous-écran du pause, `#pausewrap.set`, mute + À propos) — capture m6_reglages
+✅ É3 4 sliders 🎵🌿✨🖱️ + toggle 👷 — asserts : 🎵30% → gain .054 exact, persisté ; **duck → retour .054 PAS .18** ; menuDim → retour .12 (=.30×.40) ; 👷 → wk gain 0
+✅ É4 Zone danger 🧨 — armement rouge « ✔ SÛR ? », désarmement 4s, reset bout-en-bout testé (2 clés purgées, partie neuve) — capture m6_danger_arme
+✅ É5 Clôture (journal ✅ · table ✅ · GAME_BIBLE · CLAUDE.md · commit + push)
 
 ---
 

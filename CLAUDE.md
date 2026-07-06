@@ -201,7 +201,15 @@
   jitter `p` sur un `loop` · clé localStorage SÉPARÉE `'tinygrow_sound'` · `SND.dbg` réservé
   aux harnais (dec/fail/played/pcm/riverG/pumpG/fireG). Toggle 🔊/🔇 = `#sndbadge`
   (flex-shrink:0 !). É0 : queues sfx_/ui_ trimmées, garantie fin-de-contenu@-45dB, rollback
-  `git checkout ce00f26 -- <fichier>`. ~110 Mo de PCM décodé (mus 120s ≈ 42 Mo) — échappatoire
+  `git checkout ce00f26 -- <fichier>`.
+  **Réglages M6 (TINY 6 ✅)** : volumes UTILISATEUR `SND_VOL{on,mus,amb,fx,ui,wk}` 0..1,
+  SOURCE UNIQUE `sndVol(l)` = `SND_LAYERS[l]` × réglage (✨ fx pilote sfx ET stg).
+  ⚠️ TOUT restore de gain de couche lit `sndVol(l)`, JAMAIS `SND_LAYERS[l]` (sites :
+  sndBoot · sndDuck ×2 · sndMenuDim — sinon le 1er ducking écrase les sliders). Clé
+  `'tinygrow_sound'` en JSON `{"on":1,"v":{…}}`, parse défensif ('1'/'0' hérités OK),
+  écrite par `sndSaveVol()`. UI = sous-écran `#setpanel` du pause (`#pausewrap.set`),
+  sliders live via `sndApplyVol(keys)`, toggle 👷 = multiplicateur wk 0/1, zone danger =
+  `gameReset()` (purge les 2 SEULES clés du jeu) en double-tap armé (pattern perks). ~110 Mo de PCM décodé (mus 120s ≈ 42 Mo) — échappatoire
   décodage-à-la-demande si un mobile souffre. Harnais : verify_audio.js 48/48.
 - **Missions** : chaîne `MISSIONS[53]` (8 chapitres — **append strict**, indices historiques gravés
   dans les saves) + compteurs `stats{}`, tracker `.mtrack` + modal `#mmodal`, claim atomique,
