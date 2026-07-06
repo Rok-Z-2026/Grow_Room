@@ -23,6 +23,13 @@
 .seed{flex:1 1 0;min-width:0;max-width:88px;background:linear-gradient(180deg,#33402a,#222c1c);border:1.5px solid #4a5c38;border-radius:14px;padding:8px 3px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.08);transition:transform .12s,border-color .12s;}
 .seed:active{transform:scale(0.94);}
 .seed.sel{border-color:#9dffb8;box-shadow:0 0 0 2px rgba(157,255,184,0.4),0 3px 8px rgba(0,0,0,0.4);}
+/* M4 : raretés (cadre + halo) — habillage pur, couleur posée en JS via var(--rc) */
+.seed[data-r]{border-color:var(--rc);box-shadow:0 0 0 1px var(--rc) inset,0 3px 8px rgba(0,0,0,0.4);}
+.seed .stars{font-size:9px;line-height:1;letter-spacing:1px;color:var(--rc,#f0c04a);text-shadow:0 1px 2px #000;min-height:9px;}
+.seed .pr{font-size:10px;font-weight:700;color:#ffe08a;text-shadow:0 1px 2px #000;}
+.seed .pr.free{color:#9dffb8;}
+.seed.poor{opacity:.45;filter:grayscale(.6);pointer-events:none;}
+.seed.poor .pr{color:#ff9a9a;}
 .seed .ico{font-size:24px;line-height:1;}
 .seed .nm{font-size:10px;color:#cfe6bd;font-weight:500;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .seed .tm{font-size:8px;color:#93a884;font-weight:600;white-space:nowrap;letter-spacing:.2px;}
@@ -289,12 +296,12 @@
 <div id="seedbar" class="seedbar">
   <div class="seedtitle">Choisis une graine 🌱</div>
   <div class="seeds">
-    <button class="seed" data-v="0"><span class="ico">🌿</span><span class="nm">Verte</span><span class="tm">1m · 6g</span></button>
-    <button class="seed" data-v="1"><span class="ico">🪻</span><span class="nm">Violette</span><span class="tm">1m40 · 11g</span></button>
-    <button class="seed" data-v="2"><span class="ico">🫐</span><span class="nm">Bleue</span><span class="tm">2m30 · 18g</span></button>
-    <button class="seed" data-v="3"><span class="ico">🍊</span><span class="nm">Orange</span><span class="tm">3m30 · 28g</span></button>
-    <button class="seed" data-v="4"><span class="ico">🖤</span><span class="nm">Noire</span><span class="tm">4m30 · 40g</span></button>
-    <button class="seed" data-v="5"><span class="ico">🍁</span><span class="nm">Automne</span><span class="tm">5m30 · 55g</span></button>
+    <button class="seed" data-v="0"><span class="stars"></span><span class="ico">🌿</span><span class="nm">Verte</span><span class="tm">1m · 6g</span><span class="pr"></span></button>
+    <button class="seed" data-v="1"><span class="stars"></span><span class="ico">🪻</span><span class="nm">Violette</span><span class="tm">1m40 · 11g</span><span class="pr"></span></button>
+    <button class="seed" data-v="2"><span class="stars"></span><span class="ico">🫐</span><span class="nm">Bleue</span><span class="tm">2m30 · 18g</span><span class="pr"></span></button>
+    <button class="seed" data-v="3"><span class="stars"></span><span class="ico">🍊</span><span class="nm">Orange</span><span class="tm">3m30 · 28g</span><span class="pr"></span></button>
+    <button class="seed" data-v="4"><span class="stars"></span><span class="ico">🖤</span><span class="nm">Noire</span><span class="tm">4m30 · 40g</span><span class="pr"></span></button>
+    <button class="seed" data-v="5"><span class="stars"></span><span class="ico">🍁</span><span class="nm">Automne</span><span class="tm">5m30 · 55g</span><span class="pr"></span></button>
   </div>
 </div>
 <div id="carebar" class="carebar">
@@ -426,15 +433,24 @@ let careT=Date.now(), lastTick=Date.now();            // horodatages temps-réel
 // (1 min), l'Automne paie la patience (5m30, 55 g). g/min 6.0 -> 10.0 : +67% pour qui plante
 // long — et moins de récoltes/min = moins de drain de fertilité (v23). Graines GRATUITES
 // conservées, stock unique en grammes -> migration nulle. ±20% d'aléa à la récolte.
-const VAR=[
-  {n:'Verte',   t:60000, g:6 },
-  {n:'Violette',t:100000,g:11},
-  {n:'Bleue',   t:150000,g:18},
-  {n:'Orange',  t:210000,g:28},
-  {n:'Noire',   t:270000,g:40},
-  {n:'Automne', t:330000,g:55},
+// M4 (graines payantes) : coût `c` à la plantation + rareté `r` (habillage pur, 0 effet gameplay).
+// La Verte reste GRATUITE À VIE (c:0) = filet de sécurité anti-blocage. Coûts calibrés très en
+// dessous de la valeur de récolte -> l'idle reste toujours net-positif (voir tools/sim_seedcost.js).
+const RARITY=[
+  {n:'Commun',    col:'#7fae63', st:1},
+  {n:'Rare',      col:'#5a9bff', st:2},
+  {n:'Épique',    col:'#b86bff', st:3},
+  {n:'Légendaire',col:'#f0c04a', st:4},   // or DA
 ];
-const varT=v=>(VAR[v]||VAR[0]).t, varG=v=>(VAR[v]||VAR[0]).g;
+const VAR=[
+  {n:'Verte',   t:60000, g:6,  c:0,   r:0},   // GRATUITE À VIE
+  {n:'Violette',t:100000,g:11, c:15,  r:0},
+  {n:'Bleue',   t:150000,g:18, c:28,  r:1},
+  {n:'Orange',  t:210000,g:28, c:48,  r:1},
+  {n:'Noire',   t:270000,g:40, c:75,  r:2},
+  {n:'Automne', t:330000,g:55, c:110, r:3},
+];
+const varT=v=>(VAR[v]||VAR[0]).t, varG=v=>(VAR[v]||VAR[0]).g, varC=v=>(VAR[v]||VAR[0]).c||0;
 const CARE_MAX={water:20,sun:15,nute:10}, CARE_REFILL_MS=60000; // soins: +1 de chaque /60s jusqu'au cap
 const SAVE_KEY='tinygrow_save_v1';
 let selCell=null;  // cellule selectionnee — DECLAREE AVANT draw() (draw() la lit ligne ~305). Sinon TDZ: le 1er draw() synchrone throw si une parcelle est visible frame 1 -> boucle rAF morte -> canvas blanc.
@@ -2765,7 +2781,16 @@ function buyLandGroup(g,px,py){
   toast('Forêt défrichée ! 🪓');save();
 }
 // selCell est déclarée plus haut (avant draw) pour éviter le TDZ
-function showSeedbar(s){const el=document.getElementById('seedbar');if(s&&!el.classList.contains('show'))S('ui_seedbar_show');el.classList.toggle('show',s);}
+// M4 : rafraîchit prix + raretés + état grisé de chaque bouton graine (source unique VAR/RARITY).
+function refreshSeedbar(){document.querySelectorAll('#seedbar .seed').forEach(btn=>{
+  const v=parseInt(btn.dataset.v), rar=RARITY[VAR[v].r]||RARITY[0], cost=varC(v);
+  btn.dataset.r=VAR[v].r;btn.style.setProperty('--rc',rar.col);
+  const st=btn.querySelector('.stars');if(st)st.textContent='★'.repeat(rar.st);
+  const pr=btn.querySelector('.pr');
+  if(pr){if(cost<=0){pr.textContent='Gratuit';pr.className='pr free';}else{pr.textContent='💰 '+money(cost);pr.className='pr';}}
+  btn.classList.toggle('poor',cost>coin);   // grisé + non-cliquable si pas assez 💰 (la Verte jamais)
+});}
+function showSeedbar(s){const el=document.getElementById('seedbar');if(s){if(!el.classList.contains('show'))S('ui_seedbar_show');refreshSeedbar();}el.classList.toggle('show',s);}
 // === 🏗️ UI MODULES (v22) : menu de construction, pose libre, panneau, upgrade ===
 function tapCell(px,py){   // écran -> case : inverse iso plat + raffinage local (les collines existent)
   const wx=(px-APP_W/2-cam.x)/(TW()/2), wy=(py-APP_H*0.28-cam.y)/(TH()/2);
