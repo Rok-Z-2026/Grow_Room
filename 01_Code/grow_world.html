@@ -1503,13 +1503,13 @@ function wkOfflineGains(offMs){
   // fieldRate = Σ spd/growSv ; gBar = rendement moyen pondéré PAR LE FLUX (les récoltes
   // arrivent au rythme de chaque case) ; growS = pousse moyenne harmonique (1er cycle non
   // compté, comme avant). Eau à l'équilibre : refill min 2/min > drain 1/min -> cap.
-  let N=0,fieldRate=0,gFlow=0;
+  let N=0,fieldRate=0,gFlow=0,cFlow=0;
   for(const k in cropCells){const c=cropCells[k];if(c.state==='empty')continue;N++;
     const l=irLvAt(c), spd=1+0.15*(l?MODS_CFG.ir.wcap[l-1]:0)/200+(l===5?0.15*(enShort()?0.5:1):0);   // v23 : bonus Lv5 dégradé en pénurie (couverture déjà via cmAt)
     const gs=varT(c.variety)*speedMult()/1000/spd;
-    fieldRate+=1/gs;gFlow+=varG(c.variety)/gs;}
+    fieldRate+=1/gs;gFlow+=varG(c.variety)/gs;cFlow+=varC(c.variety)/gs;}   // M4 : coût des graines pondéré par le flux
   if(N<=0)return out;
-  const gBar=gFlow/fieldRate, growS=N/fieldRate;
+  const gBar=gFlow/fieldRate, cBar=cFlow/fieldRate, growS=N/fieldRate;
   const effS=Math.max(0,offMs/1000-growS);
   if(effS<=0)return out;
   const eff=wkOfflineEff();
@@ -1565,6 +1565,10 @@ function wkOfflineGains(offMs){
       crew[vBest].sg=(crew[vBest].sg||0)+out.sold;   // M5 : carrière 💰 du vendeur, même offline
     }
   }
+  // M4 : coût des graines des replants offline, netté contre les ventes du vendeur et CLAMPÉ ≥0
+  // (jamais de coin négatif au réveil ; sans vendeur, out.coin reste 0 -> graines offline de facto
+  // gratuites, le stock non vendu s'accumule). L'idle offline reste toujours net-positif.
+  out.coin=Math.max(0, out.coin - Math.floor(cycles*cBar));
   // XP offline : prorata du travail simulé de chacun, cap 300/ouvrier/session, tout en floor()
   const man=(1+0.15*wkU2.man)*_fmXp, xcap=300;   // M5 : perk 🎓 offline aussi (fmRecalc a tourné au load) — le Math.min(xcap,…) reste le garde-fou
   if(arm>0&&cycles>0){
