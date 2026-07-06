@@ -33,13 +33,13 @@ décisions finales, il ne reste que le diagnostic technique et le GO de Nano par
 
 | # | Mission | Effort | Statut | Fini le | Note |
 |---|---------|--------|--------|---------|------|
-| M2 | Machines : visibilité, guidage, utilité | S/M | ⬜ À faire | — | — |
+| M2 | Machines : visibilité, guidage, utilité | S/M | ✅ Terminée | 2026-07-06 | Machines 100% opaques (isBig) · cases vertes recommandées + hint 1re pose · bandeau bénéfice ghost (N champs vivant, % réel par niveau) · liseré bleu permanent champs couverts (cmAt, recule en pénurie ⚡) · « couvre X champs · +Y% effectif » au panneau · toast pédagogique 1re construction |
 | M5 | Employés : évolution visible | M | ⬜ À faire | — | — |
-| 🎧 | Sprint audio de base (`AUDIO_HANDOFF.md`) | M | ⬜ À faire | — | — |
-| M8 | Menu principal & menu pause | M/L | ⬜ À faire | — | — |
-| M6 | Menu du jeu + réglages son | M | ⬜ À faire | — | — |
-| M7 | Mixage spatial | M | ⬜ À faire | — | — |
-| M1 | Eau vivante (fake shader) | M/L | ⬜ À faire | — | — |
+| 🎧 | Sprint audio de base (`AUDIO_HANDOFF.md`) | M | ✅ Terminée | 2026-07-05 | v24 É0-É7 « La Vallée qui chante » — 82/88 MP3 câblés (commits `ce00f26..ec58645`) |
+| M8 | Menu principal & menu pause | M/L | ⬜ À faire | — | Prérequis LEVÉ : `Fond_1/2/3.png` présents dans `02_Asset/` |
+| M6 | Menu du jeu + réglages son | M | ⬜ À faire | — | Dépendance levée : AudioManager v24 en place (`SND_LAYERS`) |
+| M7 | Mixage spatial | M→S/M | ⬜ À faire | — | ~70% couvert par v24 : gain-distance rivière/pompe/feu (`sndProx`/`sndAmbTick`), gating hors-écran `vis:1`, grillons zoom≤0.62. Reste : courbe musique↔zoom, gain graduel des sfx ouvriers (aujourd'hui binaire), pan stéréo optionnel |
+| M1 | Eau vivante (fake shader) | M/L | ⬜ À faire | — | Prérequis LEVÉ : `Water_Dif_1/2` + `Water_NRM_1/2` présents dans `02_Asset/` (⚠️ en **.jpg**, pas .png) |
 | M4 | Graines payantes | L | ⬜ À faire | — | — |
 | M3 | Chemin des livraisons (véhicules) | L/XL | ⬜ À faire | — | — |
 
@@ -62,15 +62,15 @@ Quand une mission passe ✅ : date + note d'une ligne (ce qui a été livré) + 
 
 ## 🎯 Objectif
 Remplacer l'eau actuelle par une eau **dynamique et animée** : vagues, reflets, mouvement
-continu — en utilisant les textures `Water_Dif_1/2.png` déformées par leurs Normal Maps
-`Water_NRM_1/2.png`. Le tout compatible **HTML/canvas mobile** (pas de moteur 3D).
+continu — en utilisant les textures `Water_Dif_1/2.jpg` déformées par leurs Normal Maps
+`Water_NRM_1/2.jpg`. Le tout compatible **HTML/canvas mobile** (pas de moteur 3D).
 
 ## 📍 État actuel dans le code
 - L'eau est rendue par **4 frames de tuiles runtime** (`water_f0..f3` dans le PACK) avec
   phase par case + crossfade, plus une texture `waterTex` de fond.
 - Le pipeline assets passe par `02_Asset/runtime/` (ASSET_BASE ligne 270).
-- ⚠️ **PRÉREQUIS BLOQUANT** : `Water_Dif_1/2.png` et `Water_NRM_1/2.png` sont **absents du
-  repo** (vérifié : 404 sur `02_Asset/`). Nano doit les uploader AVANT de lancer la mission.
+- ✅ **Prérequis levé (05/07/2026)** : `Water_Dif_1/2.jpg` et `Water_NRM_1/2.jpg` sont dans
+  `02_Asset/` (⚠️ format **.jpg** — pas de transparence, à prendre en compte au découpage).
 
 ## 🧭 Deux approches possibles (le CLI diagnostique et recommande, Nano tranche)
 
@@ -88,7 +88,7 @@ canvas 2D, clippé aux zones d'eau. Rendu superbe mais : gestion double-canvas, 
 zoom, risques de perf sur mobile bas de gamme, complexité ×3.
 
 ## 🪜 Plan par étapes (si Option A)
-1. Upload des 4 PNG par Nano → vérification (dimensions, transparence, tuilable ?).
+1. Vérification des 4 JPG uploadés (dimensions, tuilable ?).
 2. Prototype offscreen isolé : générer 1 frame déformée, capture, validation du look.
 3. Génération des 8-12 frames au boot + injection dans le PACK à la place de `water_f0..f3`.
 4. Réglage amplitude/vitesse/reflets (2-3 itérations visuelles avec Nano).
@@ -119,8 +119,9 @@ Trois problèmes UX constatés par Nano à corriger :
   `tryPlaceAt`, `confirmPlace`) — mais rien n'indique OÙ c'est malin de poser (près des
   champs), ni de tuto première pose.
 - **Utilité** : l'Irrigation a de vrais effets (+15% pousse, sprinklers…) mais ils sont
-  enfouis dans le panneau. Un seul module existe (💧) — les 5 autres familles arrivent
-  v23-v24. La mission VIII « L'Ingénieur » guide déjà vers le 1er module.
+  enfouis dans le panneau. **Trois familles sont achetables** (💧 Irrigation · 🌾 Nutriments ·
+  ⚡ Énergie, `av:1` en v23) — 📦/👷/🌡️ restent « 🚧 Bientôt ». La mission VIII
+  « L'Ingénieur » guide déjà vers le 1er module.
 
 ## 🪜 Plan par étapes
 1. **Fix transparence** : exclure les cases modules du système de fade (pattern maison).
@@ -366,8 +367,7 @@ donner le frisson et annoncer la qualité de toute l'expérience.
 
 ## 📍 État actuel dans le code & assets
 - Le jeu **boote directement dans la vallée** : aucun écran titre, aucun menu pause.
-- **Les 3 assets du menu existent** (fournis par Nano, à placer dans `02_Asset/`) —
-  specs vérifiées :
+- **Les 3 assets du menu sont dans `02_Asset/`** (uploadés le 05/07/2026) — specs vérifiées :
   · `Fond_1.png` — splash **« Cultivate Your Fortune! »** (lettrage or/violet magique),
     1536×1024, RGBA, **transparence propre** ✅, 0,84 Mo.
   · `Fond_2.png` — logo **« GROW ROOM »** (panneau bois, plantes, cristaux violets),

@@ -75,7 +75,8 @@
 - **Eau animée** 4 frames (`water_f0`–`water_f3`) ✓
 - **Vent** (`drawSpWind`) ✓
 - **Ombres** (`function shadow`) ✓
-- **Fondu d'occlusion 2.0** : un gros objet (`isBig`, `home_*` exclu) ne s'estompe QUE s'il
+- **Fondu d'occlusion 2.0** : un gros objet (`isBig`, `home_*` ET `mod_*` exclus — M2/TINY 6 :
+  maison et machines ne s'estompent jamais) ne s'estompe QUE s'il
   recouvre réellement (rects précis + insets PNG + pénétration mini 6px·zoom) un plant vivant,
   `selCell` ou un ouvrier strictement derrière lui — jamais une case vide. Calcul 1×/frame dans
   `draw()` (cibles `fadeTg` → `fadeTgt`), lissage ~190ms (`fadeCur` global, `FADE_MIN=0.38`),
@@ -99,8 +100,17 @@
   case d'emprise, meilleur niveau par case (pas d'empilement), copies ×1.5^ci cap
   2+⌊Domaine/3⌋, portes transitoires en grammes MOD_GATE (Lv3 1600 / Lv4 8000 / Lv5 25000).
   Rendu : ancre au coin SUD de l'emprise, `decScale`/`decYOff` parsent `mod_*`, OcclusionFade
-  = candidats ET cibles. 💧 Irrigation active (drain −1/min, refill vers cap par niveau,
-  `irSpd` vitesse ≤ +15% +15% Lv5, Sprinklers Lv4+ à la plantation, offline à l'équilibre).
+  = **cibles uniquement** (M2/TINY 6 : un arbre devant un module s'estompe, mais le module,
+  lui, ne s'estompe jamais — pattern `home_*`). 💧 Irrigation active (drain −1/min, refill vers cap par niveau,
+  `irSpd` vitesse ≤ +15% +15% Lv5 — constante `IR_SPD`, source unique code+textes —,
+  Sprinklers Lv4+ à la plantation, offline à l'équilibre).
+  **UX M2 (TINY 6 ✅)** : `recSpots()` cases vertes recommandées à la pose (calcul 1× à
+  `startPlacing`, valeur ajoutée seulement, seuil 0.8·meilleur-POSABLE, `en` exclu) + hint
+  1re pose (`stats.mHint` additif) · bandeau bénéfice `modBenefit(k,lv,n)` dérivé de
+  `MODS_CFG` (jamais de chaîne dupliquée) dans `tryPlaceAt` (N vivant au tap) · liseré bleu
+  passe SOL sur champs couverts via `cmAt` (runtime pur, event-driven — recule en pénurie) ·
+  ligne « couvre X · +Y% effectif » dans `openModPanel` (moyenne `irSpd` réelle) · toast
+  pédagogique 1re construction (`stats.mFx` additif, setTimeout 2600ms après « construit ! »).
   ⚠️ La qualité reste event-driven (applyCare/wkApplyCare, clamp gCap INVIOLÉ) — la refonte ★
   arrive en v24, ne pas recomputer la qualité dans le tick eau.
 - **⚡ Réseau v23** : `enProd/enCons` recalculés par `enRecalc()` aux MÊMES 3 événements que

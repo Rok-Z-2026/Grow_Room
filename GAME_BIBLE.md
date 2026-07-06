@@ -282,7 +282,7 @@ sont réservées aux CLIENTS (v25).*
 
 ## 7ter. 🎯 Missions & Objectifs ✅ *(implémenté)*
 
-Le **fil rouge de James** : une chaîne séquentielle de **50 missions en 8 chapitres** qui raconte
+Le **fil rouge de James** : une chaîne séquentielle de **53 missions en 8 chapitres** qui raconte
 son ascension et guide le joueur vers chaque système dans l'ordre naturel. **Une seule mission
 active à la fois** : carte-tracker permanente sous la topbar *(v15 : médaillon doré, barre
 épaisse avec reflet animé, fraction ; accomplie → fond or, rayons tournants, 🎁 qui bounce)*,
@@ -297,7 +297,8 @@ ouvriers/labo, 1re clairière) · **IV — Le domaine** (expansion) · **V — L
 **VI — La légende** (toute la vallée, 6 ouvriers, 80 kg, Domaine de Luxe 🏆) ·
 **VII — Le patron** *(v19 : Atelier, jardinier, vendeur, Dortoir, 7-8 ouvriers, un maître
 niv 5)* · **VIII — L'Ingénieur** *(v22 : 1er module d'Irrigation, 8 champs couverts d'eau,
-un module niv 2 — append strict : les indices existants sont gravés dans les saves)*.
+un module niv 2 ; +3 missions v23 : Table d'engrais, Générateur, Overdrive — append strict :
+les indices existants sont gravés dans les saves)*.
 
 ---
 
@@ -310,6 +311,16 @@ multiples (prix ×1.5^copie, cap 2+⌊Domaine/3⌋). Menu 🏗️ dès le Domain
 halo de couverture, cinématique de chantier, panneau au tap (effet actuel → suivant chiffré,
 vue des portées 📡). Portes des niveaux 3/4/5 : **grammes de carrière** (1 600 / 8 000 /
 25 000 — transitoire v22-v24, la réputation arrive en v25 avec GRANDFATHERING).
+
+*UX machines (M2/TINY 6 ✅)* : les machines ne s'estompent **jamais** (opaques comme la
+maison, mais restent cibles du fondu) · en mode pose, **cases vertes recommandées**
+(dilatation inverse depuis les champs NON couverts — valeur ajoutée seulement, jamais de vert
+mensonger) + hint à la 1re pose · le ghost affiche le **bénéfice concret vivant** (« 💧 +2
+eau/min · pousse jusqu'à +4.5% sur 7 champs couverts » — % réel par niveau, dérivé de
+`MODS_CFG`/`IR_SPD`) · **liseré bleu discret permanent** sur les champs couverts (couverture
+ACTIVE via `cmAt` : recule honnêtement en pénurie ⚡) · panneau : « 📍 couvre X champs ·
+pousse +Y% effectif » (moyenne d'`irSpd` réelle) · toast pédagogique à la toute première
+construction (flags additifs `st.mHint`/`st.mFx`).
 
 **💧 Irrigation (active)** : chaque champ a une jauge d'eau vivante (drain −1/min) ; le module
 la remplit à portée (+2/+4/+6/+8/+12 par min, caps 60/80/100/120/140) ; **l'eau accélère la
@@ -404,20 +415,27 @@ Le but ultime, c'est de réunir les quatre : le territoire, le domaine, les homm
 - **👷 Ouvriers v19** : 8 slots (6 + Dortoir), 4 métiers réassignables (récolteur/jardinier/
   vendeur/contremaître), identités fixes + XP/niveaux, Camp (Dortoir/Atelier + upgrades T2),
   marché sinusoïdal vivant, pauses hobby, offline par métier — voir 7bis.
-- **🎯 Missions** : chaîne de 47 missions en 7 chapitres (voix de James), tracker permanent,
+- **🎯 Missions** : chaîne de 53 missions en 8 chapitres (voix de James), tracker permanent,
   claim manuel atomique, rétro-compatible vieux saves — voir 7ter.
+- **🏗️ Modules v22** : 6 familles à placement libre (💧🌾⚡ achetables), portées Manhattan,
+  💧 Irrigation active — voir 7quater.
+- **⚡🌾 Réseau & Terre v23** : énergie (production/consommation, pénurie, Overdrive) +
+  fertilité par case + Carnet v1 (diagnostic une ligne) — voir 7quater.
+- **👷 Employés 2.0 visuel v23.5** : 40 spritesheets `wk_1..wk_40` remplacent les emoji —
+  voir 7bis.
+- **🔊 Audio v24** : bande-son complète Web Audio (82/88 MP3 câblés, ambiances spatialisées,
+  stingers, ducking) — « La Vallée qui chante ».
 
-**Atlas sources à intégrer (`02_Asset/`) :**
-- `Glow_Arbre.png` — 12 arbres premium.
-- `Glow_Maison.png` — 20 bâtiments (maisons, serres).
-- `Glow_Plante.png` — 6 variétés × 8 stades de cannabis.
-- `Glow_Terrain.png` — déco (buissons, rochers, souches, étangs, fleurs, sols, clôtures).
-- `Grow_Water_1.png` — spritesheet d'eau.
+**Atlas sources (`02_Asset/` — intégrés ✅, conservés comme archives dev) :**
+- `Glow_Plante.png` ✅ (48 sprites `plant_*`) · `Glow_Terrain.png` ✅ lot 1 (30 décors).
+- `Glow_Arbre.png` / `Glow_Maison.png` / `Grow_Water_1.png` — réserves non découpées
+  (le moteur a déjà arbres/bâtiments/eau runtime ; à puiser au besoin).
+- Nouveaux (05/07/2026) : `Fond_1/2/3.png` (menus M8) · `Water_Dif/NRM_1/2.jpg` (eau M1).
 
 **Prochains chantiers :**
-- Intégration des nouveaux atlas (priorité : les plantes cannabis).
-- Polish visuel continu de la map.
-- Câblage / équilibrage des systèmes de jeu (idle, employés, croisement, etc.).
+- **TINY 6** (`ROADMAP_MISSIONS.md`) : M2 🔵 en cours, puis M5 → M8 → M6 → M7 → M1 → M4 → M3.
+- Ensuite, reprise de l'arc GDD « L'Exploitation » : ★ Qualité 2.0 + 📦 Logistique,
+  🛒 Commandes/Réputation, 🌡️ Climat, 📖 Carnet complet, 🌸 Saisons de l'Oubli.
 
 ---
 
