@@ -278,6 +278,23 @@ déterministe par identité (`wkSprN`), 4 directions + cycle de marche 3 frames,
 dans le panneau Équipe. Fallback emoji 👷 conservé pendant le chargement. Les 8 planches grises
 sont réservées aux CLIENTS (v25).*
 
+**Évolution VISIBLE (M5/TINY 6 ✅)** : les cartes montrent l'effet RÉEL du niveau + le prochain
+palier chiffré (« Niv 3 → récolte −10% de temps · reste 37 XP », dérivé des vraies formules via
+`wkFxTxt`), les **carrières** par perso (🌿 g récoltés · 🧺 g vendus — comptées online ET
+offline), et les synergies Camp pertinentes (📖/🌾/🧺/📯). Le **level-up se FÊTE** : bannière
+dorée + `sfx_gauge_fill` (niv 2-4) ou 🏆 + `stg_worker_hired` + double burst (niv MAX) ; les
+gains d'XP quotidiens s'affichent en « +N XP » flottants agrégés (throttle 2,5 s, visibles à
+l'écran seulement). **Badge ⭐** bondissant sur le bouton 👷 à chaque promotion (persisté
+`st.wkLu`, éteint à l'ouverture du panneau). **Rapport de fierté offline** : les promotions
+d'absence sont fêtées au retour (bannières à 5,3 s ; ≥3 promus → bannière collective, un MAX
+garde la sienne). **Les Dons (perks niv 5)** : au sommet, chaque perso révèle UN don choisi
+parmi les 2 de son métier (double-tap de confirmation, irréversible) — 🥖 Bras de boulanger
+(+8% grammes) / 🌬️ Pas de montagnard (−8% temps) · 🧚 Pouce de fée (+10% soin) / 🌙 Murmure
+aux plantes (ré-armé −15%) · 🧺 Panier sans fond (lots +8%) / 🤝 Poignée de main d'or (prix
++2 pts DANS le cap ≤100%) · 📣 Voix de stentor (aura +2 pts) / 🎓 École du soir (+10% XP
+équipe). Le don est lié à l'IDENTITÉ : réassigné → 💤 dormant (jamais reset). Save additive
+`crew:[j,xp,pk,hg,sg]`, garde-fous v19 tous intacts (boosts{}, clamp gCap, vMult ≤1, qOff 0,65).
+
 ---
 
 ## 7ter. 🎯 Missions & Objectifs ✅ *(implémenté)*

@@ -34,7 +34,7 @@ décisions finales, il ne reste que le diagnostic technique et le GO de Nano par
 | # | Mission | Effort | Statut | Fini le | Note |
 |---|---------|--------|--------|---------|------|
 | M2 | Machines : visibilité, guidage, utilité | S/M | ✅ Terminée | 2026-07-06 | Machines 100% opaques (isBig) · cases vertes recommandées + hint 1re pose · bandeau bénéfice ghost (N champs vivant, % réel par niveau) · liseré bleu permanent champs couverts (cmAt, recule en pénurie ⚡) · « couvre X champs · +Y% effectif » au panneau · toast pédagogique 1re construction |
-| M5 | Employés : évolution visible | M | ⬜ À faire | — | — |
+| M5 | Employés : évolution visible | M | ✅ Terminée | 2026-07-06 | Cartes enrichies (palier suivant chiffré, carrières 🌿/🧺, synergies Camp) · fête du level-up (banner+son, 🏆 au MAX) · badge ⭐ persistant · rapport de fierté offline · 8 perks niv 5 à personnalité (save additive `[j,xp,pk,hg,sg]`, garde-fous intacts) — journal détaillé dans la section M5 |
 | 🎧 | Sprint audio de base (`AUDIO_HANDOFF.md`) | M | ✅ Terminée | 2026-07-05 | v24 É0-É7 « La Vallée qui chante » — 82/88 MP3 câblés (commits `ce00f26..ec58645`) |
 | M8 | Menu principal & menu pause | M/L | ⬜ À faire | — | Prérequis LEVÉ : `Fond_1/2/3.png` présents dans `02_Asset/` |
 | M6 | Menu du jeu + réglages son | M | ⬜ À faire | — | Dépendance levée : AudioManager v24 en place (`SND_LAYERS`) |
@@ -272,6 +272,19 @@ une vraie fierté de progression.
 ## ✅ Validation
 En ouvrant le panneau 👷, on voit qui progresse et pourquoi ; un level-up se FÊTE à
 l'écran ; le joueur cite spontanément son ouvrier préféré. **Effort : M**
+
+## 📓 Journal de bord M5 (mis à jour à CHAQUE étape — on ne se perd jamais)
+> Décisions gravées : perk lié à l'IDENTITÉ (dormant si réassigné, jamais reset) ·
+> save additive `[j,xp,pk,hg,sg]` · sons SANS nouveau MP3 (`sfx_gauge_fill` câblé +
+> réemploi `stg_worker_hired` au MAX) · qOff 0.65 et tous les garde-fous INTOUCHÉS.
+
+✅ É1 Cartes enrichies (effet courant + prochain palier chiffré + synergies Camp) — wkFxTxt/wkCardFx/wkSynTxt, capture m5_e1 OK
+✅ É2 Compteurs de carrière (🌿 récolté / 🧺 vendu par perso, online + offline) — tuple `[j,xp,pk,hg,sg]`, rétro-compat testée (save pré-M5 → défauts propres)
+✅ É3 Feedback monde (+XP throttlé/agrégé 2.5s · banner+`sfx_gauge_fill` au level-up · 🏆+`stg_worker_hired`+double burst au MAX) — captures m5_e3a/b/c
+✅ É4 Badge ⭐ sur le bouton 👷 (persisté `stats.wkLu`, bounce mgift, éteint à l'ouverture) — capture m5_e4
+✅ É5 Rapport de fierté offline (bannières séquencées à 5.3s, collective ≥3, MAX individuel) — testé bout-en-bout avec save vieillie de 4h, captures m5_e5_max/collectif
+✅ É6 Perk niveau 5 (WK_PERK 8 dons, wkPerk() gate par métier, double-tap confirmé, dormance 💤, hooks online+offline, cap vendeur ≤1 vérifié, round-trip save OK) — captures m5_e6/e6b
+✅ É7 Clôture (journal ✅ · table ✅ · GAME_BIBLE · CLAUDE.md · commit + push)
 
 ---
 

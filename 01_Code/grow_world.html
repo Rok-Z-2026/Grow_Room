@@ -112,6 +112,18 @@
 .wsec{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#9fb98a;opacity:.85;margin:6px 2px 0;}
 .wxp{height:6px;background:rgba(255,255,255,.10);border-radius:4px;overflow:hidden;margin:5px 0 2px;}
 .wxp i{display:block;height:100%;background:linear-gradient(90deg,#8fd96f,#ffd84d);width:0;transition:width .4s;}
+.wfx{color:#ffd84d;font-size:11px;line-height:1.35;margin-top:3px;opacity:.9;}
+.wkstar{position:absolute;right:-7px;top:-9px;font-size:16px;pointer-events:none;filter:drop-shadow(0 0 4px rgba(255,216,77,.85));animation:mgift .8s ease-in-out infinite;}
+.wgift{color:#ffd84d;font-size:11.5px;font-weight:700;margin-top:5px;}
+.pkrow{display:flex;gap:6px;margin-top:4px;}
+.pkbtn{flex:1;background:linear-gradient(180deg,#3a4a26,#25331a);border:1.5px solid #8fb573;border-radius:10px;color:#e8f4d8;padding:6px 7px;font-size:10.5px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;}
+.pkbtn b{font-size:11px;color:#ffd84d;}
+.pkbtn span{color:#bcd6a8;line-height:1.25;}
+.pkbtn.arm{border-color:#ffd84d;box-shadow:0 0 10px rgba(255,216,77,.45);}
+.pkbtn.dim{opacity:.45;}
+.wperk{color:#ffd84d;font-size:11px;margin-top:4px;}
+.wsyn{color:#8fb573;font-size:10.5px;margin-top:2px;}
+.wtot{color:#b8cfa0;font-size:10.5px;margin-top:2px;}
 .wjobs{display:flex;gap:6px;margin-top:5px;}
 .wjob{flex:1;padding:5px 0;font-size:16px;text-align:center;border-radius:9px;border:1px solid #46543a;background:rgba(28,38,22,.6);cursor:pointer;line-height:1.2;}
 .wjob.on{border-color:#ffd84d;background:rgba(96,74,22,.55);box-shadow:0 0 6px rgba(255,216,77,.35);}
@@ -363,6 +375,7 @@ var SND_TAB={
   ui_denied:{l:'ui',t:200},                     // doux, jamais punitif
   sfx_zone_unlock:{l:'sfx',t:300},
   sfx_palier_new:{l:'sfx',t:500},
+  sfx_gauge_fill:{l:'sfx',v:0.9,t:800},        // M5 : sorti du placard — le « ding » du level-up ouvrier
   // É4 — UI & missions
   ui_panel_open:{l:'ui',t:150},
   ui_panel_close:{l:'ui',t:150,skipAny:120},    // muet quand une ACTION vient de sonner (upgrade, guide…)
@@ -805,6 +818,19 @@ const WK_ID=[
   {n:'Lueur',      h:'✨', bd:[4,3],  myst:true },   // flotte près des lampadaires
   {n:'Raymond',    h:'🎣', bd:[5,2],  myst:false},   // pêche sur la berge de la rivière
   {n:'Mémé Rose',  h:'🌹', bd:[-3,2], myst:false}];  // hume le jardin fleuri
+// M5 : PERKS niveau 5 — un DON unique par perso, choisi parmi les 2 de son métier courant.
+// Lié à l'IDENTITÉ : réassigné -> dormant (💤), jamais reset. Chiffres conservateurs 2-10%,
+// garde-fous intacts (boosts{} · clamp gCap · vMult ≤1 · qOff 0.65 · self-exclusion aura).
+const WK_PERK={
+  r1:{emo:'🥖',n:'Bras de boulanger',  d:'+8% de grammes sur SES récoltes'},
+  r2:{emo:'🌬️',n:'Pas de montagnard', d:'−8% de temps de récolte/replante'},
+  g1:{emo:'🧚',n:'Pouce de fée',       d:'+10% d\'apport de soin'},
+  g2:{emo:'🌙',n:'Murmure aux plantes',d:'soin ré-armé 15% plus vite'},
+  v1:{emo:'🧺',n:'Panier sans fond',   d:'lots de vente +8%'},
+  v2:{emo:'🤝',n:'Poignée de main d\'or',d:'prix amélioré, jusqu\'au prix plein'},
+  f1:{emo:'📣',n:'Voix de stentor',    d:'aura d\'équipe +2 points'},
+  f2:{emo:'🎓',n:'École du soir',      d:'+10% d\'XP pour toute l\'équipe'}};
+function wkPerk(i){const c=crew[i];return (c&&c.pk&&c.pk[0]===c.j)?c.pk:null;}   // actif SEULEMENT si le métier matche — toute lecture passe ICI
 // Le CAMP : bâtiments d'équipe posés par placeCamp() (idempotent, comme placeHome).
 const CAMP=[
   {k:'dorm',spr:'cabin',   x:48,y:45,ico:'🛏️',name:'Le Dortoir', lv:[{c:600000,hr:8},{c:2000000,hr:10}],
@@ -1041,32 +1067,61 @@ function wkUp2Cost(u){return Math.floor(u.base*Math.pow(u.mul,wkU2[u.key]));}
 // XP -> niveau (max 5) : seuils cumulés 60/240/540/1200
 function wkLvl(xp){return xp>=1200?5:xp>=540?4:xp>=240?3:xp>=60?2:1;}
 function wkNextXp(lvl){return [0,60,240,540,1200,Infinity][lvl];}   // seuil du niveau suivant
+// M5 : l'effet RÉEL du niveau, dérivé des VRAIES formules (wkActMs 0.05 · gCap · vMult — étal
+// inclus gratuitement · aura) — jamais de chiffre dupliqué à la main dans l'UI.
+function wkFxTxt(j,l){
+  if(j==='r')return l<=1?'cadence de base':'récolte −'+(5*(l-1))+'% de temps';
+  if(j==='g')return 'soin jusqu’à ★'+gCap(l).toFixed(2);
+  if(j==='v')return Math.round(vMult(l)*100)+'% du prix du marché';
+  return 'aura +'+Math.round((0.10+0.025*(l-1)+0.03*wkU2.sif)*100)+'% équipe';}   // ⚠️ miroir de fmRecalc — si tu touches l'un, touche l'autre
+function wkCardFx(c,l){const nx=wkNextXp(l);   // M5 : contenu de la ligne #wfx (renderWk + tickWk)
+  return l>=5?'🏆 Niv MAX — '+wkFxTxt(c.j,l)
+    :'⚡ '+wkFxTxt(c.j,l)+'<br>↗ Niv '+(l+1)+' → '+wkFxTxt(c.j,l+1)+' · reste '+Math.max(0,nx-c.xp)+' XP';}
+function wkSynTxt(j){const s=[];   // M5 : synergies Camp visibles — chips seulement si pertinentes pour SON métier
+  if(wkU2.man)s.push('📖 +'+(15*wkU2.man)+'% XP');
+  if(j==='g'&&wkU2.ferti)s.push('🌾 +'+(8*wkU2.ferti)+'% soin');
+  if(j==='v'&&wkU2.etal)s.push('🧺 +'+(3*wkU2.etal)+'% prix');
+  if(j==='f'&&wkU2.sif)s.push('📯 +'+(3*wkU2.sif)+'% aura');
+  return s.join(' · ');}
 function gCap(lvl){return 1.5+0.125*(lvl-1);}                    // plafond qualité jardinier : 1.5 -> 2.0 (joueur : 2.5)
-function vMult(lvl){return Math.min(1,0.85+0.025*(lvl-1)+0.03*wkU2.etal);}   // prix vendeur : 85% -> 95% (+étal), jamais >100%
-var _fm=1;   // aura du contremaître, mémoïsée (recalcul au changement de crew — O(1) au tick)
-function fmRecalc(){let b=0;for(let i=0;i<crew.length;i++)if(crew[i].j==='f')b=Math.max(b,wkLvl(crew[i].xp));
-  _fm=b?1+0.10+0.025*(b-1)+0.03*wkU2.sif:1;}
+function vMult(lvl,pb){return Math.min(1,0.85+0.025*(lvl-1)+0.03*wkU2.etal+(pb||0));}   // prix vendeur : 85% -> 95% (+étal, +perk 🤝 M5) — le min(1,…) est INVIOLÉ : jamais mieux que le joueur
+var _fm=1,_fmXp=1;   // aura du contremaître + bonus XP d'équipe (perk 🎓), mémoïsés (recalcul au changement de crew — O(1) au tick)
+function fmRecalc(){let b=0,bi=-1;for(let i=0;i<crew.length;i++)if(crew[i].j==='f'){const l=wkLvl(crew[i].xp);if(l>b){b=l;bi=i;}}
+  _fm=b?1+0.10+0.025*(b-1)+0.03*wkU2.sif+(bi>=0&&wkPerk(bi)==='f1'?0.02:0):1;   // M5 : perk 📣 +2 pts (⚠️ miroir wkOfflineGains + wkFxTxt)
+  _fmXp=1;for(let i=0;i<crew.length;i++)if(crew[i].j==='f'&&wkPerk(i)==='f2'){_fmXp=1.10;break;}}   // M5 : perk 🎓 — de l'XP, pas de la prod (la self-exclusion vise l'aura)
 function fmMult(w){return(!w||w.job!=='f')?_fm:1;}               // le contremaître ne se booste pas lui-même
 function wkWalkSpeed(w){return WK_CFG.WALK*Math.pow(1.12,wkUp.walk)*fmMult(w);}   // cases/s
-function wkActMs(base,w){const lv=(w&&w.job==='r')?1-0.05*(wkLvl(crew[w.id]?crew[w.id].xp:0)-1):1;
-  return base*Math.pow(0.92,wkUp.dex)*lv/fmMult(w);}             // niveau récolteur -5%/niv + aura
+function wkActMs(base,w){const lv=(w&&w.job==='r')?(1-0.05*(wkLvl(crew[w.id]?crew[w.id].xp:0)-1))*(wkPerk(w.id)==='r2'?0.92:1):1;
+  return base*Math.pow(0.92,wkUp.dex)*lv/fmMult(w);}             // niveau récolteur -5%/niv (× perk 🌬️ M5) + aura
 function wkOfflineEff(){return WK_CFG.OFF_EFF+0.05*wkUp.night;}  // 0.35 -> 0.60
 var _fmCyc=0;   // cycles complétés sous aura (XP du contremaître : +1/5 cycles)
+var _xpFt={};   // M5 : throttle des floats +XP (runtime, jamais sauvé) — id -> {t:dernier émis, acc:XP agrégé}
 function wkGainXp(i,amt){const c=crew[i];if(!c)return;const l0=wkLvl(c.xp);
-  c.xp+=Math.floor(amt*(1+0.15*wkU2.man));
+  const gain=Math.floor(amt*(1+0.15*wkU2.man)*_fmXp);   // M5 : perk 🎓 École du soir
+  c.xp+=gain;
   const l1=wkLvl(c.xp);
-  if(l1>l0){fmRecalc();const w=workers[i];   // level-up : FX + toast doré
-    if(w){const p=workerPos(w,performance.now());burst(isoX(p.x+.5,p.y+.5),isoY(p.x+.5,p.y+.5),'#ffd84d',16);
-      ft(isoX(p.x+.5,p.y+.5),isoY(p.x+.5,p.y+.5)-TH()*1.5,'⭐ '+WK_ID[i].n+' niv '+l1);}
-    if(document.getElementById('wkmodal').classList.contains('show'))renderWk();}}
+  if(l1>l0){fmRecalc();const w=workers[i];   // M5 : le level-up se FÊTE — banner + son + or (multi-saut = UNE bannière au niveau final)
+    if(w){const p=workerPos(w,performance.now());burst(isoX(p.x+.5,p.y+.5),isoY(p.x+.5,p.y+.5),'#ffd84d',l1>=5?24:16);
+      if(l1>=5)setTimeout(()=>{const p2=workerPos(w,performance.now());burst(isoX(p2.x+.5,p2.y+.5),isoY(p2.x+.5,p2.y+.5)-TH(),'#fff4c0',14);},250);
+      ft(isoX(p.x+.5,p.y+.5),isoY(p.x+.5,p.y+.5)-TH()*1.5,(l1>=5?'🏆 ':'⭐ ')+WK_ID[i].n+' niv '+l1);}
+    if(l1>=5){S('stg_worker_hired');banner('🏆 '+WK_ID[i].n+' — Niveau MAX !',true);}   // graduation : le stinger d'embauche referme la boucle (texte court : .banner est nowrap+ellipsis)
+    else{S('sfx_gauge_fill');banner('⭐ '+WK_ID[i].n+' passe niveau '+l1+' !',true);}   // sfx_banner_in se tait dessous (skipAny)
+    stats.wkLu=1;updateWkBtn();   // M5 : badge ⭐ (persisté via st:stats, éteint à openWk)
+    delete _xpFt[i];
+    if(document.getElementById('wkmodal').classList.contains('show'))renderWk();}
+  else{const w=workers[i];if(!w)return;   // M5 : float « +N XP » agrégé (rien n'est perdu), throttlé 2.5s, visible à l'écran seulement
+    const e=_xpFt[i]||(_xpFt[i]={t:0,acc:0});e.acc+=gain;
+    const now=performance.now();
+    if(now-e.t>2500){const p=workerPos(w,now);
+      if(vis(Math.round(p.x),Math.round(p.y))){ft(isoX(p.x+.5,p.y+.5),isoY(p.x+.5,p.y+.5)-TH()*1.2,'+'+e.acc+' XP','#9fd9ff',13);e.t=now;e.acc=0;}}}}
 function spawnWorker(i){const src=(i>=6&&wkB.dorm)?{x:CAMP[0].x,y:CAMP[0].y+1}:{x:HOME_POS.x-2,y:HOME_POS.y+3};   // slots 7-8 sortent du Dortoir
   workers.push({id:i,job:(crew[i]&&crew[i].j)||'r',x:src.x,y:src.y,x0:0,y0:0,x1:0,y1:0,t0:0,t1:0,
     state:'idle',target:null,dir:1,scanT:0,zone:null,cyc:0,restT:performance.now()+30000,bub:null,patrol:0});}
 // récolte un plant ready : gains + FX + paliers + case vidée. PAS de save() (l'appelant décide).
 // c.variety est volontairement CONSERVÉ -> la replante (joueur ou ouvrier) garde la même variété.
-function harvestCell(c){
+function harvestCell(c,pm){   // M5 : pm optionnel = multiplicateur de perk (r1) — le joueur n'en passe jamais
   const q=c.quality||1, fm=(c.fert==null?100:c.fert)/100;   // v23 : la fertilité multiplie les grammes
-  const grams=Math.floor(varG(c.variety)*(0.8+Math.random()*0.4)*q*yieldMult()*fm);
+  const grams=Math.floor(varG(c.variety)*(0.8+Math.random()*0.4)*q*yieldMult()*fm*(pm||1));
   stock+=grams; totalHarvest+=grams; updateStock();
   const ix=isoX(c.x+0.5,c.y+0.5), iy=isoY(c.x+0.5,c.y+0.5);
   ft(ix,iy-TH(),'+'+grams+' g 🌿');
@@ -1131,22 +1186,23 @@ function wkMaybeBreak(w,now){   // pause hobby — UNIQUEMENT depuis « aucune c
 }
 function wkApplyCare(c,w){   // le soin du jardinier : GRATUIT (boosts{} jamais touché), plafonné
   const lvl=wkLvl(crew[w.id]?crew[w.id].xp:0);
-  const amt=30*(1+0.08*wkU2.ferti);
+  const amt=30*(1+0.08*wkU2.ferti)*(wkPerk(w.id)==='g1'?1.10:1);   // M5 : perk 🧚 — l'apport monte, le clamp gCap reste INVIOLÉ
   let t='water';if((c.sun||0)<(c[t]||0))t='sun';if((c.nute||0)<(c[t]||0))t='nute';   // la jauge la plus basse
   c[t]=Math.min(200,(c[t]||0)+amt);
   const q=1+(((c.water||0)+(c.sun||0)+(c.nute||0))/600)*1.5;   // formule joueur (applyCare)
   c.quality=Math.max(c.quality||1,Math.min(q,gCap(lvl)));      // clampée à SON plafond, ne défait jamais le joueur
-  c.gcd=performance.now()+8000;                                // cooldown : le soin pro se mérite
+  c.gcd=performance.now()+(wkPerk(w.id)==='g2'?6800:8000);     // cooldown : le soin pro se mérite (perk 🌙 M5 : −15%)
   wkGainXp(w.id,1);
   burst(isoX(c.x+.5,c.y+.5),isoY(c.x+.5,c.y+.5),'#7fd0ff',6);
 }
 function wkSell(w,now){   // la vente du vendeur : petit lot, au prix affiché, nudge du marché comme une vente joueur
   const lvl=wkLvl(crew[w.id]?crew[w.id].xp:0);
-  const lot=Math.min(stock,150+50*(lvl-1));
+  const lot=Math.min(stock,Math.floor((150+50*(lvl-1))*(wkPerk(w.id)==='v1'?1.08:1)));   // M5 : perk 🧺
   if(lot<=0)return;
   S('sfx_wk_sell');
-  const earned=Math.floor(lot*marketPrice*valueMult()*homeSellMult()*vMult(lvl));
+  const earned=Math.floor(lot*marketPrice*valueMult()*homeSellMult()*vMult(lvl,wkPerk(w.id)==='v2'?0.02:0));   // M5 : perk 🤝
   stock-=lot;setCoin(coin+earned);coinPulse();updateStock();
+  if(crew[w.id])crew[w.id].sg=(crew[w.id].sg||0)+lot;   // M5 : carrière 💰 (grammes vendus)
   const ix=isoX(VEND_POS.x+.5,VEND_POS.y+.5),iy=isoY(VEND_POS.x+.5,VEND_POS.y+.5);
   flyCoins(ix,iy,6);ft(ix,iy-TH(),'+'+money(earned)+' 💰');
   marketPrice=Math.max(5,Math.min(14,marketPrice+(Math.random()*2-1)));   // sa vente fait vivre le marché
@@ -1191,7 +1247,7 @@ function updateWorkers(now){   // LOGIQUE au tick 200ms — timers absolus => ro
         else wkNextStep(w,c,now);}
     }else if(w.state==='harvest'){
       if(!c||c.state!=='ready'){wkRelease(w);continue;}
-      if(now>=w.t1){S('sfx_wk_harvest',{at:c});harvestCell(c);w.state='plant';w.t1=now+wkActMs(WK_CFG.PLANT_MS,w);}
+      if(now>=w.t1){S('sfx_wk_harvest',{at:c});const _g=harvestCell(c,wkPerk(w.id)==='r1'?1.08:1);if(crew[w.id])crew[w.id].hg=(crew[w.id].hg||0)+_g;w.state='plant';w.t1=now+wkActMs(WK_CFG.PLANT_MS,w);}   // M5 : carrière 🌿 + perk 🥖
     }else if(w.state==='care'){
       if(!c||c.state!=='growing'||c===selCell){wkRelease(w);continue;}   // mûri/récolté/main du joueur -> on lâche
       if(now>=w.t1){wkApplyCare(c,w);wkRelease(w);}
@@ -1300,17 +1356,19 @@ function wkOfflineGains(offMs){
   if(effS<=0)return out;
   const eff=wkOfflineEff();
   // décomposition du crew (tout est dans crew -> déterministe)
-  const hC=[],gI=[];let vBest=-1,vLvl=0,fBest=0;
+  const hC=[],gI=[];let vBest=-1,vLvl=0,fBest=0,fIdx=-1;
   crew.forEach((c,i)=>{const l=wkLvl(c.xp);
     if(c.j==='r')hC.push({i,l});
     else if(c.j==='g')gI.push(i);
     else if(c.j==='v'){if(l>vLvl||vBest<0){vBest=i;vLvl=l;}}
-    else if(c.j==='f')fBest=Math.max(fBest,l);});
-  const fm=fBest?1+0.10+0.025*(fBest-1)+0.03*wkU2.sif:1;
-  // débit des bras : Σ 1/cycle_i (dex + niveau récolteur + aura), goulot = bras OU champ
-  let arm=0;
+    else if(c.j==='f'&&l>fBest){fBest=l;fIdx=i;}});
+  const fm=fBest?1+0.10+0.025*(fBest-1)+0.03*wkU2.sif+(fIdx>=0&&wkPerk(fIdx)==='f1'?0.02:0):1;   // M5 : perk 📣 (miroir fmRecalc)
+  // débit des bras : Σ 1/cycle_i (dex + niveau récolteur + aura + perk 🌬️), goulot = bras OU champ
+  let arm=0,armP=0;
   for(const h of hC){h.cyc=WK_CFG.AVG_WALK/(WK_CFG.WALK*Math.pow(1.12,wkUp.walk)*fm)
-    +(WK_CFG.HARVEST_MS+WK_CFG.PLANT_MS)*Math.pow(0.92,wkUp.dex)*(1-0.05*(h.l-1))/fm/1000;arm+=1/h.cyc;}
+    +(WK_CFG.HARVEST_MS+WK_CFG.PLANT_MS)*Math.pow(0.92,wkUp.dex)*(1-0.05*(h.l-1))*(wkPerk(h.i)==='r2'?0.92:1)/fm/1000;
+    arm+=1/h.cyc;armP+=(wkPerk(h.i)==='r1'?1.08:1)/h.cyc;}
+  const rW=arm>0?armP/arm:1;   // M5 : perk 🥖 offline — +8% pondéré par la part de cycles du perké
   const rate=Math.min(arm,fieldRate);
   const cycles=rate*effS*eff;   // cycles récolte+replante simulés
   // v23 FERTILITÉ offline en FORME FERMÉE (point fixe drain vs régén, zéro simulation) :
@@ -1333,7 +1391,8 @@ function wkOfflineGains(offMs){
   // d'équilibrage anti-méta : [r,r,r,g] >= 95% de [r,r,r,r] à niv 3 champ non saturé, teste-le si tu y touches)
   let capMoy=0;for(const i of gI)capMoy+=gCap(wkLvl(crew[i].xp));capMoy=gI.length?capMoy/gI.length:1;
   const qOff=1+Math.min(1,gI.length*20/N)*(capMoy-1)*0.65;
-  out.grams=Math.floor(cycles*gBar*yieldMult()*qOff*fBar);   // v23 : × fertilité moyenne (fermé)
+  out.grams=Math.floor(cycles*gBar*yieldMult()*qOff*fBar*rW);   // v23 : × fertilité moyenne (fermé) · M5 : × perk 🥖 pondéré
+  const gTot=out.grams;   // M5 : total RÉCOLTÉ (avant la part vendue) — pour les carrières 🌿
   // vendeur offline — fermé sur la sinusoïde du marché : F = fraction du temps au-dessus du seuil,
   // P = prix moyen au-dessus du seuil. Garde F>0 (si minP dépassait l'amplitude, la division exploserait).
   if(vBest>=0&&wkVs.on&&out.grams>0){
@@ -1342,24 +1401,27 @@ function wkOfflineGains(offMs){
     if(F>0){
       const P=MKT.MID+MKT.AEFF*2*Math.cos(th0)/(Math.PI-2*th0);
       out.sold=Math.floor(out.grams*F);
-      out.coin=Math.floor(out.sold*P*valueMult()*homeSellMult()*vMult(vLvl));
+      out.coin=Math.floor(out.sold*P*valueMult()*homeSellMult()*vMult(vLvl,wkPerk(vBest)==='v2'?0.02:0));   // M5 : perk 🤝 offline aussi
       out.grams-=out.sold;
       out.vName=(WK_ID[vBest]||{}).n||'Le vendeur';
+      crew[vBest].sg=(crew[vBest].sg||0)+out.sold;   // M5 : carrière 💰 du vendeur, même offline
     }
   }
   // XP offline : prorata du travail simulé de chacun, cap 300/ouvrier/session, tout en floor()
-  const man=1+0.15*wkU2.man, xcap=300;
+  const man=(1+0.15*wkU2.man)*_fmXp, xcap=300;   // M5 : perk 🎓 offline aussi (fmRecalc a tourné au load) — le Math.min(xcap,…) reste le garde-fou
   if(arm>0&&cycles>0){
     let hTot=0;for(const h of hC)hTot+=effS*eff/h.cyc;
     const k=hTot>0?cycles/hTot:0;
-    for(const h of hC)crew[h.i].xp+=Math.min(xcap,Math.floor(Math.floor(effS*eff/h.cyc*k)*2*man));
+    for(const h of hC){const _cy=Math.floor(effS*eff/h.cyc*k);
+      crew[h.i].xp+=Math.min(xcap,Math.floor(_cy*2*man));
+      crew[h.i].hg=(crew[h.i].hg||0)+Math.floor(_cy*(gTot/(cycles||1)));}   // M5 : carrière 🌿 ∝ sa part de cycles
   }
   for(const i of gI){const l=wkLvl(crew[i].xp);
     const gCyc=WK_CFG.AVG_WALK/(WK_CFG.WALK*Math.pow(1.12,wkUp.walk)*fm)+1.2*Math.pow(0.92,wkUp.dex)/fm;
-    const acts=Math.min(effS*eff/gCyc, N*effS/8000);   // borné par le cooldown 8s des cellules
+    const acts=Math.min(effS*eff/gCyc, N*effS/(wkPerk(i)==='g2'?6800:8000));   // borné par le cooldown des cellules (perk 🌙 : 6.8s)
     crew[i].xp+=Math.min(xcap,Math.floor(Math.floor(acts)*1*man));}
-  if(vBest>=0&&out.sold>0){const lots=Math.floor(out.sold/(150+50*(vLvl-1)));
-    crew[vBest].xp+=Math.min(xcap,Math.floor(lots*10*man));}
+  if(vBest>=0&&out.sold>0){const lots=Math.floor(out.sold/Math.floor((150+50*(vLvl-1))*(wkPerk(vBest)==='v1'?1.08:1)));
+    crew[vBest].xp+=Math.min(xcap,Math.floor(lots*10*man));}   // M5 : perk 🧺 — lots plus gros = moins de voyages (XP cohérente)
   if(fBest>0){const fi=crew.findIndex(c=>c.j==='f');
     if(fi>=0)crew[fi].xp+=Math.min(xcap,Math.floor(cycles/5*man));}
   fmRecalc();   // les niveaux ont pu bouger
@@ -2096,6 +2158,16 @@ function renderWk(){
         '<div class="labinfo"><div class="labname">'+id.n+' <span style="opacity:.7">'+id.h+'</span></div>'+
         '<div class="lablvl" id="wlvl'+i+'">'+JOB_NAME[c.j]+' · Niv '+l+(l>=5?' · MAX':'')+'</div>'+
         '<div class="wxp"><i id="wxp'+i+'" style="width:'+pct+'%"></i></div>'+
+        '<div class="wfx" id="wfx'+i+'">'+wkCardFx(c,l)+'</div>'+
+        (wkSynTxt(c.j)?'<div class="wsyn">'+wkSynTxt(c.j)+'</div>':'')+
+        ((c.hg||c.sg)?'<div class="wtot" id="wtot'+i+'">🌿 '+money(c.hg||0)+' g récoltés'+(c.sg?' · 🧺 '+money(c.sg)+' g vendus':'')+'</div>':'')+
+        (l>=5?(c.pk   // M5 : le DON — choisi = affiché (💤 si le métier ne matche plus) ; à choisir = 2 boutons
+          ?(c.pk[0]===c.j
+            ?'<div class="wperk">'+WK_PERK[c.pk].emo+' '+WK_PERK[c.pk].n+' · '+WK_PERK[c.pk].d+'</div>'
+            :'<div class="wperk" style="opacity:.55">💤 '+WK_PERK[c.pk].emo+' '+WK_PERK[c.pk].n+' — actif en '+JOB_NAME[c.pk[0]]+'</div>')
+          :'<div class="wgift">🎁 '+id.n+' a un don à révéler :</div><div class="pkrow">'+[c.j+'1',c.j+'2'].map(pid=>
+            '<button class="pkbtn" data-pk="'+i+':'+pid+'"><b>'+WK_PERK[pid].emo+' '+WK_PERK[pid].n+'</b><span>'+WK_PERK[pid].d+'</span></button>').join('')+'</div>')
+         :'')+
         '<div class="wjobs">'+['r','g','v','f'].map(j=>{
           const dbl=j==='f'&&c.j!=='f'&&crew.some((o,x)=>x!==i&&o.j==='f');
           return '<div class="wjob'+(c.j===j?' on':'')+'" data-wj="'+i+':'+j+'" title="'+JOB_NAME[j]+'"'+
@@ -2174,6 +2246,16 @@ function renderWk(){
   document.querySelectorAll('[data-camp]').forEach(b=>b.addEventListener('click',()=>buyCampBld(b.dataset.camp)));
   document.querySelectorAll('[data-wj]').forEach(b=>b.addEventListener('click',()=>{const[i,j]=b.dataset.wj.split(':');wkAssign(+i,j);}));
   document.querySelectorAll('[data-vsp]').forEach(b=>b.addEventListener('click',()=>{S('ui_btn');wkVs.minP=+b.dataset.vsp;save();renderWk();}));
+  // M5 : choix de perk IRRÉVERSIBLE -> double-tap de confirmation (1er tap arme, rebuild/4s désarme — jamais de commit fantôme)
+  document.querySelectorAll('.pkbtn').forEach(b=>b.addEventListener('click',()=>{
+    const pk=b.dataset.pk.split(':');
+    if(b.dataset.arm){wkPickPerk(+pk[0],pk[1]);return;}
+    S('ui_btn');
+    b.parentElement.querySelectorAll('.pkbtn').forEach(o=>{o.dataset.arm='';o.classList.remove('arm');o.classList.toggle('dim',o!==b);const ol=o.querySelector('b');if(o._ttl){ol.innerHTML=o._ttl;o._ttl=null;}});
+    b.dataset.arm='1';b.classList.add('arm');
+    const lbl=b.querySelector('b');b._ttl=lbl.innerHTML;lbl.innerHTML='✔ Confirmer ?';
+    setTimeout(()=>{if(b.isConnected&&b.dataset.arm){b.dataset.arm='';b.classList.remove('arm');if(b._ttl){lbl.innerHTML=b._ttl;b._ttl=null;}b.parentElement.querySelectorAll('.pkbtn').forEach(o=>o.classList.remove('dim'));}},4000);
+  }));
   const vt=document.getElementById('wkvst');if(vt)vt.addEventListener('click',()=>{S('ui_btn');wkVs.on=wkVs.on?0:1;save();
     toast(wkVs.on?'🤠 Le vendeur reprend l\'étal !':'⏸ Le vendeur fait la sieste');renderWk();});
 }
@@ -2184,10 +2266,18 @@ function tickWk(){   // patch LÉGER 1x/s : barres XP + prix du marché — jama
     const l=wkLvl(c.xp),nx=wkNextXp(l),pv=wkNextXp(l-1)||0;
     f.style.width=(l>=5?100:Math.min(100,(c.xp-pv)/(nx-pv)*100))+'%';
     const lv=document.getElementById('wlvl'+i);if(lv)lv.textContent=JOB_NAME[c.j]+' · Niv '+l+(l>=5?' · MAX':'');
+    const fx=document.getElementById('wfx'+i);if(fx)fx.innerHTML=wkCardFx(c,l);   // M5 : le « reste X XP » vit
+    const tt=document.getElementById('wtot'+i);if(tt)tt.innerHTML='🌿 '+money(c.hg||0)+' g récoltés'+(c.sg?' · 🧺 '+money(c.sg)+' g vendus':'');
   });
   const mp=document.getElementById('wkmp');if(mp)mp.textContent=marketPrice.toFixed(1);
 }
 setInterval(tickWk,1000);
+function wkPickPerk(i,pid){   // M5 : commit ATOMIQUE du don (état + aura + save d'un bloc)
+  const c=crew[i];if(!c||c.pk||wkLvl(c.xp)<5||!WK_PERK[pid]||pid[0]!==c.j)return;
+  c.pk=pid;fmRecalc();save();
+  S('stg_worker_hired');banner(WK_PERK[pid].emo+' '+(WK_ID[i]||{}).n+' révèle son don !',true);
+  const w=workers[i];if(w){const p=workerPos(w,performance.now());burst(isoX(p.x+.5,p.y+.5),isoY(p.x+.5,p.y+.5),'#ffd84d',20);}
+  renderWk();}
 function wkAssign(i,j){
   if(!crew[i]||crew[i].j===j)return;
   if(j==='f'&&crew.some((c,x)=>x!==i&&c.j==='f'))toast('📯 Un seul contremaître donne de la voix — le 2e serait décoratif !');
@@ -2198,14 +2288,15 @@ function wkAssign(i,j){
   toast(JOB_EMO[j]+' '+(WK_ID[i]||{}).n+' devient '+JOB_NAME[j]+' !');
   renderWk();
 }
-function openWk(){S('ui_panel_open');document.getElementById('wkmodal').classList.add('show');renderWk();}
+function openWk(){S('ui_panel_open');document.getElementById('wkmodal').classList.add('show');renderWk();
+  if(stats.wkLu){stats.wkLu=0;save();updateWkBtn();}}   // M5 : le badge ⭐ s'éteint quand on vient voir l'équipe
 function closeWk(){const el=document.getElementById('wkmodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
 function buyWorker(){
   if(workerCount>=WK_CFG.HIRE.length)return;
   if(workerCount>=wkMax()){S('ui_denied');toast('🛏️ Construis le Dortoir pour loger plus d\'ouvriers !');return;}
   if(houseLevel<wkHouseReq()){S('ui_denied');toast('🏠 Améliore ta maison (niv '+wkHouseReq()+') !');return;}
   const cost=wkHireCost();if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}
-  setCoin(coin-cost);crew.push({j:'r',xp:0});workerCount=crew.length;spawnWorker(workerCount-1);save();   // débit + état + save ATOMIQUES
+  setCoin(coin-cost);crew.push({j:'r',xp:0,pk:null,hg:0,sg:0});workerCount=crew.length;spawnWorker(workerCount-1);save();   // débit + état + save ATOMIQUES
   S('stg_worker_hired');coinPulse();toast('👷 '+(WK_ID[workerCount-1]||{}).n+' rejoint l\'équipe !');renderWk();updateWkBtn();
   const w=workers[workers.length-1];burst(isoX(w.x+.5,w.y+.5),isoY(w.x+.5,w.y+.5),'#ffd84d',14);
 }
@@ -2253,7 +2344,7 @@ function buyCampBld(k){
 }
 function updateWkBtn(){const b=document.getElementById('wkbtn');
   b.classList.toggle('show',houseLevel>=2);
-  b.innerHTML='👷<span class="wkcount">'+workerCount+'/'+wkMax()+'</span>';}
+  b.innerHTML='👷<span class="wkcount">'+workerCount+'/'+wkMax()+'</span>'+(stats.wkLu?'<span class="wkstar">⭐</span>':'');}   // M5 : « viens féliciter ! »
 document.getElementById('wkbtn').addEventListener('click',openWk);
 document.getElementById('wkclose').addEventListener('click',closeWk);
 document.getElementById('wkmodal').addEventListener('click',e=>{if(e.target.id==='wkmodal')closeWk();});
@@ -2465,7 +2556,7 @@ function zoomAt(nz,sx,sy){nz=clamp(nz,0.4,1.7);
   zoom=nz;
   cam.x=sx-APP_W/2-wx*(TW()/2); cam.y=sy-APP_H*0.28-wy*(TH()/2);           // recadre pour garder l'ancre
   clampCam();}
-function ft(px,py,t,c){const e=document.createElement('div');e.className='float';e.textContent=t;e.style.left=px+'px';e.style.top=py+'px';if(c)e.style.color=c;document.getElementById('app').appendChild(e);setTimeout(()=>e.remove(),1100);}
+function ft(px,py,t,c,sz){const e=document.createElement('div');e.className='float';e.textContent=t;e.style.left=px+'px';e.style.top=py+'px';if(c)e.style.color=c;if(sz)e.style.fontSize=sz+'px';document.getElementById('app').appendChild(e);setTimeout(()=>e.remove(),1100);}   // M5 : sz optionnel (floats +XP discrets)
 function coinPulse(){const el=document.getElementById('coin');el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');}
 function showCarebar(s){const el=document.getElementById('carebar');if(el){if(s&&!el.classList.contains('show'))S('ui_seedbar_show');el.classList.toggle('show',s);}updateCareUI();}
 function updateCareUI(){
@@ -2840,7 +2931,7 @@ function save(){try{
   const land=[];(W.landgroups||[]).forEach((g,i)=>{if(g.owned)land.push(i);});
   const fert={};for(const k in cropCells){const f=cropCells[k].fert;if(f!=null&&Math.round(f)!==100)fert[k]=Math.round(f*10)/10;}   // v23 : compact (≠100 only)
   localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,t:Date.now(),coin,stock,marketPrice,totalHarvest,houseLevel,boosts,careT,lab,
-    wk:{n:workerCount,up:wkUp,crew:crew.map(c=>[c.j,c.xp]),b:wkB,u2:wkU2,vs:wkVs},mt:mktT,mi,st:stats,zones,land,crops,
+    wk:{n:workerCount,up:wkUp,crew:crew.map(c=>[c.j,c.xp,c.pk||0,c.hg||0,c.sg||0]),b:wkB,u2:wkU2,vs:wkVs},mt:mktT,mi,st:stats,zones,land,crops,
     mods:mods.map(m=>[m.k,m.lv,m.x,m.y,m.ci||0,m.inv||0]),fert,en:{e:enOv.e,c:enOv.c}}));   // v19+v22+v23, tout additif
 }catch(e){}}
 function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){s=null;}
@@ -2852,9 +2943,11 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
     if(s.wk.up)wkUp={walk:0,dex:0,night:0,...s.wk.up};
     wkB={dorm:0,atl:0,...(s.wk.b||{})}; wkU2={ferti:0,etal:0,sif:0,man:0,...(s.wk.u2||{})};
     wkVs={on:1,minP:10,...(s.wk.vs||{})}; if(![8,10,12].includes(wkVs.minP))wkVs.minP=10;
-    crew=Array.isArray(s.wk.crew)
-      ?s.wk.crew.map(e=>({j:('rgvf'.includes(e&&e[0])?e[0]:'r'),xp:Math.max(0,Math.floor(+(e&&e[1])||0))}))
-      :Array.from({length:Math.max(0,s.wk.n||0)},()=>({j:'r',xp:0}));
+    crew=Array.isArray(s.wk.crew)   // M5 : tuple [j,xp,pk,hg,sg] — lecture défensive, vieille save (longueur 2) => défauts
+      ?s.wk.crew.map(e=>({j:('rgvf'.includes(e&&e[0])?e[0]:'r'),xp:Math.max(0,Math.floor(+(e&&e[1])||0)),
+        pk:(typeof (e&&e[2])==='string'&&/^[rgvf][12]$/.test(e[2]))?e[2]:null,
+        hg:Math.max(0,Math.floor(+(e&&e[3])||0)),sg:Math.max(0,Math.floor(+(e&&e[4])||0))}))
+      :Array.from({length:Math.max(0,s.wk.n||0)},()=>({j:'r',xp:0,pk:null,hg:0,sg:0}));
     workerCount=Math.min(wkMax(),crew.length); crew.length=workerCount;   // clamp APRÈS le parse bâtiments
     fmRecalc(); placeCamp();   // l'aura + les bâtiments possédés (placeHome a déjà tourné sans eux)
   }
@@ -2877,6 +2970,7 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   if(off>0){waterSettle(off);growCells(off);}   // v22 : l'eau saute à l'équilibre AVANT la pousse (déterministe)
   const _g0=performance.now()+8000;   // anti-exploit reload : le F5 ne ré-arme PAS un burst de soins jardinier gratuits
   for(const k in cropCells)if(cropCells[k].state==='growing')cropCells[k].gcd=_g0;
+  const _lv0=crew.map(c=>wkLvl(c.xp));   // M5 : niveaux AVANT l'absence — pour le rapport de fierté
   const wkO=wkOfflineGains(off);   // rendement des ouvriers pendant l'absence (analytique, ne double-compte pas growCells)
   if(wkO.grams>0||wkO.sold>0){stock+=wkO.grams;totalHarvest+=wkO.grams+wkO.sold;checkPaliers();}   // le vendu compte dans la carrière
   if(wkO.coin>0)setCoin(coin+wkO.coin);   // les ventes offline du vendeur
@@ -2889,6 +2983,17 @@ function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e)
   if(wkO.coin>0)setTimeout(()=>{S('sfx_off_sale');toast('🤠 '+wkO.vName+' a vendu '+money(wkO.sold)+' g au marché · +'+money(wkO.coin)+' 💰');},3500);
   const m0=curMission();   // mission déjà accomplie au retour -> rappel différé (après les autres toasts), sans re-toaster ensuite
   if(m0&&missionDone(m0)){_mNotif=true;setTimeout(()=>{S('stg_mission_done');banner('🎯 Mission accomplie — réclame ta récompense !',true);},4400);}
+  // M5 : RAPPORT DE FIERTÉ — les level-ups gagnés pendant l'absence ne se perdent plus jamais.
+  // Séquencé à 5300ms (après Bon retour 700 / récolte 2600 / vente 3500 / mission 4400).
+  // ≥3 promus -> bannière collective (8 bannières = 19s de tunnel, non) ; un MAX garde la sienne.
+  {const _ris=[];crew.forEach((c,i)=>{const l=wkLvl(c.xp);if(l>_lv0[i])_ris.push({i,l});});
+  if(_ris.length){stats.wkLu=1;updateWkBtn();
+    setTimeout(()=>{S('sfx_gauge_fill');
+      const mx=_ris.find(r=>r.l>=5);
+      if(_ris.length<=2)for(const r of _ris)banner((r.l>=5?'🏆 ':'⭐ ')+(WK_ID[r.i]||{}).n+(r.l>=5?' — Niveau MAX !':' passe niveau '+r.l+' !'),true);
+      else{if(mx)banner('🏆 '+(WK_ID[mx.i]||{}).n+' — Niveau MAX !',true);
+        banner('⭐ '+_ris.length+' promotions dans l\'équipe !',true);}
+    },5300);}}
 }
 load(); updateMissionUI(); lastTick=Date.now();
 setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;if(growCells(dt))S('sfx_plant_ready');waterTick(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateMissionUI();if(rangeView&&performance.now()>rangeView.t1)rangeView=null;

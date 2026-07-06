@@ -158,6 +158,16 @@
   ⚠️ Jardinier : ne touche JAMAIS `boosts{}` (soin gratuit plafonné `gCap`, cooldown `c.gcd`
   ré-armé au load). ⚠️ Vendeur : jamais `stats.se/ea`. ⚠️ Le facteur 0.65 de `qOff` = levier
   d'équilibrage anti-méta (teste `[r,r,r,g]>=95%` si tu y touches) ✓
+  **Évolution visible (M5/TINY 6 ✅)** : crew étendu ADDITIF `[j,xp,pk,hg,sg]` (lecture
+  défensive, vieille save → défauts). Cartes : `wkFxTxt`/`wkCardFx`/`wkSynTxt` (effets dérivés
+  des VRAIES formules — ⚠️ wkFxTxt aura = miroir de fmRecalc). Level-up : banner+`sfx_gauge_fill`
+  (câblé M5), MAX = `stg_worker_hired`+banner 🏆 (⚠️ `.banner` nowrap+ellipsis ≈30 chars max) ;
+  floats « +N XP » agrégés/throttlés 2.5s (`_xpFt` runtime). Badge `stats.wkLu` (pattern mHint).
+  Rapport de fierté offline dans `load()` (diff niveaux avant/après `wkOfflineGains`, bannières
+  à 5300ms, collective ≥3). **Perks niv 5** : `WK_PERK[8]`, TOUTE lecture via `wkPerk(i)` (null
+  si métier ≠ pk[0] — dormance 💤, jamais reset), hooks online+offline symétriques (harvestCell
+  pm · wkActMs · wkApplyCare amt/gcd · wkSell lot/vMult(lvl,pb) · fmRecalc `_fm`+`_fmXp`),
+  commit atomique `wkPickPerk` (double-tap `.pkbtn`). ⚠️ Cap `vMult ≤1` et `qOff 0.65` INTOUCHÉS.
 - **👷 Employés 2.0 (v23.5)** : les ouvriers sont rendus depuis les planches `wk_1..wk_40`
   (64×128) — cellule **20×32** à `sx=col*20, sy=row*32` (⚠️ **JAMAIS** de stride 64/3, les 4 px
   de droite sont vides), rangées **bas/gauche/droite/haut**, **col 1 = idle**, marche = cycle
