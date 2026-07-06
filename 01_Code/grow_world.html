@@ -445,10 +445,10 @@ const RARITY=[
 ];
 const VAR=[
   {n:'Verte',   t:60000, g:6,  c:0,   r:0},   // GRATUITE À VIE
-  {n:'Violette',t:100000,g:11, c:15,  r:0},
-  {n:'Bleue',   t:150000,g:18, c:28,  r:1},
-  {n:'Orange',  t:210000,g:28, c:48,  r:1},
-  {n:'Noire',   t:270000,g:40, c:75,  r:2},
+  {n:'Violette',t:100000,g:11, c:8,   r:0},   // M4 équilibrage (sim_seedcost) : NET croissant vs Verte
+  {n:'Bleue',   t:150000,g:18, c:18,  r:1},
+  {n:'Orange',  t:210000,g:28, c:38,  r:1},
+  {n:'Noire',   t:270000,g:40, c:65,  r:2},
   {n:'Automne', t:330000,g:55, c:110, r:3},
 ];
 const varT=v=>(VAR[v]||VAR[0]).t, varG=v=>(VAR[v]||VAR[0]).g, varC=v=>(VAR[v]||VAR[0]).c||0;
