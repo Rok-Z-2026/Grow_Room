@@ -76,3 +76,4 @@ out/
 # === Archives temporaires ===
 *.zip.tmp
 *.tar.tmp
+tools/_audit_shots/
