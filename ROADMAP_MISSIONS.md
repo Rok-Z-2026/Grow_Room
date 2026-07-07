@@ -40,7 +40,7 @@ décisions finales, il ne reste que le diagnostic technique et le GO de Nano par
 | M6 | Menu du jeu + réglages son | M | ✅ Terminée | 2026-07-06 | Sous-écran ⚙️ du menu pause : mute + 4 sliders par famille (🎵🌿✨🖱️, live + persistés JSON rétro-compat) + toggle 👷 + À propos + zone danger double-confirmée · source unique `SND_VOL`/`sndVol()` (le ducking et le menuDim restaurent le volume JOUEUR, plus jamais la constante) — journal détaillé section M6 |
 | M7 | Mixage spatial | M→S/M | ✅ Terminée | 2026-07-06 | Le son vit avec la caméra : musique 1.0→0.35 au zoom (ambiances inverses 0.7→1.0, rampes 0.4s, plié dans `sndVol` → compose avec sliders M6 + ducking) · gain graduel `1−(d/R)²` des one-shots positionnés (hors rayon = pas joué) · pan stéréo ±0.4 fallback-safe · boucles rivière/pompe/feu volontairement conservées telles quelles (déjà graduées, tuning v24) — journal détaillé section M7 |
 | M1 | Eau vivante (fake shader) | M/L | ✅ Terminée | 2026-07-06 | Option A livrée : 10 frames 256² générées au boot (lazy 1/16ms, 77ms total) — Dif_2 déformée par sa NRM (dx=(r−128)·amp), scroll+amp sinusoïdaux = boucle parfaite, grading émeraude in-gen, cycle %10 avec fallback v24 à vie (panne=no-op), clip losange intouché, différentiel perf nul — journal détaillé section M1 |
-| M4 | Graines payantes | L | ⬜ À faire | — | — |
+| M4 | Graines payantes | L | ✅ Terminée | 2026-07-07 | Coût à la plantation par variété (`VAR.c`) + raretés visuelles (cadres couleur + étoiles, `RARITY`) sur la seedbar (prix affiché, grisé si fauché) · déduction joueur ET ouvriers · ouvrier fauché → rétrograde en Verte gratuite (idle jamais coupé, coin jamais < 0) · offline netté contre les ventes, clampé ≥0 · Verte gratuite à vie (filet anti-blocage) · passe d'équilibrage `tools/sim_seedcost.js` (NET croissant monotone, aucune variété dominée) · ZÉRO changement de save (rétro-compat totale) — journal détaillé section M4 |
 | M3 | Chemin des livraisons (véhicules) | L/XL | ⬜ À faire | — | — |
 
 Statuts : ⬜ À faire · 🔵 En cours (**une seule à la fois, jamais deux**) · ✅ Terminée.
@@ -252,6 +252,21 @@ ralentir la progression tout en donnant une vraie sensation d'évolution.
 ## ✅ Validation
 La progression en début de partie est sensiblement plus posée sans jamais bloquer ; l'idle reste positif ;
 une vieille save joue normalement. **Effort : L**
+
+## 📓 Journal de bord M4 (mis à jour à CHAQUE étape — on ne se perd jamais)
+> Décisions gravées : coût `c` + rareté `r` DANS `VAR` (source unique, ZÉRO champ de save
+> ajouté → rétro-compat gratuite) · Verte (index 0) GRATUITE À VIE = filet anti-blocage ·
+> ouvrier fauché → **rétrograde en Verte gratuite** (jamais case vide, jamais coin < 0) ·
+> offline = coût NETTÉ contre les ventes du vendeur puis CLAMPÉ ≥0 · raretés = habillage pur
+> (cadre + étoiles), aucun taux d'échec · seedbar auto-MAJ via `refreshSeedbar` lisant `varC`
+> (jamais de prix codé en dur dans le markup).
+
+✅ É1 Data + affichage — `RARITY`+`VAR.c`+`varC`, seedbar : prix (Gratuit/💰N), cadres couleur `r0..r3`, étoiles `RARITY.st`, `.poor` grisé+non-cliquable si `coin<cost` (Verte jamais). Captures m4_e1_seedbar / m4_e1_poor
+✅ É2 Déduction JOUEUR — handler `.seed` : garde `coin<cost` (ui_denied + toast) puis `setCoin(coin-cost)`. Test : Violette 300→285, Verte 0 débit, fauché=bloqué (case vide). `stats.pl/vm` intacts (mission ch.I 2/3 vérifiée)
+✅ É3 Déduction OUVRIER online + rétrograde Verte — `updateWorkers` état 'plant' : paie `varC`, si `>coin` → `c.variety=0` + indice `🌿 fauché` (visible-only, throttlé 8s). Test : fauché 50→50 (variété 5→0), payé 300→190 (garde 5), Verte 0 débit
+✅ É4 Déduction OUVRIER offline — `wkOfflineGains` : `cFlow`/`cBar` (coût pondéré au flux), `out.coin=max(0,out.coin-floor(cycles*cBar))`. Test : brut vs netté à rendement identique → coût retranché ; sans vendeur → coin 0, jamais négatif
+✅ É5 Équilibrage — `tools/sim_seedcost.js` (extrait `VAR` du HTML, échantillonne prix 5/9.5/14). Diagnostic : Violette c15 DOMINÉE par la Verte gratuite → retune 15/28/48/75→8/18/38/65 (Automne 110 gardé). Résultat : NET monotone 57→57.9→61.2→65.1→70→75, aucune dominée, idle positif partout
+✅ É6 Rétro-compat + clôture — vétéran fauché (coin 0, crops premium restaurés) : jamais bloqué (ouvrier rétrograde, Verte plantable) · nouveau joueur 300 coins plante 3 Verte gratuites (mission ch.I 3/3) · zéro pageerror · docs (Bible + CLAUDE + ce journal) · commit + push
 
 ---
 

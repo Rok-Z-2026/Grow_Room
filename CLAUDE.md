@@ -100,6 +100,18 @@
   330s/55g, ±20% d'aléa) — `growCells`/`harvestCell`/`wkOfflineGains` lisent `varT/varG` via
   `c.variety`. Portes en grammes ÷5 (PALIERS, HOUSE.grams, missions 2/3/5/12/17/26/31/38).
   ⚠️ Plus jamais de `GROW_MS`/« 16.5 g » uniques.
+  **Graines payantes (M4/TINY 7 ✅)** : coût `c` + rareté `r` DANS `VAR` (Verte 0/Violette 8/
+  Bleue 18/Orange 38/Noire 65/Automne 110 · `varC(v)` helper · `RARITY[]` cadre+étoiles =
+  habillage pur). Seedbar : `refreshSeedbar()` (appelée par `showSeedbar(true)`) écrit prix +
+  raretés + `.poor` grisé/non-cliquable si `coin<cost` — JAMAIS de prix codé en dur dans le
+  markup. Déduction JOUEUR (handler `.seed` : garde `coin<cost` → `setCoin(coin-cost)`) ET
+  OUVRIER (online : `updateWorkers` état 'plant' paie `varC`, **fauché → `c.variety=0`
+  rétrograde Verte** + indice `🌿 fauché` visible-only throttlé 8s `_seedBrokeFx` ; offline :
+  `wkOfflineGains` `cBar` netté puis `out.coin=max(0,…)` clampé ≥0). ⚠️ **La Verte (index 0)
+  reste GRATUITE à vie** = filet anti-blocage (jamais case vide, jamais `coin<0`). ⚠️ **ZÉRO
+  champ de save ajouté** (coût dérivé du code → rétro-compat totale). Équilibrage :
+  `tools/sim_seedcost.js` (NET coin/min croissant monotone, aucune variété dominée, idle
+  positif à marketPrice 5/9.5/14). *(Inventaire en lots + hybrides labo = v2.)*
 - **Modules v22** (GDD « L'Exploitation ») : `mods[{k,lv,x,y,ci,inv}]` sauvé additif,
   `modCells`/`cellMods` runtime recalculés aux 3 événements pose/upgrade/load (JAMAIS par
   frame). Placement libre validé (`modCanPlace`), portées Manhattan 3/4/4/5/6 depuis toute

@@ -146,18 +146,30 @@ Chaque couleur de plante est une **souche unique**, avec son **nom, sa valeur et
 **Retune v22 ✅** — les 6 variétés sont cultivées, chacune avec sa durée et son rendement
 (le choix devient un vrai arbitrage temps/valeur, affiché sur la barre de graines) :
 
-| Couleur | Durée | Rendement | g/min |
-|---|---|---|---|
-| 🟢 Verte | 1 min | 6 g | 6.0 — l'onboarding vif |
-| 🪻 Violette | 1 m 40 | 11 g | 6.6 |
-| 🫐 Bleue | 2 m 30 | 18 g | 7.2 |
-| 🍊 Orange | 3 m 30 | 28 g | 8.0 |
-| 🖤 Noire | 4 m 30 | 40 g | 8.9 |
-| 🍁 Automne | 5 m 30 | 55 g | 10.0 — la patience paie (+67 %) |
+| Couleur | Durée | Rendement | g/min | Prix 💰 | Rareté |
+|---|---|---|---|---|---|
+| 🟢 Verte | 1 min | 6 g | 6.0 — l'onboarding vif | **Gratuit** | Commun ★ |
+| 🪻 Violette | 1 m 40 | 11 g | 6.6 | 8 | Commun ★ |
+| 🫐 Bleue | 2 m 30 | 18 g | 7.2 | 18 | Rare ★★ |
+| 🍊 Orange | 3 m 30 | 28 g | 8.0 | 38 | Rare ★★ |
+| 🖤 Noire | 4 m 30 | 40 g | 8.9 | 65 | Épique ★★★ |
+| 🍁 Automne | 5 m 30 | 55 g | 10.0 — la patience paie (+67 %) | 110 | Légendaire ★★★★ |
 
 > ±20 % d'aléa à la récolte. Moins de récoltes/min = moins de drain de fertilité (v23).
 > La variété **légendaire** sera une **7e** variété (Saisons de l'Oubli, v30) — les 6
 > existantes sont déjà toutes plantables, les verrouiller rétroactivement casserait les saves.
+
+**Graines payantes (M4/TINY 7 ✅)** — chaque variété a un **coût à la plantation** (dans `VAR.c`),
+affiché sur la barre de graines (grisée + non-cliquable si pas assez 💰). **La Verte reste
+GRATUITE à vie** : filet de sécurité absolu, jamais de blocage économique. Les **ouvriers paient**
+aussi la graine qu'ils replantent (online ET offline) ; **fauché → l'ouvrier rétrograde en Verte
+gratuite** (l'idle ne s'arrête jamais, `coin` ne passe jamais < 0 ; offline le coût est netté
+contre les ventes du vendeur puis clampé ≥0). Les **raretés** (Commun → Rare → Épique →
+Légendaire : cadre coloré + étoiles, `RARITY`) sont un **habillage pur** — aucun taux d'échec, les
+« conditions de réussite » restent les soins (eau/soleil/sérum → qualité). Coûts calibrés par
+`tools/sim_seedcost.js` : rendement NET (coin/min) **croissant monotone** du tier, aucune variété
+dominée par la Verte gratuite, idle toujours net-positif. **Zéro champ de save ajouté** (coût dérivé
+du code → rétro-compat totale). *(Inventaire de graines en lots + hybrides rares du labo = v2.)*
 
 ### Croisement (Labo)
 Système à **deux niveaux** :
