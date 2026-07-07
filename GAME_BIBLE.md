@@ -385,6 +385,18 @@ avec **ducking**, ouvriers à −6dB seulement à l'écran, retour offline séqu
 vent, grillons au dézoom, musique dédiée de la galerie du Domaine, toggle 🔊/🔇 persistant,
 économie de batterie. Le son ne casse JAMAIS le jeu (panne = silence).
 
+## 7sexies. 🚚 Le Chemin des Livraisons ✅ *(M3 — véhicules évolutifs)*
+La route qui traverse la vallée **vit** : des véhicules y roulent en permanence (trafic ambiant,
+occlusion iso correcte derrière les arbres, poussière derrière les roues). Et la **réussite du
+joueur devient visible** : quand du stock s'accumule, un **camion de livraison** monte jusqu'à la
+ferme, s'arrête au dock, **charge la récolte et paie** (nuée de pièces « Livraison ! +N 💰 »), puis
+repart. Le véhicule qui débarque **grimpe en prestige avec la Maison** — du petit **vélo à panier**
+(#1) jusqu'aux **convois mystiques** dorés/émeraude/néon (#23-25) — à travers une **flotte de 25
+modèles**. Économie **saine par construction** : la livraison vend au **prix du marché** (aucune
+prime → zéro inflation), c'est juste de l'automatisation à cadence longue, avec le risque de vendre
+au mauvais moment (contrepartie honnête). *(Techniquement : moteur de mouvement des ouvriers
+réutilisé, route Nord-Sud procédurale, ZÉRO champ de save — tout est dérivé de la Maison / runtime.)*
+
 **À venir** (une tranche jouable par version) : ★ Qualité + 📦 Logistique (v24) ·
 🛒 Commandes/Réputation (v25, les clients utiliseront les 8 planches grises) · 🌡️ Climat +
 Événements (v26) · 👷 Employés 2.0 — suite (v27) · 📖 Carnet complet (v28) · équilibrage (v29) ·

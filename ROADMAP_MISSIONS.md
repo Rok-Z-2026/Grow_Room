@@ -41,7 +41,7 @@ décisions finales, il ne reste que le diagnostic technique et le GO de Nano par
 | M7 | Mixage spatial | M→S/M | ✅ Terminée | 2026-07-06 | Le son vit avec la caméra : musique 1.0→0.35 au zoom (ambiances inverses 0.7→1.0, rampes 0.4s, plié dans `sndVol` → compose avec sliders M6 + ducking) · gain graduel `1−(d/R)²` des one-shots positionnés (hors rayon = pas joué) · pan stéréo ±0.4 fallback-safe · boucles rivière/pompe/feu volontairement conservées telles quelles (déjà graduées, tuning v24) — journal détaillé section M7 |
 | M1 | Eau vivante (fake shader) | M/L | ✅ Terminée | 2026-07-06 | Option A livrée : 10 frames 256² générées au boot (lazy 1/16ms, 77ms total) — Dif_2 déformée par sa NRM (dx=(r−128)·amp), scroll+amp sinusoïdaux = boucle parfaite, grading émeraude in-gen, cycle %10 avec fallback v24 à vie (panne=no-op), clip losange intouché, différentiel perf nul — journal détaillé section M1 |
 | M4 | Graines payantes | L | ✅ Terminée | 2026-07-07 | Coût à la plantation par variété (`VAR.c`) + raretés visuelles (cadres couleur + étoiles, `RARITY`) sur la seedbar (prix affiché, grisé si fauché) · déduction joueur ET ouvriers · ouvrier fauché → rétrograde en Verte gratuite (idle jamais coupé, coin jamais < 0) · offline netté contre les ventes, clampé ≥0 · Verte gratuite à vie (filet anti-blocage) · passe d'équilibrage `tools/sim_seedcost.js` (NET croissant monotone, aucune variété dominée) · ZÉRO changement de save (rétro-compat totale) — journal détaillé section M4 |
-| M3 | Chemin des livraisons (véhicules) | L/XL | ⬜ À faire | — | — |
+| M3 | Chemin des livraisons (véhicules) | L/XL | ✅ Terminée | 2026-07-07 | Flotte de 25 véhicules (cadeau Nano, `veh_<N>_{sw\|ne}` via `tools/extract_vehicles.py`) roulant sur la route Nord-Sud (moteur de mouvement des ouvriers réutilisé, profondeur iso, poussière) · trafic ambiant plafonné qui vit avec la Maison (`vehMaxTier` 3→25) · **livraisons** : un camion s'arrête au dock, charge le stock et paie au PRIX MARCHÉ (`deliver()`, zéro inflation, cadence 100s, `tools/sim_delivery.js`) · ZÉRO champ de save (runtime + dérivé de `houseLevel`) — journal détaillé section M3 |
 
 Statuts : ⬜ À faire · 🔵 En cours (**une seule à la fois, jamais deux**) · ✅ Terminée.
 Quand une mission passe ✅ : date + note d'une ligne (ce qui a été livré) + commit.
@@ -202,6 +202,20 @@ gros, rapides, impressionnants — une vraie sensation de montée en puissance.
 ## ✅ Validation
 Un véhicule traverse la vallée du bord jusqu'à chez James, charge, repart ; le palier
 suivant se débloque et se voit. Zéro impact sur l'éco. **Effort : L/XL**
+
+## 📓 Journal de bord M3 (mis à jour à CHAQUE étape — on ne se perd jamais)
+> Décisions gravées : cadeau Nano = **25 véhicules × 2 vues** (`Transport_<N>_{Bas_G=sw|Haut_D=ne}`,
+> RGBA transparent) · runtime `veh_<N>_{sw|ne}` (trim alpha + downscale 460, `extract_vehicles.py`) ·
+> AUCUNE route neuve (route Nord-Sud procédurale suffit, polyline mathématique `ROAD_NS`) ·
+> moteur de mouvement des ouvriers RÉUTILISÉ (vehiclePos/vehStep/vehByCell/drawVehicle) ·
+> livraison au **PRIX MARCHÉ** (zéro inflation, juste de l'automatisation) · **ZÉRO champ de save**
+> (tier dérivé de `houseLevel`, véhicules runtime, livraisons online-only).
+
+✅ É1 Intégration flotte — 47 sources → 50 clés `veh_` (PACK/manifest 255→305, audit clean, hors-LFS), branches `veh_` dans decScale/decYOff, rendu net in-game (capture veh_e1)
+✅ É2 Ils roulent — `vehicles[]`+`vehiclePos`(clone workerPos)+`vehStep`(polyline `ROAD_NS`)+`updateVehicles`(tick 200ms)+bucket `vehByCell`(profondeur iso)+`drawVehicle`(sprite selon sens, ombre, tangage) ; occlusion validée (capture veh_e2)
+✅ É3+É5 Trafic + progression — spawn ambiant plafonné (`VEH_MAX_TRAFFIC=3`, cadence 9-17s, garde `INTRO.menuOn`), `vehMaxTier` 3→25 avec la Maison ; mouvement prouvé ±3.8 cases/1.6s 2 sens (captures veh_e3)
+✅ É4 La livraison — `deliver()` calqué wkSell (lot=min(stock,vehCap), prix marché, flyCoins+ft+coinPulse+sfx), camion s'arrête au dock (`ROAD_NS[44]`), cadence `DELIVER_CD=100s`, 1 à la fois, stock≥100 ; testé Maison 8→+7174 coin=valeur marché (capture veh_e4)
+✅ É6 Polish + clôture — poussière derrière les roues, `tools/sim_delivery.js` (vente prix marché = zéro inflation, débit borné par production), audit_health VERT, docs (Bible+CLAUDE+ce journal), commit/push
 
 ---
 

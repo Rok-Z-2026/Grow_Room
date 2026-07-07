@@ -1318,6 +1318,7 @@ function vehStep(v,now){   // un cran sur la polyline (v.d:+1 descend vers le Su
   const ni=v.i+v.d;
   if(ni<0||ni>=ROAD_NS.length){v.done=true;return;}
   const a=ROAD_NS[v.i],b=ROAD_NS[ni];
+  if(zoom>0.6&&vis(a.x,a.y))burst(isoX(a.x+0.5,a.y+0.5),isoY(a.x+0.5,a.y+0.5)+TH()*0.2,'#cbb68e',2);   // poussière discrète derrière les roues
   v.x0=a.x;v.y0=a.y;v.x1=b.x;v.y1=b.y;v.t0=now;v.t1=now+1000/v.spd;v.i=ni;
 }
 function spawnVehicle(tier,dir,spd){   // dir +1 = entre par le Nord ; -1 = entre par le Sud

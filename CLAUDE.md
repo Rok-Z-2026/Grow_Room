@@ -241,6 +241,20 @@
 - **Missions** : chaîne `MISSIONS[53]` (8 chapitres — **append strict**, indices historiques gravés
   dans les saves) + compteurs `stats{}`, tracker `.mtrack` + modal `#mmodal`, claim atomique,
   save `{mi,st}` additif ✓
+- **🚚 Véhicules — Le Chemin des Livraisons (M3)** : flotte de **25 véhicules × 2 vues** (cadeau
+  Nano `Transport_<N>_{Bas_G|Haut_D}` → runtime `veh_<N>_{sw|ne}` via `tools/extract_vehicles.py`,
+  trim alpha + downscale 460, branches `veh_` dans `decScale`/`decYOff`). Moteur de mouvement des
+  ouvriers RÉUTILISÉ : `vehicles[]` (runtime, **jamais sauvé**), `vehiclePos` (clone `workerPos`),
+  `vehStep` sur la polyline `ROAD_NS` (route Nord-Sud procédurale, `x=47+round(4·sin(y/9))`),
+  `updateVehicles` dans le tick 200ms, bucket `vehByCell` à côté de `wkByCell` (profondeur iso),
+  `drawVehicle` (sprite selon le sens SW/NE, ombre, tangage, poussière). Trafic ambiant plafonné
+  (`VEH_MAX_TRAFFIC=3`, cadence 9-17s, garde `INTRO.menuOn` — jamais sous le menu). Progression :
+  `vehMaxTier()` (`VEH_TIER[11]`→25) débloque les modèles avec la Maison. **Livraison** :
+  `deliver()` (calqué `wkSell`) charge `min(stock,vehCap(tier))` au **PRIX MARCHÉ** (aucune prime →
+  zéro inflation, juste de l'automatisation), le camion s'arrête au dock `ROAD_NS[44]`, cadence
+  `DELIVER_CD=100s`, 1 à la fois, `stock≥100`. ⚠️ **ZÉRO champ de save** (tier dérivé de
+  `houseLevel`, véhicules runtime, livraisons online-only). Équilibrage : `tools/sim_delivery.js`
+  (débit borné par la production). ⚠️ AUCUNE route neuve nécessaire (la N-S procédurale suffit) ✓
 - **🎬 L'Ouverture (M8/TINY 6)** : intro splash → menu principal → jeu. Markup STATIQUE dans
   le body (1er paint = noir-violet, `if1` part avant le storm PACK) ; machine à états
   `INTRO{st,boot,menuOn,tmr,entering}` + `introGo()` = setTimeout UNIQUE chaîné + transitions
