@@ -1901,6 +1901,8 @@ function zoneAvailable(z){if(z.bonus)return totalHarvest>=z.palier;if(z.group==n
 function draw(){
   FNOW=performance.now();   // v22.5 : UNE horloge par frame — toute anim intra-draw lit FNOW
   fxN=0;                    // budget d'émetteurs FX modules (cap dur 40/frame)
+  // Pose drag : auto-scroll quand on glisse le ghost vers un bord (le ghost reste sous le doigt).
+  if(placingMod&&pgDrag&&pgEdge){const SP=10/Math.max(0.5,zoom);cam.x-=pgEdge.dx*SP;cam.y-=pgEdge.dy*SP;clampCam();pgMove(pgPx,pgPy);}
   ctx.clearRect(0,0,APP_W,APP_H);
   // tri de toutes les cases par profondeur (c+r), avec hauteur prise en compte dans le rendu
   const cells=[];
@@ -2717,6 +2719,8 @@ document.getElementById('sellbtn').addEventListener('click',sellAll);
 document.querySelectorAll('.care').forEach(btn=>{btn.addEventListener('click',()=>applyCare(btn.dataset.c));});
 updateStock();
 let ds=null,dm=false,cs=null,md=false,pinch=null;
+// Pose de module (refonte drag) : le ghost naît sous le doigt et se balade en glissant.
+let pgDrag=false,pgPx=0,pgPy=0,pgEdge=null;   // drag actif · dernière pos écran du doigt · direction d'auto-scroll bord
 function xy(e){const r=cv.getBoundingClientRect(),s=APP_W/r.width,t=e.touches?e.touches[0]:e;return[(t.clientX-r.left)*s,(t.clientY-r.top)*s];}
 function dist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);}
 // milieu des 2 doigts en coords ecran (APP)
@@ -2821,6 +2825,14 @@ function tapCell(px,py){   // écran -> case : inverse iso plat + raffinage loca
     if(d<bd){bd=d;best={x,y};}}
   return best;
 }
+// Pose drag : place le ghost sous le doigt (léger lift pour ne pas le cacher sous le pouce).
+function pgMove(px,py){pgPx=px;pgPy=py;const c=tapCell(px,py-TH()*0.35);if(c)tryPlaceAt(c.x,c.y);}
+// Auto-scroll quand le doigt approche un bord (dx<0 gauche / >0 droite · dy<0 haut / >0 bas).
+function pgEdgeCalc(px,py){const M=74,topH=APP_H*0.15;let dx=0,dy=0;
+  if(px<M)dx=(px-M)/M; else if(px>APP_W-M)dx=(px-(APP_W-M))/M;
+  if(py<topH+M)dy=(py-(topH+M))/M; else if(py>APP_H-M)dy=(py-(APP_H-M))/M;
+  pgEdge=(dx||dy)?{dx:Math.max(-1,Math.min(1,dx)),dy:Math.max(-1,Math.min(1,dy))}:null;
+}
 // v23 📖 CARNET v1 : UNE ligne de diagnostic contextuel sous le tracker (pénurie ⚡ >
 // champs sans eau > sol fatigué). Hystérésis 5 min (le conseil s'installe, ne clignote
 // jamais), « ✅ Réglé » quand le joueur corrige. Le Carnet complet arrive en v28.
@@ -2894,10 +2906,11 @@ function openBld(){
 function closeBld(){const el=document.getElementById('bldmodal');if(el.classList.contains('show'))S('ui_panel_close');el.classList.remove('show');}
 function startPlacing(k){
   closeBld();placingMod={k,x0:0,y0:0,ok:false,has:false,keys:null,rec:recSpots(k)};   // M2 : cases vertes recommandées
-  document.getElementById('placetxt').textContent='Touche une case libre pour poser « '+MODS_CFG[k].lvN[0]+' »';
-  document.getElementById('placeok').disabled=true;
   document.getElementById('placebar').classList.add('show');
-  if(!mods.length&&!stats.mHint){stats.mHint=1;save();toast(placingMod.rec?'📍 Vise les cases vertes, près de tes champs !':'📍 Pose ta machine près de tes champs !');}   // M2 : hint 1re pose (flag additif ; le lopin starter n'a parfois AUCUNE case posable à portée -> pas de vert mensonger)
+  // Refonte drag : le ghost APPARAÎT tout de suite (centre de la vue) — on le balade ensuite au doigt.
+  const c=tapCell(APP_W/2,APP_H*0.42)||{x:Math.floor(MW/2),y:Math.floor(MH/2)};
+  tryPlaceAt(c.x,c.y);
+  if(!mods.length&&!stats.mHint){stats.mHint=1;save();toast('📍 Glisse la machine où tu veux, puis ✓ pour la poser !');}   // hint 1re pose (flag additif)
 }
 function stopPlacing(){placingMod=null;document.getElementById('placebar').classList.remove('show');}
 function tryPlaceAt(x,y){
@@ -3060,7 +3073,8 @@ document.querySelectorAll('.seed').forEach(btn=>{
 });
 // TACTILE robuste : re-cale le glissement à CHAQUE changement de nb de doigts (fini le saut)
 cv.addEventListener('touchstart',e=>{e.preventDefault();
-  if(e.touches.length>=2){pinch={d:dist(e.touches),z:zoom};ds=null;}            // pinch -> pas de pan périmé
+  if(e.touches.length>=2){pinch={d:dist(e.touches),z:zoom};ds=null;pgDrag=false;pgEdge=null;}   // pinch (zoom même en pose)
+  else if(placingMod){pgDrag=true;pinch=null;const[x,y]=xy(e);pgMove(x,y);pgEdgeCalc(x,y);}      // POSE : le ghost suit le doigt
   else{ds=xy(e);cs={...cam};dm=false;pinch=null;}
 },{passive:false});
 cv.addEventListener('touchmove',e=>{e.preventDefault();
@@ -3068,6 +3082,7 @@ cv.addEventListener('touchmove',e=>{e.preventDefault();
     if(!pinch)pinch={d:dist(e.touches),z:zoom};
     const m=midXY(e);zoomAt(pinch.z*dist(e.touches)/pinch.d,m[0],m[1]);return;
   }
+  if(placingMod&&pgDrag){const[x,y]=xy(e);pgMove(x,y);pgEdgeCalc(x,y);return;}   // POSE : glisse le ghost (jamais la caméra)
   const[x,y]=xy(e);
   if(!ds){ds=[x,y];cs={...cam};dm=true;return;}                                 // sortie de pinch : recale, aucun saut
   if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;
@@ -3075,12 +3090,13 @@ cv.addEventListener('touchmove',e=>{e.preventDefault();
 },{passive:false});
 cv.addEventListener('touchend',e=>{e.preventDefault();
   if(e.touches.length>=2){pinch={d:dist(e.touches),z:zoom};ds=null;return;}     // encore un pinch -> re-baseline
+  if(placingMod){pgDrag=(e.touches.length>=1);if(!pgDrag)pgEdge=null;return;}   // POSE : fin de drag (confirm via ✓, jamais au lâcher)
   if(e.touches.length===1){pinch=null;ds=xy(e);cs={...cam};dm=true;return;}     // 1 doigt restant -> recale le pan (pas de tap)
   if(pinch){pinch=null;ds=null;return;}                                         // 0 doigt, sortie de pinch
   if(!dm&&ds)onTap(ds[0],ds[1]);                                                // 0 doigt -> tap si pas de glissement
   ds=null;
 },{passive:false});
-cv.addEventListener('mousedown',e=>{ds=xy(e);cs={...cam};dm=false;md=true;});cv.addEventListener('mousemove',e=>{if(!md)return;const[x,y]=xy(e);if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;cam.x=cs.x+x-ds[0];cam.y=cs.y+y-ds[1];clampCam();});cv.addEventListener('mouseup',e=>{if(!dm&&ds)onTap(ds[0],ds[1]);ds=null;md=false;});
+cv.addEventListener('mousedown',e=>{if(placingMod){pgDrag=true;md=true;const[x,y]=xy(e);pgMove(x,y);pgEdgeCalc(x,y);return;}ds=xy(e);cs={...cam};dm=false;md=true;});cv.addEventListener('mousemove',e=>{if(placingMod){if(pgDrag){const[x,y]=xy(e);pgMove(x,y);pgEdgeCalc(x,y);}return;}if(!md)return;const[x,y]=xy(e);if(Math.abs(x-ds[0])+Math.abs(y-ds[1])>10)dm=true;cam.x=cs.x+x-ds[0];cam.y=cs.y+y-ds[1];clampCam();});cv.addEventListener('mouseup',e=>{if(placingMod){pgDrag=false;pgEdge=null;md=false;return;}if(!dm&&ds)onTap(ds[0],ds[1]);ds=null;md=false;});
 cv.addEventListener('wheel',e=>{e.preventDefault();const m=xy(e);zoomAt(zoom*(e.deltaY<0?1.1:.9),m[0],m[1]);},{passive:false});
 document.getElementById('zin').onclick=()=>{S('ui_btn');zoomAt(zoom*1.2,APP_W/2,APP_H/2);};document.getElementById('zout').onclick=()=>{S('ui_btn');zoomAt(zoom/1.2,APP_W/2,APP_H/2);};
 // ===== FONDATIONS IDLE : temps réel, sauvegarde, offline, régén des soins =====
