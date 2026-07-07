@@ -2271,18 +2271,21 @@ function draw(){
       ctx.fillStyle=g;ctx.beginPath();ctx.arc(ix,iy,R,0,7);ctx.fill();
       ctx.globalAlpha=a;ctx.lineWidth=3;ctx.strokeStyle='#ffd84d';ctx.beginPath();ctx.arc(ix,iy,R*0.9,0,7);ctx.stroke();
       ctx.restore();}}
-  // GHOST DE POSE (v22) : sprite translucide + emprise verte/rouge, par-dessus tout (lisibilité)
+  // GHOST DE POSE (v22 · refonte drag) : sprite « tenu en main » (bob doux) + emprise verte/rouge
+  // qui respire, par-dessus tout (lisibilité).
   if(placingMod&&placingMod.has){
     const p=placingMod,fp=modFp(p.k,1),img=IMG['mod_'+p.k+'_1'];
+    const pul=0.72+0.28*Math.sin(FNOW/240);                 // respiration de l'emprise
+    const bob=-4-Math.abs(Math.sin(FNOW/300))*5;            // le ghost flotte (tenu au doigt)
     for(let dy=0;dy<fp;dy++)for(let dx=0;dx<fp;dx++){
       const hx=isoX(p.x0+dx+0.5,p.y0+dy+0.5),hy=isoY(p.x0+dx+0.5,p.y0+dy+0.5),w2=TW()/2,h2=TH()/2;
       ctx.save();ctx.beginPath();
       ctx.moveTo(hx,hy-h2);ctx.lineTo(hx+w2,hy);ctx.lineTo(hx,hy+h2);ctx.lineTo(hx-w2,hy);ctx.closePath();
-      ctx.fillStyle=p.ok?'rgba(120,220,120,0.22)':'rgba(230,80,60,0.28)';ctx.fill();
-      ctx.lineWidth=2;ctx.strokeStyle=p.ok?'rgba(160,255,160,0.85)':'rgba(255,120,100,0.9)';ctx.stroke();ctx.restore();}
+      ctx.fillStyle=p.ok?'rgba(120,220,120,0.24)':'rgba(230,80,60,0.30)';ctx.fill();
+      ctx.lineWidth=2.5;ctx.globalAlpha=pul;ctx.strokeStyle=p.ok?'rgba(170,255,170,0.95)':'rgba(255,120,100,0.95)';ctx.stroke();ctx.restore();}
     if(img&&img.complete&&img.naturalWidth){
       const ax=p.x0+fp-1,ay=p.y0+fp-1,t='mod_'+p.k+'_1';
-      drawSp(img,isoX(ax+0.5,ay+0.5),isoY(ax+0.5,ay+0.5)+TH()*decYOff(t),TW()*decScale(t),0.55);}
+      drawSp(img,isoX(ax+0.5,ay+0.5),isoY(ax+0.5,ay+0.5)+TH()*decYOff(t)+bob,TW()*decScale(t),p.ok?0.72:0.6);}   // flotte + un peu plus net
   }
   requestAnimationFrame(draw);
 }
@@ -2910,15 +2913,19 @@ function startPlacing(k){
   // Refonte drag : le ghost APPARAÎT tout de suite (centre de la vue) — on le balade ensuite au doigt.
   const c=tapCell(APP_W/2,APP_H*0.42)||{x:Math.floor(MW/2),y:Math.floor(MH/2)};
   tryPlaceAt(c.x,c.y);
-  if(!mods.length&&!stats.mHint){stats.mHint=1;save();toast('📍 Glisse la machine où tu veux, puis ✓ pour la poser !');}   // hint 1re pose (flag additif)
+  if(!mods.length&&!stats.mHint){stats.mHint=1;save();toast('📍 Glisse la machine, puis ✓ pour poser !');}   // hint 1re pose (flag additif)
 }
 function stopPlacing(){placingMod=null;document.getElementById('placebar').classList.remove('show');}
 function tryPlaceAt(x,y){
   const p=placingMod;if(!p)return;
   const fp=modFp(p.k,1);
-  p.x0=x-Math.floor((fp-1)/2);p.y0=y-Math.floor((fp-1)/2);
+  const nx=x-Math.floor((fp-1)/2),ny=y-Math.floor((fp-1)/2);
+  const moved=(nx!==p.x0||ny!==p.y0)||!p.has;   // changement de case ?
+  p.x0=nx;p.y0=ny;
   p.ok=modCanPlace(p.k,1,p.x0,p.y0);p.has=true;
-  if(!p.ok)S('ui_place_invalid');
+  // Feedback drag : tick doux à chaque case (throttlé), buzz SEULEMENT à la bascule -> invalide (pas de spam).
+  if(moved){const t=performance.now();if(t-(p._snapT||0)>65){p._snapT=t;S('sfx_tap_cell');}}
+  if(p.ok!==p._lok){if(!p.ok&&p._lok!==undefined)S('ui_place_invalid');p._lok=p.ok;}
   p.keys=modRangeKeys(p.k,1,p.x0,p.y0);
   const cost=modCost1(p.k);
   const nCov=[...p.keys].filter(kk=>cropCells[kk]).length;   // M2 : champs couverts par le ghost ICI (au tap, jamais par frame)
