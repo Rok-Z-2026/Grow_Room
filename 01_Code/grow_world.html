@@ -409,6 +409,11 @@
 const IMG={};let nn=PACK.length,gg=0,ready=false;
 for(const k of PACK){const im=new Image();im.onload=im.onerror=()=>{if(++gg>=nn)ready=true;};im.src=ASSET_BASE+k+".png";IMG[k]=im;}
 const cv=document.getElementById('iso'),ctx=cv.getContext('2d');
+// polish TINY 7 : helpers de draw() hoistés en portée module (étaient recréés par cellule/frame —
+// constants/stateless, zéro changement de rendu).
+const okW=im=>im&&(im.naturalWidth===undefined?im.width>0:(im.complete&&im.naturalWidth));   // canvas OU image
+const PLANT_POS=[[-0.26,-0.20,0.80],[0.26,-0.20,0.80],[-0.34,0.06,0.90],[0.34,0.06,0.90],[0.0,0.24,1.15]];   // [u,v,taille] des touffes
+const rrect=(X,Y,W,Hh,R)=>{ctx.beginPath();ctx.moveTo(X+R,Y);ctx.arcTo(X+W,Y,X+W,Y+Hh,R);ctx.arcTo(X+W,Y+Hh,X,Y+Hh,R);ctx.arcTo(X,Y+Hh,X,Y,R);ctx.arcTo(X,Y,X+W,Y,R);ctx.closePath();};   // rect arrondi (barre de progression)
 let APP_W=440,APP_H=873,DPR=Math.min(2,window.devicePixelRatio||2);
 function resize(){const a=document.getElementById('app');APP_W=a.clientWidth;APP_H=a.clientHeight;cv.width=APP_W*DPR;cv.height=APP_H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';}   // v22.5 : PNG downscalés ×2-4 -> moins de shimmer (le resize reset l'état du contexte : c'est LE bon endroit)
@@ -1935,7 +1940,7 @@ function draw(){
       const fT=T*fps+cellPhase;
       const cur=Math.floor(fT)%NW, nxt=(cur+1)%NW, blend=fT-Math.floor(fT);
       const f1=WATER_FR.length?WATER_FR[cur]:IMG['water_f'+cur], f2=WATER_FR.length?WATER_FR[nxt]:IMG['water_f'+nxt];
-      const okW=im=>im&&(im.naturalWidth===undefined?im.width>0:(im.complete&&im.naturalWidth));   // canvas OU image
+      // okW() hoisté en portée module (polish TINY 7)
       // leger decalage de la texture par case (variation spatiale du motif)
       const ox=((x*37+y*19)%24)-12, oy=((x*23+y*41)%24)-12;
       const dw=w*1.5,dh=hh*1.5,dx=ix-w*0.75+ox,dy=iy-hh*0.75+oy;
@@ -2170,9 +2175,9 @@ function draw(){
         const bedCX=ix, bedCY=iy;   // centre de la tuile
         const r=(img&&img.naturalWidth)?img.naturalHeight/img.naturalWidth:1.25;
         // [u, v, taille] : 2 arrière (petits), 2 milieu, 1 héros devant (plus grand). Empreinte < demi-tuile.
-        const POS=[[-0.26,-0.20,0.80],[0.26,-0.20,0.80],[-0.34,0.06,0.90],[0.34,0.06,0.90],[0.0,0.24,1.15]], inst=[];
-        for(let i=0;i<POS.length;i++){const h=(((x*73856093)^(y*19349663)^(i*83492791))>>>0);
-          inst.push({u:POS[i][0]+(((h&255)/255)-0.5)*0.04, v:POS[i][1]+((((h>>8)&255)/255)-0.5)*0.035, s:POS[i][2], scl:0.94+((h>>16)&255)/255*0.12, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
+        const inst=[];   // PLANT_POS hoisté en portée module (polish TINY 7) ; inst reste par-cellule
+        for(let i=0;i<PLANT_POS.length;i++){const h=(((x*73856093)^(y*19349663)^(i*83492791))>>>0);
+          inst.push({u:PLANT_POS[i][0]+(((h&255)/255)-0.5)*0.04, v:PLANT_POS[i][1]+((((h>>8)&255)/255)-0.5)*0.035, s:PLANT_POS[i][2], scl:0.94+((h>>16)&255)/255*0.12, flip:((h>>>24)&1)===1, ph:(h&255)/255*6.283});}
         inst.sort((a,b)=>a.v-b.v);   // arrière (v bas) dessiné d'abord -> héros au-dessus
         for(const p of inst){const tw=TW()*(0.21+0.15*(st/8))*p.scl*p.s, th=tw*r;   // grossit avec le stade
           const cxp=bedCX+p.u*TW()*0.28, cyp=bedCY+TH()*0.10+p.v*TH()*0.42+bob, sy=cyp;   // touffe CENTREE dans la case
@@ -2185,7 +2190,7 @@ function draw(){
         if(c.state==='growing'&&zoom>0.6){
           const g=Math.max(0.02,Math.min(1,c.grow));
           const bw=TW()*0.44, bh=Math.max(3,3.2*zoom), bx=ix-bw/2, by=iy-TH()*1.05, rr=bh/2;
-          const rrect=(X,Y,W,Hh,R)=>{ctx.beginPath();ctx.moveTo(X+R,Y);ctx.arcTo(X+W,Y,X+W,Y+Hh,R);ctx.arcTo(X+W,Y+Hh,X,Y+Hh,R);ctx.arcTo(X,Y+Hh,X,Y,R);ctx.arcTo(X,Y,X+W,Y,R);ctx.closePath();};
+          // rrect() hoisté en portée module (polish TINY 7)
           ctx.save();
           rrect(bx,by,bw,bh,rr);ctx.fillStyle='rgba(16,22,14,0.5)';ctx.fill();     // fond translucide léger
           ctx.lineWidth=1;ctx.strokeStyle='rgba(255,255,255,0.10)';ctx.stroke();   // fin liseré clair
