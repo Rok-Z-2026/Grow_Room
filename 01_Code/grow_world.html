@@ -3042,7 +3042,7 @@ function onTap(px,py){
 document.querySelectorAll('.seed').forEach(btn=>{
   btn.addEventListener('click',()=>{
     if(!selCell)return;
-    const v=parseInt(btn.dataset.v);
+    const v=parseInt(btn.dataset.v,10);
     const cost=varC(v);   // M4 : coût à la plantation (Verte = 0, gratuite à vie)
     if(coin<cost){S('ui_denied');toast('Pas assez 💰');return;}   // garde (les boutons .poor sont déjà non-cliquables)
     if(cost)setCoin(coin-cost);   // débit avant de muter la case
@@ -3122,7 +3122,7 @@ function save(){try{
 }catch(e){}}
 function load(){let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){s=null;}
   if(!s||s.v!==1)return;
-  setCoin(s.coin);stock=s.stock;marketPrice=s.marketPrice;totalHarvest=s.totalHarvest||0;
+  setCoin(s.coin??300);stock=s.stock??0;marketPrice=s.marketPrice??8;totalHarvest=s.totalHarvest||0;   // polish TINY 7 : ?? anti-NaN (préserve coin:0 d'un vétéran fauché, JSON NaN->null rattrapé)
   houseLevel=s.houseLevel||1;placeHome();   // re-pose la maison au bon niveau
   if(s.boosts)boosts=s.boosts; if(s.lab)lab=s.lab; careT=s.careT||Date.now();
   if(s.wk){   // v19 : lecture DÉFENSIVE + migration (save v18 sans crew -> n Récolteurs, rien perdu)
