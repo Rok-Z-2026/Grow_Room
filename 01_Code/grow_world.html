@@ -452,6 +452,7 @@ const VAR=[
   {n:'Automne', t:330000,g:55, c:110, r:3},
 ];
 const varT=v=>(VAR[v]||VAR[0]).t, varG=v=>(VAR[v]||VAR[0]).g, varC=v=>(VAR[v]||VAR[0]).c||0;
+const varTm=v=>{const t=varT(v),mm=Math.floor(t/60000),ss=Math.round((t%60000)/1000);return mm+'m'+(ss?String(ss).padStart(2,'0'):'');};   // durée -> « 1m » / « 1m40 » / « 2m30 »
 const CARE_MAX={water:20,sun:15,nute:10}, CARE_REFILL_MS=60000; // soins: +1 de chaque /60s jusqu'au cap
 const SAVE_KEY='tinygrow_save_v1';
 let selCell=null;  // cellule selectionnee — DECLAREE AVANT draw() (draw() la lit ligne ~305). Sinon TDZ: le 1er draw() synchrone throw si une parcelle est visible frame 1 -> boucle rAF morte -> canvas blanc.
@@ -2791,10 +2792,13 @@ function buyLandGroup(g,px,py){
   toast('Forêt défrichée ! 🪓');save();
 }
 // selCell est déclarée plus haut (avant draw) pour éviter le TDZ
-// M4 : rafraîchit prix + raretés + état grisé de chaque bouton graine (source unique VAR/RARITY).
+// M4 : rafraîchit nom + durée·rendement + prix + raretés + état grisé (source unique VAR/RARITY —
+// polish TINY 7 : .nm/.tm dérivés de VAR, plus jamais codés en dur dans le markup).
 function refreshSeedbar(){document.querySelectorAll('#seedbar .seed').forEach(btn=>{
-  const v=parseInt(btn.dataset.v), rar=RARITY[VAR[v].r]||RARITY[0], cost=varC(v);
+  const v=parseInt(btn.dataset.v,10), rar=RARITY[VAR[v].r]||RARITY[0], cost=varC(v);
   btn.dataset.r=VAR[v].r;btn.style.setProperty('--rc',rar.col);
+  const nm=btn.querySelector('.nm');if(nm)nm.textContent=VAR[v].n;
+  const tm=btn.querySelector('.tm');if(tm)tm.textContent=varTm(v)+' · '+VAR[v].g+'g';
   const st=btn.querySelector('.stars');if(st)st.textContent='★'.repeat(rar.st);
   const pr=btn.querySelector('.pr');
   if(pr){if(cost<=0){pr.textContent='Gratuit';pr.className='pr free';}else{pr.textContent='💰 '+money(cost);pr.className='pr';}}
