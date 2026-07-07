@@ -378,7 +378,7 @@ v27) ont été AVANCÉS — voir 7bis. Le reste du chantier v27 (assignation par
 Centre des employés) garde sa place dans la roadmap.
 
 **v24 🔊 « La Vallée qui chante »** ✅ : le jeu a une bande-son complète (88 MP3 ElevenLabs,
-82 câblés). Boucle cœur (plante/soins/combos à pitch montant/récolte/vente), ambiance de la
+83 câblés). Boucle cœur (plante/soins/combos à pitch montant/récolte/vente), ambiance de la
 vallée crossfadée + musique douce + **rivière/pompe/feu de camp spatialisés** (volume ∝
 distance caméra), UI et toasts intelligents (zéro doublon), stingers de mission/reveal/embauche
 avec **ducking**, ouvriers à −6dB seulement à l'écran, retour offline séquencé, rafales de
@@ -500,7 +500,7 @@ rivière/pompe/feu gardent leur spatialisation v24 dédiée (déjà graduée par
   fertilité par case + Carnet v1 (diagnostic une ligne) — voir 7quater.
 - **👷 Employés 2.0 visuel v23.5** : 40 spritesheets `wk_1..wk_40` remplacent les emoji —
   voir 7bis.
-- **🔊 Audio v24** : bande-son complète Web Audio (82/88 MP3 câblés, ambiances spatialisées,
+- **🔊 Audio v24** : bande-son complète Web Audio (83/88 MP3 câblés, ambiances spatialisées,
   stingers, ducking) — « La Vallée qui chante ».
 
 **Atlas sources (`02_Asset/` — intégrés ✅, conservés comme archives dev) :**

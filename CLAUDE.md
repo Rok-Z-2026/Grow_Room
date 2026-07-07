@@ -199,10 +199,11 @@
   d'early-return avant. Fallback emoji conservé (boot avant chargement). Portraits panneau =
   CSS sprite `.labspr` (background-size 96×192, position −30px 0 = col1/row0) via `wkFace(n)` ✓
 - **🔊 Audio v24 (É0-É7 COMPLET)** : Web Audio pur, bloc unique après `clamp()` (`SND`/`S()`/
-  `SND_TAB`/`SND_LAYERS`). 88 MP3 dans `02_Asset/audio/` (blobs normaux, PAS LFS), **82 câblés**
-  — restent au placard : `sfx_grams_pop` (doublon récolte), `sfx_gauge_fill` (pas de trigger),
-  `sfx_sprinkler_loop`, `mus_valley_night` (pas de cycle jour/nuit), `amb_campfire_2`/
-  `amb_crickets_soft_2`. **`SND_TAB` = seule source de vérité** (schéma
+  `SND_TAB`/`SND_LAYERS`). 88 MP3 dans `02_Asset/audio/` (blobs normaux, PAS LFS), **83 câblés**
+  (audit TINY 7 : `sfx_gauge_fill` a été câblé en M5) — restent au placard (**5 réserves non
+  câblées**) : `sfx_grams_pop` (doublon récolte), `sfx_sprinkler_loop`, `mus_valley_night` (pas de
+  cycle jour/nuit), `amb_campfire_2`/`amb_crickets_soft_2` (variantes). **`SND_TAB` = seule source
+  de vérité** (schéma
   `{n,l,v,p,t,loop,stg,skipStg,skipAny,vis,p1}` — seules les clés listées sont téléchargées).
   Boot lazy `sndBoot` (rAF+setTimeout fin de script, RIEN avant la 1re frame) ; unlock mobile
   capture+passive ré-armé par `statechange` ; **S() ne joue QUE si `state==='running'`**
@@ -265,7 +266,12 @@
 1. **Extraire le dernier `<script>`** : `a = rfind('<script>') + 8`, `b = find('</script>')`,
    puis `node --check`.
 2. **Playwright screenshot** : **393×844**, **DPR 2**, contexte **`has_touch` + `is_mobile`**.
-3. **Toujours valider visuellement avant de livrer.**
+   Boot direct via le hook `#nointro` ; navigateur `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+3. **Sondage santé** : `python3 tools/audit_health.py` (TINY 7) — sert le repo en HTTP, boot
+   `#nointro`, attend `WATER_FR===10` + audio, drive les 13 scènes DOM, capture pageerror/404,
+   teste la rétro-compat offline. Exit 0 = tout vert. À lancer avant/après tout changement moteur.
+4. **Équilibrage graines** : `node tools/sim_seedcost.js` (NET coin/min par variété).
+5. **Toujours valider visuellement avant de livrer.**
 
 ---
 
