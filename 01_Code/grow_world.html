@@ -1327,14 +1327,34 @@ function spawnVehicle(tier,dir,spd){   // dir +1 = entre par le Nord ; -1 = entr
 // M3/M5 — progression : le meilleur véhicule débloqué grimpe avec la Maison (11 niveaux -> 25 modèles).
 const VEH_TIER=[3,5,7,9,11,13,15,17,19,22,25];
 function vehMaxTier(){return VEH_TIER[Math.min(Math.max(1,houseLevel),11)-1];}
-var vehNextSpawn=0; const VEH_MAX_TRAFFIC=3;
-function updateVehicles(now){   // tick 200ms (à côté d'updateWorkers) : spawn ambiant + avance + purge
+var vehNextSpawn=0,vehDeliverT=0; const VEH_MAX_TRAFFIC=3, DOCK_I=44, DELIVER_CD=100000;
+function vehCap(tier){return 80+40*tier;}   // capacité de la benne — grimpe avec le tier (équilibrée en É6)
+function deliver(v){   // le camion charge le stock au dock et te paie (canal léger, supplément du vendeur)
+  const lot=Math.min(stock,vehCap(v.tier));if(lot<=0)return;
+  const earned=Math.floor(lot*marketPrice*valueMult()*homeSellMult());
+  stock-=lot;setCoin(coin+earned);coinPulse();updateStock();S('sfx_sell');
+  const a=ROAD_NS[DOCK_I],sx=isoX(a.x+0.5,a.y+0.5),sy=isoY(a.x+0.5,a.y+0.5);
+  flyCoins(sx,sy-TH()*0.3,8);ft(sx,sy-TH()*1.1,'Livraison ! +'+money(earned)+' 💰','#9dffb8');
+  marketPrice=Math.max(5,Math.min(14,marketPrice+(Math.random()*2-1)));save();
+}
+function spawnDelivery(){   // véhicule de livraison = meilleur tier débloqué, s'arrête au dock
+  spawnVehicle(vehMaxTier(),Math.random()<0.5?1:-1,2.2);
+  const v=vehicles[vehicles.length-1];v.mode='deliver';v.dockI=DOCK_I;
+}
+function updateVehicles(now){   // tick 200ms : livraisons + trafic ambiant + avance + purge
+  if(now>=vehDeliverT&&stock>=100&&!(typeof INTRO!=='undefined'&&INTRO.menuOn)&&!vehicles.some(v=>v.mode==='deliver')){
+    vehDeliverT=now+DELIVER_CD;spawnDelivery();   // livraison : cadence longue, seulement s'il y a du stock, 1 à la fois
+  }
   if(now>=vehNextSpawn){   // trafic ambiant : cadence douce, plafonné, JAMAIS sous le menu titre
     vehNextSpawn=now+9000+Math.floor(Math.random()*8000);
     if(!(typeof INTRO!=='undefined'&&INTRO.menuOn)&&vehicles.length<VEH_MAX_TRAFFIC)
       spawnVehicle(1+Math.floor(Math.random()*vehMaxTier()), Math.random()<0.5?1:-1, 2.0+Math.random()*0.8);
   }
-  for(const v of vehicles)if(!v.done&&now>=v.t1)vehStep(v,now);
+  for(const v of vehicles){
+    if(v.done||now<v.t1||now<(v.pauseUntil||0))continue;   // en interpolation ou en pause au dock
+    if(v.mode==='deliver'&&!v.delivered&&v.i===v.dockI){v.delivered=true;v.pauseUntil=now+1600;deliver(v);continue;}   // arrivé -> charge
+    vehStep(v,now);
+  }
   for(let i=vehicles.length-1;i>=0;i--)if(vehicles[i].done)vehicles.splice(i,1);
 }
 function drawVehicle(v,p,now){   // rendu : sprite selon le sens + ombre + tangage doux
