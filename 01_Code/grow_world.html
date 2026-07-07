@@ -1305,6 +1305,37 @@ function wkNextStep(w,c,now){   // un pas d'UNE case, axe du plus grand écart (
   w.x0=w.x;w.y0=w.y;w.x1=w.x+sx;w.y1=w.y+sy;w.t0=now;w.t1=now+1000/sp;
   const dS=(w.x1-w.x0)-(w.y1-w.y0); if(dS)w.dir=Math.sign(dS);   // flip selon le déplacement ÉCRAN (c-r)
 }
+// === 🚚 M3 · VÉHICULES (Le Chemin des Livraisons) — réutilise le moteur de mouvement ouvriers ===
+var vehicles=[];   // RUNTIME (jamais sauvé) : trafic ambiant + livraisons
+// Polyline de la route Nord-Sud (formule buildRoads : x=47+round(4·sin(y/9))), précalculée 1×.
+const ROAD_NS=(()=>{const a=[];for(let y=0;y<MH;y++)a.push({x:47+Math.round(4*Math.sin(y/9)),y});return a;})();
+function vehiclePos(v,now){   // interpolation pure (clone de workerPos, ne mute rien)
+  if(now>=v.t1)return{x:v.x1,y:v.y1};
+  const k=(now-v.t0)/(v.t1-v.t0);
+  return{x:v.x0+(v.x1-v.x0)*k, y:v.y0+(v.y1-v.y0)*k};
+}
+function vehStep(v,now){   // un cran sur la polyline (v.d:+1 descend vers le Sud/SW, -1 monte vers le Nord/NE)
+  const ni=v.i+v.d;
+  if(ni<0||ni>=ROAD_NS.length){v.done=true;return;}
+  const a=ROAD_NS[v.i],b=ROAD_NS[ni];
+  v.x0=a.x;v.y0=a.y;v.x1=b.x;v.y1=b.y;v.t0=now;v.t1=now+1000/v.spd;v.i=ni;
+}
+function spawnVehicle(tier,dir,spd){   // dir +1 = entre par le Nord ; -1 = entre par le Sud
+  const i0=dir>0?0:ROAD_NS.length-1,a=ROAD_NS[i0];
+  vehicles.push({tier,d:dir,i:i0,spd:spd||2.2,x:a.x,y:a.y,x0:a.x,y0:a.y,x1:a.x,y1:a.y,t0:0,t1:0,done:false});
+}
+function updateVehicles(now){   // tick 200ms (à côté d'updateWorkers) : avance + purge des sortis
+  for(const v of vehicles)if(!v.done&&now>=v.t1)vehStep(v,now);
+  for(let i=vehicles.length-1;i>=0;i--)if(vehicles[i].done)vehicles.splice(i,1);
+}
+function drawVehicle(v,p,now){   // rendu : sprite selon le sens + ombre + tangage doux
+  const key='veh_'+v.tier+'_'+(v.d>0?'sw':'ne');
+  const img=IMG[key];if(!img||!img.complete||!img.naturalWidth)return;
+  const ix=isoX(p.x+0.5,p.y+0.5),iyG=isoY(p.x+0.5,p.y+0.5);
+  const bob=Math.abs(Math.sin(now/150+v.i))*1.4*zoom;
+  shadow(ix,iyG+TH()*0.2,TW()*0.5);
+  drawSp(img,ix,iyG+TH()*decYOff(key)-bob,TW()*decScale(key),null);
+}
 // Prédicats de ciblage par métier — la main du joueur (selCell) gagne TOUJOURS.
 function wkPred(w,now){
   if(w.job==='g'){const cap=gCap(wkLvl(crew[w.id]?crew[w.id].xp:0));
@@ -2033,6 +2064,9 @@ function draw(){
   const nowW=FNOW, wkByCell={};
   for(const w of workers){const p=workerPos(w,nowW);
     const k=Math.round(p.x)+','+Math.round(p.y);(wkByCell[k]=wkByCell[k]||[]).push({w,p});}
+  const vehByCell={};   // M3 : véhicules indexés par case arrondie -> profondeur iso correcte
+  for(const v of vehicles){const p=vehiclePos(v,nowW);
+    const k=Math.round(p.x)+','+Math.round(p.y);(vehByCell[k]=vehByCell[k]||[]).push({v,p});}
   // ── OcclusionFade 2.0 : 1 calcul par frame, partagé ombres+objets ────────────────────────────
   // Un gros objet (isBig) ne s'estompe QUE s'il recouvre RÉELLEMENT (rects précis dérivés du
   // rendu, insets des PNG, pénétration mini) une cible protégée strictement derrière lui :
@@ -2211,6 +2245,7 @@ function draw(){
       if(fd&&fd.front){const lp=IMG[fd.sp];if(lp&&lp.naturalWidth)drawSp(lp,ix+fd.ux*TW()/2,iy+fd.uy*TH()/2,TW()*fd.sc,null);}
     }
     const wl=wkByCell[ck]; if(wl)for(const e of wl)drawWorker(e.w,e.p,nowW);   // ouvriers de cette case
+    const vl=vehByCell[ck]; if(vl)for(const e of vl)drawVehicle(e.v,e.p,nowW);   // M3 : véhicules de cette case
   }
   // zones achetables (uniquement celles dont la clairiere est defrichee)
   for(const z of W.cropzones){if(z.owned||!zoneAvailable(z))continue;
@@ -3322,7 +3357,7 @@ function gameReset(){try{localStorage.removeItem(SAVE_KEY);localStorage.removeIt
   introGo('black');
 })();
 load(); updateMissionUI(); lastTick=Date.now();
-setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;if(growCells(dt))S('sfx_plant_ready');waterTick(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateMissionUI();if(rangeView&&performance.now()>rangeView.t1)rangeView=null;
+setInterval(()=>{const now=Date.now();const dt=Math.min(now-lastTick,5000);lastTick=now;if(growCells(dt))S('sfx_plant_ready');waterTick(dt);regenCare(now);if(mktDrift(now))updateStock();updateWorkers(performance.now());updateVehicles(performance.now());updateMissionUI();if(rangeView&&performance.now()>rangeView.t1)rangeView=null;
   if(mods.some(m=>m.k==='en'&&m.lv===5)&&ovReady())fireOverdrive(true);   // v23 : Energy Core = Overdrive AUTO
   if(enOn())updateEnBadge();updateDiag();},200);
 setInterval(save,10000);
