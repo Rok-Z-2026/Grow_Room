@@ -1305,64 +1305,64 @@ function wkNextStep(w,c,now){   // un pas d'UNE case, axe du plus grand écart (
   w.x0=w.x;w.y0=w.y;w.x1=w.x+sx;w.y1=w.y+sy;w.t0=now;w.t1=now+1000/sp;
   const dS=(w.x1-w.x0)-(w.y1-w.y0); if(dS)w.dir=Math.sign(dS);   // flip selon le déplacement ÉCRAN (c-r)
 }
-// === 🚚 M3 · VÉHICULES (Le Chemin des Livraisons) — réutilise le moteur de mouvement ouvriers ===
-var vehicles=[];   // RUNTIME (jamais sauvé) : trafic ambiant + livraisons
-// Polyline de la route Nord-Sud (formule buildRoads : x=47+round(4·sin(y/9))), précalculée 1×.
-const ROAD_NS=(()=>{const a=[];for(let y=0;y<MH;y++)a.push({x:47+Math.round(4*Math.sin(y/9)),y});return a;})();
-function vehiclePos(v,now){   // interpolation pure (clone de workerPos, ne mute rien)
-  if(now>=v.t1)return{x:v.x1,y:v.y1};
-  const k=(now-v.t0)/(v.t1-v.t0);
-  return{x:v.x0+(v.x1-v.x0)*k, y:v.y0+(v.y1-v.y0)*k};
-}
-function vehStep(v,now){   // un cran sur la polyline (v.d:+1 descend vers le Sud/SW, -1 monte vers le Nord/NE)
-  const ni=v.i+v.d;
-  if(ni<0||ni>=ROAD_NS.length){v.done=true;return;}
-  const a=ROAD_NS[v.i],b=ROAD_NS[ni];
-  if(zoom>0.6&&vis(a.x,a.y))burst(isoX(a.x+0.5,a.y+0.5),isoY(a.x+0.5,a.y+0.5)+TH()*0.2,'#cbb68e',2);   // poussière discrète derrière les roues
-  v.x0=a.x;v.y0=a.y;v.x1=b.x;v.y1=b.y;v.t0=now;v.t1=now+1000/v.spd;v.i=ni;
-}
-function spawnVehicle(tier,dir,spd){   // dir +1 = entre par le Nord ; -1 = entre par le Sud
-  const i0=dir>0?0:ROAD_NS.length-1,a=ROAD_NS[i0];
-  vehicles.push({tier,d:dir,i:i0,spd:spd||2.2,x:a.x,y:a.y,x0:a.x,y0:a.y,x1:a.x,y1:a.y,t0:0,t1:0,done:false});
-}
-// M3/M5 — progression : le meilleur véhicule débloqué grimpe avec la Maison (11 niveaux -> 25 modèles).
+// === 🚚 M3 · LE CHEMIN DES LIVRAISONS — route dédiée SW→parking, mouvement FLUIDE (spline) ===
+var vehicles=[];   // RUNTIME (jamais sauvé) : uniquement les camions de livraison
+// Courbe de la route : points de contrôle MONDE (bord bas-gauche -> parking devant-gauche maison),
+// tous sur la TERRE (sondés). Catmull-Rom -> polyline dense paramétrée en longueur d'arc.
+const ROAD_CP=[[30,94],[33,85],[35,77],[37,69],[39,61],[41,53],[42.3,48],[42,46]];
+function _cmr(p0,p1,p2,p3,t){const t2=t*t,t3=t2*t;return[
+  0.5*((2*p1[0])+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),
+  0.5*((2*p1[1])+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)];}
+const ROAD_SPL=(()=>{const cp=ROAD_CP,P=i=>cp[Math.max(0,Math.min(cp.length-1,i))],pts=[];
+  for(let i=0;i<cp.length-1;i++)for(let s=0;s<12;s++){const q=_cmr(P(i-1),P(i),P(i+1),P(i+2),s/12);pts.push({x:q[0],y:q[1]});}
+  pts.push({x:cp[cp.length-1][0],y:cp[cp.length-1][1]});
+  let L=0;pts[0].s=0;for(let i=1;i<pts.length;i++){L+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);pts[i].s=L;}
+  pts.total=L;return pts;})();
+function roadAt(s){const pts=ROAD_SPL;s=Math.max(0,Math.min(pts.total,s));
+  let i=1;while(i<pts.length&&pts[i].s<s)i++;const a=pts[i-1],b=pts[i],seg=(b.s-a.s)||1,k=(s-a.s)/seg;
+  return{x:a.x+(b.x-a.x)*k, y:a.y+(b.y-a.y)*k};}
+const DOCK_S=ROAD_SPL.total, DOCK_CELL={x:Math.round(ROAD_CP[ROAD_CP.length-1][0]),y:Math.round(ROAD_CP[ROAD_CP.length-1][1])};
+// M3/M5 — progression : le camion de livraison grimpe avec la Maison (11 niveaux -> 25 modèles).
 const VEH_TIER=[3,5,7,9,11,13,15,17,19,22,25];
 function vehMaxTier(){return VEH_TIER[Math.min(Math.max(1,houseLevel),11)-1];}
-var vehNextSpawn=0,vehDeliverT=0; const VEH_MAX_TRAFFIC=3, DOCK_I=44, DELIVER_CD=100000;
-function vehCap(tier){return 80+40*tier;}   // capacité de la benne — grimpe avec le tier (équilibrée en É6)
-function deliver(v){   // le camion charge le stock au dock et te paie (canal léger, supplément du vendeur)
+var vehDeliverT=0; const DELIVER_CD=100000;
+function vehCap(tier){return 80+40*tier;}   // capacité de la benne — grimpe avec le tier
+function curS(v,now){   // distance sur la spline, CONTINUE (temps réel) -> mouvement lisse 60 fps
+  if(v.state==='load')return DOCK_S;
+  const d=v.spd*(now-v.t0)/1000;
+  return v.state==='in'?Math.min(DOCK_S,d):Math.max(0,DOCK_S-d);   // 'in' monte 0->dock, 'out' redescend dock->0
+}
+function vehiclePos(v,now){return roadAt(curS(v,now));}   // lu par draw, ne mute rien
+function deliver(v){   // le camion charge le stock au parking et te paie (prix marché, zéro inflation)
   const lot=Math.min(stock,vehCap(v.tier));if(lot<=0)return;
   const earned=Math.floor(lot*marketPrice*valueMult()*homeSellMult());
   stock-=lot;setCoin(coin+earned);coinPulse();updateStock();S('sfx_sell');
-  const a=ROAD_NS[DOCK_I],sx=isoX(a.x+0.5,a.y+0.5),sy=isoY(a.x+0.5,a.y+0.5);
+  const d=roadAt(DOCK_S),sx=isoX(d.x+0.5,d.y+0.5),sy=isoY(d.x+0.5,d.y+0.5);
   flyCoins(sx,sy-TH()*0.3,8);ft(sx,sy-TH()*1.1,'Livraison ! +'+money(earned)+' 💰','#9dffb8');
   marketPrice=Math.max(5,Math.min(14,marketPrice+(Math.random()*2-1)));save();
 }
-function spawnDelivery(){   // véhicule de livraison = meilleur tier débloqué, s'arrête au dock
-  spawnVehicle(vehMaxTier(),Math.random()<0.5?1:-1,2.2);
-  const v=vehicles[vehicles.length-1];v.mode='deliver';v.dockI=DOCK_I;
+function spawnDelivery(){   // un camion (meilleur tier débloqué) entre par le bas-gauche
+  vehicles.push({tier:vehMaxTier(),spd:2.6,state:'in',t0:performance.now(),pauseUntil:0,dustT:0,done:false});
 }
-function updateVehicles(now){   // tick 200ms : livraisons + trafic ambiant + avance + purge
-  if(now>=vehDeliverT&&stock>=100&&!(typeof INTRO!=='undefined'&&INTRO.menuOn)&&!vehicles.some(v=>v.mode==='deliver')){
-    vehDeliverT=now+DELIVER_CD;spawnDelivery();   // livraison : cadence longue, seulement s'il y a du stock, 1 à la fois
-  }
-  if(now>=vehNextSpawn){   // trafic ambiant : cadence douce, plafonné, JAMAIS sous le menu titre
-    vehNextSpawn=now+9000+Math.floor(Math.random()*8000);
-    if(!(typeof INTRO!=='undefined'&&INTRO.menuOn)&&vehicles.length<VEH_MAX_TRAFFIC)
-      spawnVehicle(1+Math.floor(Math.random()*vehMaxTier()), Math.random()<0.5?1:-1, 2.0+Math.random()*0.8);
+function updateVehicles(now){   // tick 200ms : déclenche la livraison + gère les transitions d'état
+  if(now>=vehDeliverT&&stock>=100&&!(typeof INTRO!=='undefined'&&INTRO.menuOn)&&vehicles.length===0){
+    vehDeliverT=now+DELIVER_CD;spawnDelivery();   // livraisons SEULES : cadence longue, 1 à la fois, si stock
   }
   for(const v of vehicles){
-    if(v.done||now<v.t1||now<(v.pauseUntil||0))continue;   // en interpolation ou en pause au dock
-    if(v.mode==='deliver'&&!v.delivered&&v.i===v.dockI){v.delivered=true;v.pauseUntil=now+1600;deliver(v);continue;}   // arrivé -> charge
-    vehStep(v,now);
+    if(v.done)continue;
+    const s=curS(v,now);
+    if(v.state==='in'&&s>=DOCK_S-1e-3){v.state='load';v.t0=now;v.pauseUntil=now+1800;deliver(v);}   // arrivé -> charge
+    else if(v.state==='load'&&now>=v.pauseUntil){v.state='out';v.t0=now;}                            // repart
+    else if(v.state==='out'&&s<=1e-3){v.done=true;}                                                  // sorti hors-champ
+    if(v.state!=='load'&&now>=v.dustT){const p=roadAt(s);if(zoom>0.6&&vis(p.x,p.y)){v.dustT=now+220;burst(isoX(p.x+0.5,p.y+0.5),isoY(p.x+0.5,p.y+0.5)+TH()*0.2,'#cbb68e',2);}}
   }
   for(let i=vehicles.length-1;i>=0;i--)if(vehicles[i].done)vehicles.splice(i,1);
 }
-function drawVehicle(v,p,now){   // rendu : sprite selon le sens + ombre + tangage doux
-  const key='veh_'+v.tier+'_'+(v.d>0?'sw':'ne');
+function drawVehicle(v,p,now){   // sprite selon le sens (monte=dos NE / descend=face SW) + ombre + tangage
+  const key='veh_'+v.tier+'_'+(v.state==='out'?'sw':'ne');
   const img=IMG[key];if(!img||!img.complete||!img.naturalWidth)return;
   const ix=isoX(p.x+0.5,p.y+0.5),iyG=isoY(p.x+0.5,p.y+0.5);
-  const bob=Math.abs(Math.sin(now/150+v.i))*1.4*zoom;
+  const bob=v.state==='load'?0:Math.abs(Math.sin(now/150+v.tier))*1.4*zoom;   // immobile au parking
   shadow(ix,iyG+TH()*0.2,TW()*0.5);
   drawSp(img,ix,iyG+TH()*decYOff(key)-bob,TW()*decScale(key),null);
 }
