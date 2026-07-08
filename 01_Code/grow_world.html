@@ -1309,7 +1309,7 @@ function wkNextStep(w,c,now){   // un pas d'UNE case, axe du plus grand écart (
 var vehicles=[];   // RUNTIME (jamais sauvé) : uniquement les camions de livraison
 // Courbe de la route : points de contrôle MONDE (bord bas-gauche -> parking devant-gauche maison),
 // tous sur la TERRE (sondés). Catmull-Rom -> polyline dense paramétrée en longueur d'arc.
-const ROAD_CP=[[30,94],[33,85],[35,77],[37,69],[39,61],[41,53],[42.3,48],[42,46]];
+const ROAD_CP=[[28,92],[32,84],[35,76],[37,68],[38,60],[38,52],[38.5,48],[39.5,46],[41,45.3],[42,45]];   // bas-gauche -> contourne le lopin (40-42,47-49) par l'ouest -> parking (42,45) devant-gauche maison
 function _cmr(p0,p1,p2,p3,t){const t2=t*t,t3=t2*t;return[
   0.5*((2*p1[0])+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),
   0.5*((2*p1[1])+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)];}
@@ -1322,6 +1322,20 @@ function roadAt(s){const pts=ROAD_SPL;s=Math.max(0,Math.min(pts.total,s));
   let i=1;while(i<pts.length&&pts[i].s<s)i++;const a=pts[i-1],b=pts[i],seg=(b.s-a.s)||1,k=(s-a.s)/seg;
   return{x:a.x+(b.x-a.x)*k, y:a.y+(b.y-a.y)*k};}
 const DOCK_S=ROAD_SPL.total, DOCK_CELL={x:Math.round(ROAD_CP[ROAD_CP.length-1][0]),y:Math.round(ROAD_CP[ROAD_CP.length-1][1])};
+const PARK_CELLS=[[41,45],[42,45],[41,46],[42,46]];   // dalle placeholder devant-gauche maison (au nord du lopin)
+function buildDeliveryRoad(){   // pose la route en TUILES DE SOL le long de la spline (profondeur correcte)
+  const inZone=(x,y)=>W.cropzones.some(z=>x>=z.zx&&x<z.zx+z.n&&y>=z.zy&&y<z.zy+z.n);
+  const homeAt=(x,y)=>{const d=W.decor[y]&&W.decor[y][x];return d&&String(d[0]).startsWith('home_');};
+  const lay=(x,y,g)=>{if(x<0||y<0||x>=MW||y>=MH)return;if(W.ground[y][x]==='water'||inZone(x,y)||homeAt(x,y))return;   // jamais eau/lopin/maison
+    W.ground[y][x]=g;const d=W.decor[y]&&W.decor[y][x];if(d&&!homeAt(x,y))W.decor[y][x]=null;};
+  const clr=(x,y)=>{if(x<0||y<0||x>=MW||y>=MH||inZone(x,y)||homeAt(x,y))return;const d=W.decor[y]&&W.decor[y][x];if(d)W.decor[y][x]=null;};   // dégage juste le décor (arbres collés)
+  for(let s=0;s<=ROAD_SPL.total;s+=0.25){const p=roadAt(s);const cx=Math.round(p.x),cy=Math.round(p.y);
+    for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){const x=cx+dx,y=cy+dy,dd=Math.hypot(x-p.x,y-p.y);
+      if(dd<=0.85)lay(x,y,'droad');        // route ~1.7 case de large
+      else if(dd<=1.35)clr(x,y);}}         // couloir dégagé (pas d'arbres qui touchent la route)
+  for(const[x,y]of PARK_CELLS)lay(x,y,'dpark');
+}
+buildDeliveryRoad();
 // M3/M5 — progression : le camion de livraison grimpe avec la Maison (11 niveaux -> 25 modèles).
 const VEH_TIER=[3,5,7,9,11,13,15,17,19,22,25];
 function vehMaxTier(){return VEH_TIER[Math.min(Math.max(1,houseLevel),11)-1];}
@@ -1955,7 +1969,7 @@ function clampCam(){
 (function(){const cx=MW/2,cy=MH/2;cam.x=-(cx-cy)*TW()/2;cam.y=APP_H*0.5-APP_H*0.28-(cx+cy)*TH()/2;clampCam();})();
 function vis(x,y){const sx=isoX(x+0.5,y+0.5),sy=isoY(x+0.5,y+0.5);return sx>-TW()*3&&sx<APP_W+TW()*3&&sy>-TH()*12&&sy<APP_H+TH()*6;}
 
-function groundKey(g){return g==='path'?'sq_path':g==='grass'?'sq_grass':g==='dirt'?'sq_dirt':g==='sand'?'sq_sand':g==='moss'?'sq_moss':g==='gravel'?'sq_gravel':g==='pavel'?'sq_stone':g==='soil'?'sq_soil':g==='mud'?'sq_mud':g==='water'?'sq_grass':'sq_grass';}
+function groundKey(g){return g==='droad'?'sq_path':g==='dpark'?'sq_stone':g==='path'?'sq_path':g==='grass'?'sq_grass':g==='dirt'?'sq_dirt':g==='sand'?'sq_sand':g==='moss'?'sq_moss':g==='gravel'?'sq_gravel':g==='pavel'?'sq_stone':g==='soil'?'sq_soil':g==='mud'?'sq_mud':g==='water'?'sq_grass':'sq_grass';}   // M3-bis : droad/dpark = route+parking de livraison (placeholders sq_path/sq_stone → tuiles peintes de Nano)
 
 function zoneCost(){const o=W.cropzones.filter(z=>z.owned).length;return Math.floor(300*Math.pow(1.7,o-1)*homeZoneDiscount());}
 // une parcelle n'est visible/achetable que si sa clairiere (landgroup) est defrichee
